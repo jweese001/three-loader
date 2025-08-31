@@ -1,0 +1,1131 @@
+/* Editor-specific styles */
+
+/* Drop Zone */
+.drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: var(--background);
+    margin-bottom: 1rem;
+}
+
+.drop-zone:hover {
+    border-color: var(--accent-color);
+    background: rgba(157, 217, 217, 0.05);
+}
+
+.drop-zone.drag-over {
+    border-color: var(--primary-color);
+    background: rgba(37, 99, 235, 0.1);
+    transform: scale(1.02);
+}
+
+.drop-content {
+    pointer-events: none;
+}
+
+.drop-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+}
+
+.drop-zone p {
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+/* Objects List */
+.objects-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.no-objects {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.object-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: var(--background);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.object-item:hover {
+    background: var(--surface-light);
+}
+
+.object-item.selected {
+    background: rgba(37, 99, 235, 0.2);
+    border: 1px solid var(--primary-color);
+}
+
+.object-info {
+    flex: 1;
+}
+
+.object-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.object-details {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.object-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.object-action {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.object-action:hover {
+    background: var(--surface-light);
+    color: var(--text-primary);
+}
+
+.object-action.delete:hover {
+    color: var(--error);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Control Grid - Fixed for material editor visibility */
+.controls-grid {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+}
+
+.controls-grid label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 32px;
+    flex-wrap: nowrap;
+}
+
+.controls-grid label span:first-child {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    min-width: 70px;
+    flex-shrink: 0;
+}
+
+.controls-grid input[type="color"] {
+    width: 40px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    cursor: pointer;
+}
+
+.controls-grid input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+}
+
+.controls-grid input[type="range"] {
+    flex: 1;
+    max-width: 100px;
+    min-width: 80px;
+}
+
+.controls-grid input[type="number"] {
+    width: 80px;
+    padding: 0.375rem 0.5rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.controls-grid input[type="number"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.value-display {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    min-width: 35px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* Transform Controls */
+.transform-section {
+    margin-bottom: 1.5rem;
+}
+
+.transform-section:last-child {
+    margin-bottom: 0;
+}
+
+.xyz-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.xyz-controls label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.xyz-controls label span {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.xyz-controls input {
+    padding: 0.375rem 0.5rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+/* Animation Controls */
+.animation-controls {
+    display: grid;
+    gap: 1rem;
+}
+
+.animation-controls select {
+    padding: 0.375rem 0.5rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.animation-controls select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.animation-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Range Input Styling */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    background: var(--primary-dark);
+    transform: scale(1.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+    background: var(--primary-dark);
+    transform: scale(1.2);
+}
+
+/* Status Indicators */
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-loading {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.status-success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.status-error {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+/* Tooltips */
+[title] {
+    position: relative;
+    cursor: help;
+}
+
+/* Animation States */
+.animate-in {
+    animation: slideInUp 0.3s ease-out;
+}
+
+.animate-out {
+    animation: slideOutDown 0.3s ease-in;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideOutDown {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+}
+
+/* Focus States */
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Selection States */
+::selection {
+    background: rgba(37, 99, 235, 0.3);
+    color: var(--text-primary);
+}
+
+/* Active States */
+.btn.active,
+.btn-small.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn.active:hover,
+.btn-small.active:hover {
+    background: var(--primary-dark);
+}
+
+/* Disabled States */
+.panel:has(input:disabled) {
+    opacity: 0.6;
+}
+
+.panel:has(input:disabled) h3::after {
+    content: " (No object selected)";
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: normal;
+}
+
+/* Export Button States */
+#export-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Loading States */
+.objects-list.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* Camera Controls Panel */
+.camera-controls-panel {
+    position: absolute;
+    top: 70px;
+    right: 20px;
+    width: 320px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    z-index: 100;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.camera-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.camera-panel-header h4 {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.camera-controls-grid {
+    display: grid;
+    gap: 1.5rem;
+}
+
+/* Control Groups */
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.control-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.control-group h5 {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin: 0;
+}
+
+/* Direction Pad */
+.direction-pad {
+    display: grid;
+    grid-template-areas: 
+        ". up ."
+        "left center right"
+        ". down .";
+    gap: 0.25rem;
+    width: fit-content;
+    margin: 0 auto;
+}
+
+.dir-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dir-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+.dir-btn:active {
+    transform: scale(0.95);
+}
+
+.dir-btn.center {
+    background: var(--surface-light);
+    opacity: 0.7;
+}
+
+#pan-up-btn { grid-area: up; }
+#pan-left-btn { grid-area: left; }
+#pan-center-btn { grid-area: center; }
+#pan-right-btn { grid-area: right; }
+#pan-down-btn { grid-area: down; }
+
+.dir-row {
+    display: contents;
+}
+
+/* Tilt Controls */
+.tilt-controls {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.tilt-btn {
+    width: 45px;
+    height: 35px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tilt-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.tilt-btn.center {
+    background: var(--surface-light);
+    opacity: 0.7;
+}
+
+/* Zoom Controls */
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.zoom-btn {
+    width: 50px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.zoom-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.zoom-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+}
+
+.zoom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.zoom-slider::-webkit-slider-thumb:hover {
+    background: var(--primary-dark);
+    transform: scale(1.2);
+}
+
+.zoom-value {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    min-width: 30px;
+    text-align: center;
+}
+
+/* Speed Controls */
+.speed-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+}
+
+.speed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--secondary-color);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.speed-value {
+    display: block;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.quick-btn {
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.quick-btn:hover {
+    background: var(--accent-color);
+    color: var(--background);
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .camera-controls-panel {
+        width: 280px;
+        right: 10px;
+    }
+}
+
+@media (max-width: 768px) {
+    .camera-controls-panel {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90vw;
+        max-width: 350px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+}
+
+/* Scrollable Right Sidebar */
+.sidebar-right {
+    overflow-y: auto;
+    max-height: calc(100vh - 60px); /* Account for header */
+    padding-right: 8px; /* Space for scrollbar */
+}
+
+.sidebar-right::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-right::-webkit-scrollbar-track {
+    background: var(--background);
+    border-radius: 3px;
+}
+
+.sidebar-right::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+.sidebar-right::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* New Panel-Level Collapsible System */
+.collapsible-panel {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: visible;
+    margin-bottom: 0;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: var(--surface-light);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.panel-header:hover {
+    background: var(--border);
+}
+
+.panel-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.panel-header .collapse-arrow {
+    font-size: 0.875rem;
+    transition: transform 0.3s ease;
+    color: var(--text-secondary);
+}
+
+.panel-content {
+    padding: 1.5rem;
+    background: var(--surface);
+    transition: all 0.3s ease;
+}
+
+.panel-content.collapsed {
+    max-height: 0;
+    padding: 0 1.5rem;
+    overflow: hidden;
+}
+
+/* Section dividers within panels */
+.transform-section,
+.camera-section {
+    margin-bottom: 1.5rem;
+}
+
+.transform-section:last-child,
+.camera-section:last-child {
+    margin-bottom: 0;
+}
+
+.transform-section h4,
+.camera-section h4 {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+}
+
+/* Legacy collapsible sections (keeping for compatibility) */
+.collapsible-section {
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: visible;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--surface-light);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.section-header:hover {
+    background: var(--surface);
+}
+
+.section-header span:first-child {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.collapse-arrow {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    transition: transform 0.3s ease;
+}
+
+.section-header[aria-expanded="false"] .collapse-arrow {
+    transform: rotate(-90deg);
+}
+
+.section-content {
+    padding: 1rem;
+    background: var(--background);
+    transition: all 0.3s ease;
+}
+
+.section-content.collapsed {
+    max-height: 0;
+    padding: 0 1rem;
+    opacity: 0;
+}
+
+.section-content:not(.collapsed) {
+    max-height: 500px;
+    opacity: 1;
+}
+
+/* Direction Pad in Collapsible Section */
+.collapsible-section .direction-pad {
+    display: grid;
+    grid-template-areas: 
+        ". up ."
+        "left center right"
+        ". down .";
+    gap: 0.25rem;
+    width: fit-content;
+    margin: 0 auto;
+}
+
+.collapsible-section .dir-btn {
+    width: 35px;
+    height: 35px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.collapsible-section .dir-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+.collapsible-section .dir-btn.center {
+    background: var(--surface-light);
+    opacity: 0.7;
+}
+
+#pan-up-btn { grid-area: up; }
+#pan-left-btn { grid-area: left; }
+#pan-center-btn { grid-area: center; }
+#pan-right-btn { grid-area: right; }
+#pan-down-btn { grid-area: down; }
+
+/* Tilt Controls in Collapsible Section */
+.collapsible-section .tilt-controls {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.collapsible-section .tilt-btn {
+    width: 40px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.collapsible-section .tilt-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.collapsible-section .tilt-btn.center {
+    background: var(--surface-light);
+    opacity: 0.7;
+}
+
+/* Zoom Controls in Collapsible Section */
+.collapsible-section .zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.collapsible-section .zoom-btn {
+    width: 45px;
+    height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.collapsible-section .zoom-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.collapsible-section .zoom-slider {
+    flex: 1;
+}
+
+.collapsible-section .zoom-value {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    min-width: 25px;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Speed Slider in Collapsible Section */
+.collapsible-section .speed-slider {
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.collapsible-section .speed-value {
+    display: block;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Quick Actions in Collapsible Section */
+.collapsible-section .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.collapsible-section .quick-btn {
+    padding: 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.collapsible-section .quick-btn:hover {
+    background: var(--accent-color);
+    color: var(--background);
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+}
+
+/* Controls Grid in Collapsible Sections */
+.collapsible-section .controls-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.collapsible-section .controls-grid label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.collapsible-section .controls-grid label span:first-child {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    min-width: 70px;
+    flex-shrink: 0;
+}
+
+.collapsible-section .controls-grid input[type="color"] {
+    width: 40px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    cursor: pointer;
+}
+
+.collapsible-section .controls-grid input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+}
+
+.collapsible-section .controls-grid input[type="range"] {
+    flex: 1;
+    max-width: 100px;
+    min-width: 80px;
+}
+
+.collapsible-section .value-display {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    min-width: 35px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* XYZ Controls in Collapsible Sections */
+.collapsible-section .xyz-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.collapsible-section .xyz-controls label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.collapsible-section .xyz-controls label span {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.collapsible-section .xyz-controls input {
+    padding: 0.375rem 0.5rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+/* Animation Controls in Collapsible Sections */
+.collapsible-section .animation-controls {
+    display: grid;
+    gap: 1rem;
+}
+
+.collapsible-section .animation-controls select {
+    padding: 0.375rem 0.5rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.collapsible-section .animation-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+/* UI Toggle Functionality - Simple approach - REMOVED PROBLEMATIC RULE */
+
+.ui-hidden .app-header h1 {
+    display: none;
+}
+
+.ui-hidden .app-header .header-actions > *:not(#toggle-ui-btn) {
+    display: none;
+}
+
+.ui-hidden .app-header {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    padding: 0;
+    z-index: 1000;
+    width: auto;
+}
+
+.ui-hidden .viewport-container {
+    width: 100%;
+    flex: 1;
+}
+
+.ui-hidden .viewport-controls {
+    display: none;
+}
+
+/* Hide sidebars when UI is hidden - only via JavaScript control */
+
+/* Material Panel specific fixes */
+#material-panel .controls-grid {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+}
+
+#material-panel .controls-grid label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 32px;
+    flex-wrap: nowrap;
+}
+
+#material-panel .section-content {
+    padding: 1rem;
+    background: var(--background);
+    overflow: visible;
+}
+
+/* Toggle button styling when UI is hidden */
+.ui-hidden #toggle-ui-btn {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.ui-hidden #toggle-ui-btn:hover {
+    background: rgba(37, 99, 235, 0.8);
+    border-color: var(--primary-color);
+}
+
+/* Smooth transitions */
+.sidebar-left,
+.sidebar-right,
+.app-header {
+    transition: all 0.3s ease;
+}

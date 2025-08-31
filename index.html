@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js OBJ Loader & Editor</title>
+    <link rel="stylesheet" href="/styles/main.css">
+    <link rel="stylesheet" href="/styles/editor.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1>Three.js OBJ Editor</h1>
+            <div class="header-actions">
+                <button id="export-btn" class="btn btn-primary" disabled>Export Code</button>
+                <button id="clear-scene-btn" class="btn btn-secondary">Clear Scene</button>
+                <button id="toggle-ui-btn" class="btn btn-outline" title="Toggle UI">👁️ Hide UI</button>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <main class="app-main">
+            <!-- Left Sidebar - File Loading & Object List -->
+            <aside class="sidebar sidebar-left">
+                <div class="panel">
+                    <h3>Load Objects</h3>
+                    <div id="drop-zone" class="drop-zone">
+                        <div class="drop-content">
+                            <div class="drop-icon">📁</div>
+                            <p>Drag & drop .obj files here</p>
+                            <p>or</p>
+                            <button id="file-select-btn" class="btn btn-outline">Choose Files</button>
+                        </div>
+                        <input type="file" id="file-input" accept=".obj" multiple hidden>
+                    </div>
+                    
+                    <div class="loading-indicator" id="loading-indicator" style="display: none;">
+                        <div class="spinner"></div>
+                        <span>Loading model...</span>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Scene Objects</h3>
+                    <div id="objects-list" class="objects-list">
+                        <p class="no-objects">No objects loaded</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center - 3D Viewport -->
+            <div class="viewport-container">
+                <div id="viewport" class="viewport">
+                    <div id="viewport-info" class="viewport-info">
+                        <p>🎯 Use mouse to orbit, zoom, and pan</p>
+                        <p>📁 Load an .obj file to get started</p>
+                    </div>
+                </div>
+                
+                <!-- Viewport Controls -->
+                <div class="viewport-controls">
+                    <button id="reset-camera-btn" class="control-btn" title="Reset Camera">🏠</button>
+                    <button id="wireframe-toggle-btn" class="control-btn" title="Toggle Wireframe">🔲</button>
+                    <button id="fullscreen-btn" class="control-btn" title="Fullscreen">⛶</button>
+                    <button id="camera-controls-toggle-btn" class="control-btn" title="Camera Controls">📹</button>
+                </div>
+
+            </div>
+
+            <!-- Right Sidebar - Editor Controls -->
+            <aside class="sidebar sidebar-right">
+                <!-- Camera Controls Panel -->
+                <div class="panel collapsible-panel" id="camera-panel">
+                    <div class="panel-header" data-target="camera-content">
+                        <h3>Camera Controls</h3>
+                        <span class="collapse-arrow">▼</span>
+                    </div>
+                    <div class="panel-content" id="camera-content">
+                        <div class="camera-section">
+                            <h4>Pan Movement</h4>
+                            <div class="direction-pad">
+                                <button id="pan-up-btn" class="dir-btn">▲</button>
+                                <div class="dir-row">
+                                    <button id="pan-left-btn" class="dir-btn">◀</button>
+                                    <button id="pan-center-btn" class="dir-btn center">⊙</button>
+                                    <button id="pan-right-btn" class="dir-btn">▶</button>
+                                </div>
+                                <button id="pan-down-btn" class="dir-btn">▼</button>
+                            </div>
+                        </div>
+
+                        <div class="camera-section">
+                            <h4>Tilt Controls</h4>
+                            <div class="tilt-controls">
+                                <button id="tilt-up-btn" class="tilt-btn">↗</button>
+                                <button id="tilt-reset-btn" class="tilt-btn center">➡</button>
+                                <button id="tilt-down-btn" class="tilt-btn">↘</button>
+                            </div>
+                        </div>
+
+                        <div class="camera-section">
+                            <h4>Zoom & Distance</h4>
+                            <div class="zoom-controls">
+                                <button id="zoom-in-btn" class="zoom-btn">🔍+</button>
+                                <input type="range" id="zoom-slider" min="5" max="100" value="25" class="zoom-slider">
+                                <button id="zoom-out-btn" class="zoom-btn">🔍-</button>
+                            </div>
+                            <div class="zoom-value" id="zoom-value">25</div>
+                        </div>
+
+                        <div class="camera-section">
+                            <h4>Movement Speed</h4>
+                            <input type="range" id="camera-speed-slider" min="0.1" max="5" step="0.1" value="1" class="speed-slider">
+                            <div class="speed-value" id="speed-value">1.0x</div>
+                        </div>
+
+                        <div class="camera-section">
+                            <h4>Quick Positions</h4>
+                            <div class="quick-actions">
+                                <button id="camera-front-btn" class="quick-btn">Front</button>
+                                <button id="camera-back-btn" class="quick-btn">Back</button>
+                                <button id="camera-top-btn" class="quick-btn">Top</button>
+                                <button id="camera-bottom-btn" class="quick-btn">Bottom</button>
+                                <button id="camera-left-btn" class="quick-btn">Left</button>
+                                <button id="camera-right-btn" class="quick-btn">Right</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel collapsible-panel" id="material-panel">
+                    <div class="panel-header" data-target="material-content">
+                        <h3>Material Editor</h3>
+                        <span class="collapse-arrow">▼</span>
+                    </div>
+                    <div class="panel-content" id="material-content">
+                        <div class="controls-grid">
+                            <label>
+                                <span>Color</span>
+                                <input type="color" id="material-color" value="#9dd9d9">
+                            </label>
+                            
+                            <label>
+                                <span>Wireframe</span>
+                                <input type="checkbox" id="material-wireframe" checked>
+                            </label>
+                            
+                            <label>
+                                <span>Opacity</span>
+                                <input type="range" id="material-opacity" min="0" max="1" step="0.01" value="0.6">
+                                <span class="value-display">0.6</span>
+                            </label>
+                            
+                            <label>
+                                <span>Roughness</span>
+                                <input type="range" id="material-roughness" min="0" max="1" step="0.01" value="0.5">
+                                <span class="value-display">0.5</span>
+                            </label>
+                            
+                            <label>
+                                <span>Metalness</span>
+                                <input type="range" id="material-metalness" min="0" max="1" step="0.01" value="0.0">
+                                <span class="value-display">0.0</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel collapsible-panel" id="transform-panel">
+                    <div class="panel-header" data-target="transform-content">
+                        <h3>Transform</h3>
+                        <span class="collapse-arrow">▼</span>
+                    </div>
+                    <div class="panel-content" id="transform-content">
+                        <div class="transform-section">
+                            <h4>Position</h4>
+                            <div class="xyz-controls">
+                                <label>
+                                    <span>X</span>
+                                    <input type="number" id="pos-x" step="0.1" value="0">
+                                </label>
+                                <label>
+                                    <span>Y</span>
+                                    <input type="number" id="pos-y" step="0.1" value="0">
+                                </label>
+                                <label>
+                                    <span>Z</span>
+                                    <input type="number" id="pos-z" step="0.1" value="0">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="transform-section">
+                            <h4>Rotation</h4>
+                            <div class="xyz-controls">
+                                <label>
+                                    <span>X</span>
+                                    <input type="number" id="rot-x" step="0.1" value="0">
+                                </label>
+                                <label>
+                                    <span>Y</span>
+                                    <input type="number" id="rot-y" step="0.1" value="0">
+                                </label>
+                                <label>
+                                    <span>Z</span>
+                                    <input type="number" id="rot-z" step="0.1" value="0">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="transform-section">
+                            <h4>Scale</h4>
+                            <div class="xyz-controls">
+                                <label>
+                                    <span>X</span>
+                                    <input type="number" id="scale-x" step="0.1" value="1" min="0.1">
+                                </label>
+                                <label>
+                                    <span>Y</span>
+                                    <input type="number" id="scale-y" step="0.1" value="1" min="0.1">
+                                </label>
+                                <label>
+                                    <span>Z</span>
+                                    <input type="number" id="scale-z" step="0.1" value="1" min="0.1">
+                                </label>
+                            </div>
+                            <div style="margin-top: 0.75rem;">
+                                <button id="uniform-scale-btn" class="btn btn-small">Lock Scale</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel collapsible-panel" id="animation-panel">
+                    <div class="panel-header" data-target="animation-content">
+                        <h3>Animation</h3>
+                        <span class="collapse-arrow">▼</span>
+                    </div>
+                    <div class="panel-content" id="animation-content">
+                        <div class="animation-controls">
+                            <label>
+                                <span>Animation Type</span>
+                                <select id="animation-type">
+                                    <option value="none">None</option>
+                                    <option value="rotate-y">Rotate Y</option>
+                                    <option value="rotate-xyz">Rotate XYZ</option>
+                                    <option value="bounce">Bounce</option>
+                                    <option value="orbit">Orbit</option>
+                                </select>
+                            </label>
+                            
+                            <label>
+                                <span>Speed</span>
+                                <input type="range" id="animation-speed" min="0.001" max="0.05" step="0.001" value="0.01">
+                                <span class="value-display">0.01</span>
+                            </label>
+                        </div>
+                        
+                        <div class="animation-actions" style="margin-top: 1rem;">
+                            <button id="play-animation-btn" class="btn btn-small">▶ Play</button>
+                            <button id="pause-animation-btn" class="btn btn-small" style="display: none;">⏸ Pause</button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Export Modal -->
+        <div id="export-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Export Scene Code</h3>
+                    <button id="close-modal-btn" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Generated JavaScript code for your Three.js scene:</p>
+                    <textarea id="export-code" readonly rows="20"></textarea>
+                    <div class="modal-actions">
+                        <button id="copy-code-btn" class="btn btn-primary">Copy to Clipboard</button>
+                        <button id="download-code-btn" class="btn btn-secondary">Download File</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="src/main.js" type="module"></script>
+    
+    <script>
+        function simpleToggle() {
+            const left = document.querySelector('.sidebar-left');
+            const right = document.querySelector('.sidebar-right');
+            const btn = document.getElementById('toggle-ui-btn');
+            
+            if (left.style.display === 'none') {
+                left.style.display = 'flex';
+                right.style.display = 'flex';
+                btn.innerHTML = '👁️ Hide UI';
+            } else {
+                left.style.display = 'none';
+                right.style.display = 'none';
+                btn.innerHTML = '👁️ Show UI';
+            }
+        }
+    </script>
+</body>
+</html>
