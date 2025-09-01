@@ -32,8 +32,8 @@
     padding: 0.5rem 1rem;
     cursor: pointer;
     transition: background-color 0.2s ease;
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: 0.95rem;
+    font-weight: bold;
     border-radius: 4px;
 }
 
@@ -91,23 +91,23 @@
 }
 
 .toolbar-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    padding: 0.5rem;
-    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
     cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.875rem;
-    min-width: 2.5rem;
+    transition: background-color 0.2s ease;
+    font-size: 0.95rem;
+    font-weight: bold;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .toolbar-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
 }
 
 .editor-toolbar {
@@ -126,7 +126,7 @@
 
 .editor-info {
     color: var(--text-secondary);
-    font-size: 0.875rem;
+    font-size: 0.95rem;
 }
 
 .monaco-editor-fullscreen {
@@ -356,7 +356,7 @@
 }
 
 .controls-grid label span:first-child {
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: var(--text-secondary);
     min-width: 70px;
     flex-shrink: 0;
@@ -390,7 +390,7 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     color: var(--text-primary);
-    font-size: 0.875rem;
+    font-size: 0.95rem;
 }
 
 .controls-grid input[type="number"]:focus {
@@ -439,7 +439,7 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     color: var(--text-primary);
-    font-size: 0.875rem;
+    font-size: 0.95rem;
 }
 
 /* Animation Controls */
@@ -454,7 +454,7 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     color: var(--text-primary);
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     cursor: pointer;
 }
 
@@ -669,7 +669,7 @@ textarea:focus {
 }
 
 .control-group h5 {
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: var(--text-secondary);
     font-weight: 500;
     margin: 0;
@@ -771,7 +771,7 @@ textarea:focus {
     border-radius: 6px;
     background: var(--background);
     color: var(--text-primary);
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -806,7 +806,7 @@ textarea:focus {
 }
 
 .zoom-value {
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: var(--text-muted);
     min-width: 30px;
     text-align: center;
@@ -834,7 +834,7 @@ textarea:focus {
 .speed-value {
     display: block;
     text-align: center;
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: var(--text-muted);
     margin-top: 0.5rem;
 }
@@ -943,7 +943,7 @@ textarea:focus {
 }
 
 .panel-header .collapse-arrow {
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     transition: transform 0.3s ease;
     color: var(--text-secondary);
 }
@@ -973,7 +973,7 @@ textarea:focus {
 
 .transform-section h4,
 .camera-section h4 {
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: var(--text-secondary);
     margin-bottom: 0.75rem;
     font-weight: 500;
@@ -1137,7 +1137,7 @@ textarea:focus {
 }
 
 .collapsible-section .zoom-value {
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: var(--text-muted);
     min-width: 25px;
     text-align: center;
@@ -1153,7 +1153,7 @@ textarea:focus {
 .collapsible-section .speed-value {
     display: block;
     text-align: center;
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: var(--text-muted);
     font-weight: 500;
 }
@@ -1198,7 +1198,7 @@ textarea:focus {
 }
 
 .collapsible-section .controls-grid label span:first-child {
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: var(--text-secondary);
     min-width: 70px;
     flex-shrink: 0;
@@ -1258,7 +1258,7 @@ textarea:focus {
     border: 1px solid var(--border);
     border-radius: 4px;
     color: var(--text-primary);
-    font-size: 0.875rem;
+    font-size: 0.95rem;
 }
 
 /* Animation Controls in Collapsible Sections */
@@ -1273,7 +1273,7 @@ textarea:focus {
     border: 1px solid var(--border);
     border-radius: 4px;
     color: var(--text-primary);
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     cursor: pointer;
 }
 
