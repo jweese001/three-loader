@@ -1,9 +1,14 @@
+import { CodeTemplateGenerator } from '../codegen/CodeTemplateGenerator.js';
+
 export class ExportManager {
     constructor(scene, objectManager) {
         this.scene = scene;
         this.objectManager = objectManager;
         
-        console.log('📤 ExportManager initialized');
+        // Initialize code template generator for live code generation
+        this.codeTemplateGenerator = new CodeTemplateGenerator(scene, objectManager);
+        
+        console.log('📤 ExportManager initialized with live code generation support');
     }
     
     generateCode() {
@@ -214,5 +219,59 @@ ${objects.map(obj => this.generateObjectCode(obj)).join('\n\n')}
         const code = this.generateCode();
         console.log('📤 Scene exported successfully');
         return code;
+    }
+    
+    /**
+     * Generate editable Three.js code for live editing
+     * @param {Object} options - Generation options
+     * @returns {string} Editable Three.js code
+     */
+    generateEditableCode(options = {}) {
+        console.log('🔧 Generating editable code for live editing...');
+        const editableCode = this.codeTemplateGenerator.generateEditableCode(options);
+        console.log('✅ Editable code generated successfully');
+        return editableCode;
+    }
+    
+    /**
+     * Export options for different use cases
+     */
+    getExportOptions() {
+        return {
+            // Standard export (existing functionality)
+            standard: {
+                name: 'Standard Export',
+                description: 'Production-ready Three.js scene code',
+                generate: () => this.generateCode()
+            },
+            
+            // Live editable export (new functionality)
+            editable: {
+                name: 'Live Editable Export',
+                description: 'Structured code for real-time editing and learning',
+                generate: (options) => this.generateEditableCode(options)
+            },
+            
+            // Compact export
+            compact: {
+                name: 'Compact Export', 
+                description: 'Minified code with minimal comments',
+                generate: () => this.generateEditableCode({
+                    includeComments: false,
+                    includeAnimation: false
+                })
+            },
+            
+            // Educational export
+            educational: {
+                name: 'Educational Export',
+                description: 'Heavily commented code for learning Three.js',
+                generate: () => this.generateEditableCode({
+                    includeComments: true,
+                    includeImports: true,
+                    includeAnimation: true
+                })
+            }
+        };
     }
 }

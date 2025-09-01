@@ -340,10 +340,12 @@ export class UIController {
                 console.log(`📋 ${isCollapsed ? 'Expanded' : 'Collapsed'} panel: ${targetId}`);
             });
             
-            // Set initial state (all panels expanded by default)
-            header.setAttribute('aria-expanded', 'true');
+            // Set initial state (all panels collapsed by default)
+            const content = document.getElementById(header.getAttribute('data-target'));
+            content.classList.add('collapsed');
+            header.setAttribute('aria-expanded', 'false');
             const arrow = header.querySelector('.collapse-arrow');
-            if (arrow) arrow.style.transform = 'rotate(0deg)';
+            if (arrow) arrow.style.transform = 'rotate(-90deg)';
         });
         
         // Keep legacy support for any remaining old-style sections

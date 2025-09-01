@@ -1,4 +1,6 @@
 import * as monaco from 'monaco-editor';
+import { CodeCompiler } from '../codegen/CodeCompiler.js';
+import { LiveUpdateManager } from '../codegen/LiveUpdateManager.js';
 
 export class CodeEditorManager {
     constructor(config) {
@@ -13,6 +15,11 @@ export class CodeEditorManager {
         this.isUpdatingFromUI = false;
         this.isUpdatingFromCode = false;
         this.currentView = 'studio';
+        
+        // Live compilation system (Phase 2)
+        this.codeCompiler = new CodeCompiler(this.scene, this.objectManager);
+        this.liveUpdateManager = new LiveUpdateManager(this.scene, this.objectManager, this.codeCompiler);
+        this.liveUpdatesEnabled = true;
         
         this.init();
         console.log('💻 CodeEditorManager initialized');
@@ -125,6 +132,12 @@ export class CodeEditorManager {
                 this.currentCode = this.fullscreenEditor.getValue();
                 this.syncEditors();
                 console.log('💻 Fullscreen code changed by user');
+                
+                // Phase 2: Trigger live compilation if enabled
+                if (this.liveUpdatesEnabled && this.currentView === 'code') {
+                    // LiveUpdateManager handles debouncing automatically
+                    console.log('⚡ Triggering live compilation...');
+                }
             }
         });
         
@@ -207,6 +220,12 @@ export class CodeEditorManager {
             setTimeout(() => {
                 if (this.fullscreenEditor) {
                     this.fullscreenEditor.layout();
+                    
+                    // Phase 2: Start live updates when entering code view
+                    if (this.liveUpdatesEnabled) {
+                        this.liveUpdateManager.startLiveUpdates(this.fullscreenEditor);
+                        console.log('⚡ Live updates started for code view');
+                    }
                 }
             }, 100);
             
@@ -215,6 +234,12 @@ export class CodeEditorManager {
             codeView.style.display = 'none';
             studioView.style.display = 'flex';
             viewToggleBtn.textContent = 'View';
+            
+            // Phase 2: Stop live updates when leaving code view
+            if (this.liveUpdatesEnabled) {
+                this.liveUpdateManager.stopLiveUpdates();
+                console.log('⏹️ Live updates stopped for studio view');
+            }
             
             // Return scene to studio viewport
             this.returnSceneToStudio();
@@ -378,8 +403,12 @@ export class CodeEditorManager {
         this.isUpdatingFromUI = true;
         
         try {
-            // Generate fresh code from current UI state
-            const code = this.exportManager.generateCode();
+            // Generate fresh editable code from current UI state (NEW!)
+            const code = this.exportManager.generateEditableCode({
+                includeComments: true,
+                includeImports: true,
+                includeAnimation: true
+            });
             this.currentCode = code;
             
             if (this.editor) {
@@ -389,12 +418,44 @@ export class CodeEditorManager {
                 this.fullscreenEditor.setValue(code);
             }
             
-            console.log('⬇️ Code updated from UI state');
+            console.log('⬇️ Editable code updated from UI state');
         } catch (error) {
             console.error('❌ Failed to sync from UI:', error);
         } finally {
             this.isUpdatingFromUI = false;
         }
+    }
+    
+    /**
+     * Generate live editable code with different options
+     * @param {string} exportType - 'educational', 'compact', 'standard', 'editable'
+     */
+    generateLiveCode(exportType = 'editable') {
+        const exportOptions = this.exportManager.getExportOptions();
+        
+        if (!exportOptions[exportType]) {
+            console.warn(`❌ Unknown export type: ${exportType}. Using 'editable' as fallback.`);
+            exportType = 'editable';
+        }
+        
+        const code = exportOptions[exportType].generate();
+        this.currentCode = code;
+        
+        // Update editors
+        this.isUpdatingFromUI = true;
+        try {
+            if (this.editor) {
+                this.editor.setValue(code);
+            }
+            if (this.fullscreenEditor) {
+                this.fullscreenEditor.setValue(code);
+            }
+            console.log(`🔧 ${exportOptions[exportType].name} code generated`);
+        } finally {
+            this.isUpdatingFromUI = false;
+        }
+        
+        return code;
     }
     
     async syncToUI() {
@@ -562,12 +623,77 @@ export class CodeEditorManager {
         }
     }
     
+    /**
+     * Toggle live updates on/off (Phase 2)
+     * @param {boolean} enabled - Whether to enable live updates
+     */
+    setLiveUpdatesEnabled(enabled) {
+        this.liveUpdatesEnabled = enabled;
+        
+        if (!enabled && this.currentView === 'code') {
+            this.liveUpdateManager.stopLiveUpdates();
+            console.log('⏹️ Live updates disabled');
+        } else if (enabled && this.currentView === 'code' && this.fullscreenEditor) {
+            this.liveUpdateManager.startLiveUpdates(this.fullscreenEditor);
+            console.log('⚡ Live updates enabled');
+        }
+    }
+    
+    /**
+     * Get live compilation status and performance stats (Phase 2)
+     * @returns {Object} Live compilation status
+     */
+    getLiveCompilationStatus() {
+        return {
+            enabled: this.liveUpdatesEnabled,
+            currentView: this.currentView,
+            isCompiling: this.codeCompiler.isCompiling,
+            errors: this.codeCompiler.getCompilationErrors(),
+            performance: this.liveUpdateManager.getPerformanceStats()
+        };
+    }
+    
+    /**
+     * Reset live compilation system (Phase 2)
+     */
+    resetLiveCompilation() {
+        this.codeCompiler.reset();
+        this.liveUpdateManager.reset();
+        console.log('🔄 Live compilation system reset');
+    }
+    
+    /**
+     * Get debug information for troubleshooting (Phase 2)
+     * @returns {Object} Debug information
+     */
+    getDebugInfo() {
+        return {
+            phase2Active: true,
+            liveUpdatesEnabled: this.liveUpdatesEnabled,
+            currentView: this.currentView,
+            hasFullscreenEditor: !!this.fullscreenEditor,
+            hasCodeCompiler: !!this.codeCompiler,
+            hasLiveUpdateManager: !!this.liveUpdateManager,
+            compilationStats: this.getLiveCompilationStatus()
+        };
+    }
+
     dispose() {
+        // Phase 2: Clean up live compilation system
+        if (this.liveUpdateManager) {
+            this.liveUpdateManager.reset();
+        }
+        if (this.codeCompiler) {
+            this.codeCompiler.reset();
+        }
+        
         if (this.editor) {
             this.editor.dispose();
         }
         if (this.fullscreenEditor) {
             this.fullscreenEditor.dispose();
         }
+        
+        console.log('🧹 CodeEditorManager disposed with Phase 2 cleanup');
     }
 }
