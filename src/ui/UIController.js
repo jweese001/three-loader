@@ -33,7 +33,8 @@ export class UIController {
         const loadingIndicator = document.getElementById('loading-indicator');
         
         // File select button
-        fileSelectBtn.addEventListener('click', () => {
+        fileSelectBtn.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent drop zone click from triggering
             fileInput.click();
         });
         
@@ -121,6 +122,10 @@ export class UIController {
         const resetCameraBtn = document.getElementById('reset-camera-btn');
         resetCameraBtn.addEventListener('click', () => {
             this.scene.resetCamera();
+            // Auto-sync code editor
+            if (this.onObjectUpdate) {
+                setTimeout(() => this.triggerCodeSync(), 100);
+            }
         });
         
         // Wireframe toggle button
@@ -157,6 +162,8 @@ export class UIController {
                 this.updateObjectsList();
                 this.updateMaterialControls(null);
                 this.updateTransformControls(null);
+                // Auto-sync code editor after clearing scene
+                setTimeout(() => this.triggerCodeSync(), 100);
                 this.updateAnimationControls(null);
                 
                 // Disable export button
@@ -832,66 +839,28 @@ export class UIController {
         
         const toggleUI = () => {
             isUIHidden = !isUIHidden;
-            console.log(`🔄 Toggling UI: ${isUIHidden ? 'HIDE' : 'SHOW'}`);
+            console.log(`🔄 CSS-ONLY Toggle UI: ${isUIHidden ? 'HIDE' : 'SHOW'}`);
             
             if (isUIHidden) {
-                console.log('🙈 HIDING UI ELEMENTS');
+                console.log('🙈 HIDING UI - CSS handles everything');
                 appContainer.classList.add('ui-hidden');
-                
-                // Get elements after class change and hide them
-                requestAnimationFrame(() => {
-                    const leftSidebar = document.querySelector('.sidebar-left');
-                    const rightSidebar = document.querySelector('.sidebar-right');
-                    const viewportControls = document.querySelector('.viewport-controls');
-                    const headerActions = document.querySelectorAll('.header-actions > *:not(#toggle-ui-btn)');
-                    const headerTitle = document.querySelector('.app-header h1');
-                    
-                    if (leftSidebar) leftSidebar.style.display = 'none';
-                    if (rightSidebar) rightSidebar.style.display = 'none';
-                    if (viewportControls) viewportControls.style.display = 'none';
-                    if (headerTitle) headerTitle.style.display = 'none';
-                    headerActions.forEach(btn => btn.style.display = 'none');
-                });
-                
-                toggleUIBtn.innerHTML = '👁️ Show UI';
+                toggleUIBtn.innerHTML = 'Show UI';
                 toggleUIBtn.title = 'Show UI (H)';
                 
             } else {
-                console.log('👁️ SHOWING UI ELEMENTS');
+                console.log('👁️ SHOWING UI - CSS handles everything');
                 appContainer.classList.remove('ui-hidden');
-                
-                // Use requestAnimationFrame to ensure DOM has processed the class removal
-                requestAnimationFrame(() => {
-                    const leftSidebar = document.querySelector('.sidebar-left');
-                    const rightSidebar = document.querySelector('.sidebar-right');
-                    const viewportControls = document.querySelector('.viewport-controls');
-                    const headerActions = document.querySelectorAll('.header-actions > *:not(#toggle-ui-btn)');
-                    const headerTitle = document.querySelector('.app-header h1');
-                    
-                    // Double-check elements exist before modifying
-                    if (leftSidebar) {
-                        leftSidebar.style.display = 'flex';
-                        console.log('✅ Left sidebar restored to flex');
-                    }
-                    if (rightSidebar) {
-                        rightSidebar.style.display = 'flex';
-                        console.log('✅ Right sidebar restored to flex');
-                    }
-                    if (viewportControls) viewportControls.style.display = 'flex';
-                    if (headerTitle) headerTitle.style.display = 'block';
-                    headerActions.forEach(btn => btn.style.display = 'inline-flex');
-                    
-                    // Trigger scene resize after DOM changes are complete
-                    if (this.scene && this.scene.handleResize) {
-                        setTimeout(() => {
-                            this.scene.handleResize();
-                        }, 50);
-                    }
-                });
-                
-                toggleUIBtn.innerHTML = '👁️ Hide UI';
+                toggleUIBtn.innerHTML = 'Hide UI';
                 toggleUIBtn.title = 'Hide UI (H)';
             }
+            
+            // Trigger scene resize after CSS changes take effect
+            setTimeout(() => {
+                if (this.scene && this.scene.handleResize) {
+                    this.scene.handleResize();
+                    console.log('✅ Scene resized after UI toggle');
+                }
+            }, 100);
         };
         
         toggleUIBtn.addEventListener('click', (event) => {
@@ -1035,6 +1004,13 @@ export class UIController {
     updateObjectSelection(objectData) {
         this.selectedObjectId = objectData?.id || null;
         console.log('🎯 Object selection updated:', this.selectedObjectId);
+    }
+    
+    triggerCodeSync() {
+        // Trigger auto-sync of code editor when UI changes occur
+        if (window.threeLoaderApp && window.threeLoaderApp.codeEditorManager) {
+            window.threeLoaderApp.codeEditorManager.syncFromUI();
+        }
     }
     
     exportScene() {

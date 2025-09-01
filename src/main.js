@@ -5,6 +5,7 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { ThreeScene } from './core/Scene.js';
 import { ObjectManager } from './loaders/ObjectManager.js';
 import { UIController } from './ui/UIController.js';
+import { CodeEditorManager } from './ui/CodeEditorManager.js';
 import { ExportManager } from './export/ExportManager.js';
 import { AnimationController } from './utils/AnimationController.js';
 
@@ -14,6 +15,7 @@ class ThreeLoaderApp {
         this.scene = null;
         this.objectManager = null;
         this.uiController = null;
+        this.codeEditorManager = null;
         this.exportManager = null;
         this.animationController = null;
         
@@ -44,6 +46,14 @@ class ThreeLoaderApp {
                 animationController: this.animationController,
                 onObjectSelect: this.handleObjectSelect.bind(this),
                 onObjectUpdate: this.handleObjectUpdate.bind(this)
+            });
+            
+            // Initialize code editor manager
+            this.codeEditorManager = new CodeEditorManager({
+                scene: this.scene,
+                objectManager: this.objectManager,
+                exportManager: this.exportManager,
+                uiController: this.uiController
             });
             
             // Set up event listeners
@@ -145,6 +155,11 @@ class ThreeLoaderApp {
             case 'animation':
                 this.updateObjectAnimation(objectData);
                 break;
+        }
+        
+        // Auto-sync code editor with UI changes
+        if (this.codeEditorManager) {
+            this.codeEditorManager.syncFromUI();
         }
     }
     

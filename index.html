@@ -9,14 +9,17 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <h1>Three.js OBJ Editor</h1>
-            <div class="header-actions">
-                <button id="export-btn" class="btn btn-primary" disabled>Export Code</button>
-                <button id="clear-scene-btn" class="btn btn-secondary">Clear Scene</button>
-                <button id="toggle-ui-btn" class="btn btn-outline" title="Toggle UI">👁️ Hide UI</button>
+        <!-- Menu Bar -->
+        <header class="menu-bar">
+            <div class="app-title">
+                <h1>Three.js OBJ Editor</h1>
             </div>
+            <nav class="view-menu">
+                <button id="view-toggle-btn" class="menu-btn">View</button>
+                <button id="export-btn" class="menu-btn" disabled>Export</button>
+                <button id="clear-scene-btn" class="menu-btn">Clear</button>
+                <button id="toggle-ui-btn" class="menu-btn" title="Toggle UI">Hide UI</button>
+            </nav>
         </header>
 
         <!-- Main Layout -->
@@ -30,8 +33,8 @@
                             <div class="drop-icon">📁</div>
                             <p>Drag & drop .obj files here</p>
                             <p>or</p>
-                            <button id="file-select-btn" class="btn btn-outline">Choose Files</button>
                         </div>
+                        <button id="file-select-btn" class="btn btn-outline">Choose Files</button>
                         <input type="file" id="file-input" accept=".obj" multiple hidden>
                     </div>
                     
@@ -263,7 +266,42 @@
                         </div>
                     </div>
                 </div>
+
             </aside>
+        </main>
+
+        <!-- Code Editor Split View -->
+        <main class="code-editor-view" style="display: none;">
+            <!-- Left Panel - 3D Scene -->
+            <div class="scene-panel">
+                <div id="viewport-code" class="viewport"></div>
+                
+                <!-- Scene Controls Overlay -->
+                <div class="scene-controls-overlay">
+                    <div class="scene-toolbar">
+                        <button id="reset-camera-code-btn" class="toolbar-btn" title="Reset Camera">🏠</button>
+                        <button id="wireframe-toggle-code-btn" class="toolbar-btn" title="Toggle Wireframe">🔲</button>
+                        <button id="fullscreen-scene-btn" class="toolbar-btn" title="Fullscreen Scene">⛶</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Code Editor -->
+            <div class="editor-panel">
+                <div class="editor-toolbar">
+                    <div class="editor-actions">
+                        <button id="save-scene-code-btn" class="toolbar-btn">Save</button>
+                        <button id="load-scene-code-btn" class="toolbar-btn">Load</button>
+                        <button id="sync-from-ui-code-btn" class="toolbar-btn">From UI</button>
+                        <button id="sync-to-ui-code-btn" class="toolbar-btn">To UI</button>
+                        <input type="file" id="scene-file-code-input" accept=".js" hidden>
+                    </div>
+                    <div class="editor-info">
+                        <span id="editor-status">Ready</span>
+                    </div>
+                </div>
+                <div id="monaco-editor-fullscreen" class="monaco-editor-fullscreen"></div>
+            </div>
         </main>
 
         <!-- Export Modal -->
@@ -287,22 +325,5 @@
 
     <script src="src/main.js" type="module"></script>
     
-    <script>
-        function simpleToggle() {
-            const left = document.querySelector('.sidebar-left');
-            const right = document.querySelector('.sidebar-right');
-            const btn = document.getElementById('toggle-ui-btn');
-            
-            if (left.style.display === 'none') {
-                left.style.display = 'flex';
-                right.style.display = 'flex';
-                btn.innerHTML = '👁️ Hide UI';
-            } else {
-                left.style.display = 'none';
-                right.style.display = 'none';
-                btn.innerHTML = '👁️ Show UI';
-            }
-        }
-    </script>
 </body>
 </html>
