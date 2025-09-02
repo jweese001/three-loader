@@ -11,11 +11,16 @@ export class ObjectManager {
         
         // Default material settings
         this.defaultMaterial = {
+            type: 'standard',
             color: '#9dd9d9',
             wireframe: true,
             opacity: 0.6,
             roughness: 0.5,
-            metalness: 0.0
+            metalness: 0.0,
+            texture: {
+                category: 'none',
+                variant: null
+            }
         };
         
         console.log('📦 ObjectManager initialized');
@@ -132,15 +137,62 @@ export class ObjectManager {
     }
     
     // Apply material settings to object
-    applyMaterialToObject(object, materialSettings) {
-        const material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(materialSettings.color),
-            wireframe: materialSettings.wireframe,
-            transparent: materialSettings.opacity < 1,
-            opacity: materialSettings.opacity,
-            roughness: materialSettings.roughness,
-            metalness: materialSettings.metalness
-        });
+    applyMaterialToObject(object, materialSettings, texture = null) {
+        let material;
+        
+        // Create material based on type
+        switch (materialSettings.type) {
+            case 'basic':
+                material = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color(materialSettings.color),
+                    wireframe: materialSettings.wireframe,
+                    transparent: materialSettings.opacity < 1,
+                    opacity: materialSettings.opacity,
+                    map: texture
+                });
+                break;
+            case 'lambert':
+                material = new THREE.MeshLambertMaterial({
+                    color: new THREE.Color(materialSettings.color),
+                    wireframe: materialSettings.wireframe,
+                    transparent: materialSettings.opacity < 1,
+                    opacity: materialSettings.opacity,
+                    map: texture
+                });
+                break;
+            case 'phong':
+                material = new THREE.MeshPhongMaterial({
+                    color: new THREE.Color(materialSettings.color),
+                    wireframe: materialSettings.wireframe,
+                    transparent: materialSettings.opacity < 1,
+                    opacity: materialSettings.opacity,
+                    map: texture
+                });
+                break;
+            case 'physical':
+                material = new THREE.MeshPhysicalMaterial({
+                    color: new THREE.Color(materialSettings.color),
+                    wireframe: materialSettings.wireframe,
+                    transparent: materialSettings.opacity < 1,
+                    opacity: materialSettings.opacity,
+                    roughness: materialSettings.roughness,
+                    metalness: materialSettings.metalness,
+                    map: texture
+                });
+                break;
+            case 'standard':
+            default:
+                material = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(materialSettings.color),
+                    wireframe: materialSettings.wireframe,
+                    transparent: materialSettings.opacity < 1,
+                    opacity: materialSettings.opacity,
+                    roughness: materialSettings.roughness,
+                    metalness: materialSettings.metalness,
+                    map: texture
+                });
+                break;
+        }
         
         object.traverse((child) => {
             if (child.isMesh) {

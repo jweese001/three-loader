@@ -8,6 +8,7 @@ import { UIController } from './ui/UIController.js';
 import { CodeEditorManager } from './ui/CodeEditorManager.js';
 import { ExportManager } from './export/ExportManager.js';
 import { AnimationController } from './utils/AnimationController.js';
+import { TextureManager } from './utils/TextureManager.js';
 
 // Main application class
 class ThreeLoaderApp {
@@ -18,6 +19,7 @@ class ThreeLoaderApp {
         this.codeEditorManager = null;
         this.exportManager = null;
         this.animationController = null;
+        this.textureManager = null;
         
         this.selectedObject = null;
         this.isInitialized = false;
@@ -35,6 +37,7 @@ class ThreeLoaderApp {
             
             // Initialize managers
             this.animationController = new AnimationController();
+            this.textureManager = new TextureManager();
             this.objectManager = new ObjectManager(this.scene, this.animationController);
             this.exportManager = new ExportManager(this.scene, this.objectManager);
             
@@ -44,6 +47,7 @@ class ThreeLoaderApp {
                 objectManager: this.objectManager,
                 exportManager: this.exportManager,
                 animationController: this.animationController,
+                textureManager: this.textureManager,
                 onObjectSelect: this.handleObjectSelect.bind(this),
                 onObjectUpdate: this.handleObjectUpdate.bind(this)
             });

@@ -4,6 +4,7 @@ export class UIController {
         this.objectManager = config.objectManager;
         this.exportManager = config.exportManager;
         this.animationController = config.animationController;
+        this.textureManager = config.textureManager;
         this.onObjectSelect = config.onObjectSelect;
         this.onObjectUpdate = config.onObjectUpdate;
         
@@ -371,6 +372,9 @@ export class UIController {
         const materialPanel = document.getElementById('material-panel');
         
         // Get all material control elements
+        const materialTypeSelect = document.getElementById('material-type');
+        const textureCategorySelect = document.getElementById('texture-category');
+        const textureVariantSelect = document.getElementById('texture-variant');
         const colorInput = document.getElementById('material-color');
         const wireframeInput = document.getElementById('material-wireframe');
         const opacityInput = document.getElementById('material-opacity');
@@ -381,6 +385,43 @@ export class UIController {
         const opacityDisplay = opacityInput.parentElement.querySelector('.value-display');
         const roughnessDisplay = roughnessInput.parentElement.querySelector('.value-display');
         const metalnessDisplay = metalnessInput.parentElement.querySelector('.value-display');
+        
+        // Material type change
+        materialTypeSelect.addEventListener('change', (event) => {
+            if (this.selectedObjectId) {
+                this.updateObjectMaterial({ type: event.target.value });
+            }
+        });
+        
+        // Texture category change
+        textureCategorySelect.addEventListener('change', async (event) => {
+            const category = event.target.value;
+            textureVariantSelect.style.display = category === 'none' ? 'none' : 'block';
+            
+            if (category !== 'none') {
+                // Load texture variants for selected category
+                const variants = await this.textureManager.getTextureVariants(category);
+                textureVariantSelect.innerHTML = '<option value="">Select variant...</option>';
+                variants.forEach(variant => {
+                    const option = document.createElement('option');
+                    option.value = variant;
+                    option.textContent = `Variant ${variant}`;
+                    textureVariantSelect.appendChild(option);
+                });
+            } else if (this.selectedObjectId) {
+                // Clear texture
+                this.updateObjectMaterial({ texture: { category: 'none', variant: null } });
+            }
+        });
+        
+        // Texture variant change
+        textureVariantSelect.addEventListener('change', (event) => {
+            if (this.selectedObjectId && event.target.value) {
+                const category = textureCategorySelect.value;
+                const variant = event.target.value;
+                this.updateObjectMaterial({ texture: { category, variant } });
+            }
+        });
         
         // Color change
         colorInput.addEventListener('input', (event) => {
@@ -427,6 +468,9 @@ export class UIController {
     }
     
     updateMaterialControls(objectData) {
+        const materialTypeSelect = document.getElementById('material-type');
+        const textureCategorySelect = document.getElementById('texture-category');
+        const textureVariantSelect = document.getElementById('texture-variant');
         const colorInput = document.getElementById('material-color');
         const wireframeInput = document.getElementById('material-wireframe');
         const opacityInput = document.getElementById('material-opacity');
@@ -439,11 +483,27 @@ export class UIController {
         
         if (objectData) {
             // Update controls with object's material properties
+            materialTypeSelect.value = objectData.material.type || 'standard';
             colorInput.value = objectData.material.color;
             wireframeInput.checked = objectData.material.wireframe;
             opacityInput.value = objectData.material.opacity;
             roughnessInput.value = objectData.material.roughness;
             metalnessInput.value = objectData.material.metalness;
+            
+            // Update texture controls
+            const texture = objectData.material.texture;
+            if (texture) {
+                textureCategorySelect.value = texture.category || 'none';
+                if (texture.category !== 'none' && texture.variant) {
+                    textureVariantSelect.style.display = 'block';
+                    textureVariantSelect.value = texture.variant;
+                } else {
+                    textureVariantSelect.style.display = 'none';
+                }
+            } else {
+                textureCategorySelect.value = 'none';
+                textureVariantSelect.style.display = 'none';
+            }
             
             // Update displays
             opacityDisplay.textContent = objectData.material.opacity.toFixed(2);
@@ -452,26 +512,44 @@ export class UIController {
             
             // Enable controls
             document.getElementById('material-panel').style.opacity = '1';
-            [colorInput, wireframeInput, opacityInput, roughnessInput, metalnessInput].forEach(input => {
+            [materialTypeSelect, textureCategorySelect, textureVariantSelect, colorInput, wireframeInput, opacityInput, roughnessInput, metalnessInput].forEach(input => {
                 input.disabled = false;
             });
         } else {
             // Disable controls
             document.getElementById('material-panel').style.opacity = '0.6';
-            [colorInput, wireframeInput, opacityInput, roughnessInput, metalnessInput].forEach(input => {
+            [materialTypeSelect, textureCategorySelect, textureVariantSelect, colorInput, wireframeInput, opacityInput, roughnessInput, metalnessInput].forEach(input => {
                 input.disabled = true;
             });
         }
     }
     
-    updateObjectMaterial(materialUpdates) {
+    async updateObjectMaterial(materialUpdates) {
         if (!this.selectedObjectId) return;
         
         const objectData = this.objectManager.getObject(this.selectedObjectId);
         if (!objectData) return;
         
-        // Update the object's material
-        this.objectManager.updateObjectMaterial(this.selectedObjectId, materialUpdates);
+        // Handle texture loading if texture update is requested
+        if (materialUpdates.texture) {
+            const { category, variant } = materialUpdates.texture;
+            let texture = null;
+            
+            if (category !== 'none' && variant) {
+                try {
+                    texture = await this.textureManager.loadTexture(category, variant);
+                } catch (error) {
+                    console.error('Failed to load texture:', error);
+                }
+            }
+            
+            // Update material settings and apply texture
+            Object.assign(objectData.material, materialUpdates);
+            this.objectManager.applyMaterialToObject(objectData.sceneObject, objectData.material, texture);
+        } else {
+            // Regular material update without texture change
+            this.objectManager.updateObjectMaterial(this.selectedObjectId, materialUpdates);
+        }
         
         // Notify main app
         if (this.onObjectUpdate) {
