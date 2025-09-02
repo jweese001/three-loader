@@ -41,6 +41,8 @@ export class UIController {
         // File input change
         fileInput.addEventListener('change', (event) => {
             const files = Array.from(event.target.files);
+            
+            
             this.handleFiles(files);
         });
         
@@ -406,6 +408,7 @@ export class UIController {
             const file = event.target.files[0];
             if (file && this.selectedObjectId) {
                 try {
+                    
                     // Show preview
                     const previewUrl = URL.createObjectURL(file);
                     texturePreview.src = previewUrl;
@@ -539,7 +542,10 @@ export class UIController {
             [materialTypeSelect, colorInput, wireframeInput, opacityInput, roughnessInput, metalnessInput].forEach(input => {
                 input.disabled = true;
             });
-            selectedTextureInfo.style.display = 'none';
+            // Keep texture preview visible even when no object is selected
+            selectedTextureInfo.style.display = 'flex';
+            selectedTextureInfo.classList.remove('has-texture');
+            texturePreview.src = '';
         }
     }
     
@@ -1163,4 +1169,5 @@ export class UIController {
         
         console.log('📋 Collapsible panels setup complete');
     }
+    
 }
