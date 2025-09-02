@@ -157,51 +157,41 @@
                                     <option value="phong">Phong</option>
                                     <option value="lambert">Lambert</option>
                                     <option value="physical">Physical</option>
+                                    <option value="matcap">MatCap</option>
                                 </select>
                             </label>
                             
                             <label>
-                                <span>Texture</span>
-                                <div class="texture-selector">
-                                    <select id="texture-category">
-                                        <option value="none">No Texture</option>
-                                        <option value="metals">Metals</option>
-                                        <option value="gold">Gold</option>
-                                        <option value="diamonds">Diamonds</option>
-                                        <option value="iridescent">Iridescent</option>
-                                        <option value="ultra-realistic">Ultra Realistic</option>
-                                        <option value="toon">Toon</option>
-                                        <option value="skin">Skin</option>
-                                        <option value="red">Red</option>
-                                        <option value="orange">Orange</option>
-                                        <option value="yellow">Yellow</option>
-                                        <option value="green">Green</option>
-                                        <option value="blue">Blue</option>
-                                        <option value="purple">Purple</option>
-                                        <option value="black">Black</option>
-                                        <option value="gray">Gray</option>
-                                        <option value="white">White</option>
-                                    </select>
-                                    <select id="texture-variant" style="display: none;">
-                                        <option value="">Select variant...</option>
-                                    </select>
+                                <span>MatCap Texture</span>
+                                <div class="texture-file-selector">
+                                    <button type="button" id="texture-browse-btn" class="btn btn-secondary">
+                                        Browse MatCap Textures
+                                    </button>
+                                    <input type="file" id="texture-file-input" accept=".webp,.jpg,.jpeg,.png" style="display: none;">
+                                    <div id="selected-texture-info" class="texture-info" style="display: none;">
+                                        <img id="texture-preview" class="texture-preview" src="" alt="Texture Preview">
+                                        <div class="texture-details">
+                                            <span id="texture-filename">No texture selected</span>
+                                            <button type="button" id="clear-texture-btn" class="btn-small">Clear</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </label>
                             
                             <label>
                                 <span>Color</span>
-                                <input type="color" id="material-color" value="#9dd9d9">
+                                <input type="color" id="material-color" value="#ffffff">
                             </label>
                             
                             <label>
                                 <span>Wireframe</span>
-                                <input type="checkbox" id="material-wireframe" checked>
+                                <input type="checkbox" id="material-wireframe">
                             </label>
                             
                             <label>
                                 <span>Opacity</span>
-                                <input type="range" id="material-opacity" min="0" max="1" step="0.01" value="0.6">
-                                <span class="value-display">0.6</span>
+                                <input type="range" id="material-opacity" min="0" max="1" step="0.01" value="1.0">
+                                <span class="value-display">1.0</span>
                             </label>
                             
                             <label>

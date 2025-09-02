@@ -163,20 +163,83 @@ ${objects.map(obj => this.generateObjectCode(obj)).join('\n\n')}
         const ${this.sanitizeVariableName(name)} = await new Promise((resolve, reject) => {
             loader.load(
                 '${fileName}', // Update this path to your OBJ file location
-                (object) => {
+                async (object) => {
+                    // Load texture if specified
+                    let texture = null;
+                    if ('${material.texture.filename}') {
+                        const textureLoader = new THREE.TextureLoader();
+                        try {
+                            // Note: Update this path to point to your texture file location
+                            texture = await new Promise((texResolve, texReject) => {
+                                textureLoader.load(
+                                    './textures/${material.texture.filename}', // Update this path as needed
+                                    texResolve,
+                                    undefined,
+                                    texReject
+                                );
+                            });
+                            texture.wrapS = THREE.RepeatWrapping;
+                            texture.wrapT = THREE.RepeatWrapping;
+                            texture.generateMipmaps = true;
+                            texture.minFilter = THREE.LinearMipmapLinearFilter;
+                            texture.magFilter = THREE.LinearFilter;
+                        } catch (textureError) {
+                            console.warn('Failed to load texture: ${material.texture.filename}', textureError);
+                        }
+                    }
+                    
                     // Apply material settings
-                    const material = new THREE.MeshStandardMaterial({
+                    const materialConfig = {
                         color: new THREE.Color('${material.color}'),
                         wireframe: ${material.wireframe},
                         transparent: ${material.opacity < 1},
-                        opacity: ${material.opacity},
-                        roughness: ${material.roughness},
-                        metalness: ${material.metalness}
-                    });
+                        opacity: ${material.opacity}
+                    };
+                    
+                    // Add texture if loaded
+                    if (texture) {
+                        materialConfig.map = texture;
+                    }
+                    
+                    // Add material-specific properties
+                    if ('${material.type}' === 'standard' || '${material.type}' === 'physical') {
+                        materialConfig.roughness = ${material.roughness};
+                        materialConfig.metalness = ${material.metalness};
+                    }
+                    
+                    // Create material based on type
+                    let objectMaterial;
+                    switch ('${material.type}') {
+                        case 'basic':
+                            objectMaterial = new THREE.MeshBasicMaterial(materialConfig);
+                            break;
+                        case 'lambert':
+                            objectMaterial = new THREE.MeshLambertMaterial(materialConfig);
+                            break;
+                        case 'phong':
+                            objectMaterial = new THREE.MeshPhongMaterial(materialConfig);
+                            break;
+                        case 'physical':
+                            objectMaterial = new THREE.MeshPhysicalMaterial(materialConfig);
+                            break;
+                        case 'matcap':
+                            // MatCap material uses 'matcap' property instead of 'map'
+                            const matcapConfig = { ...materialConfig };
+                            if (matcapConfig.map) {
+                                matcapConfig.matcap = matcapConfig.map;
+                                delete matcapConfig.map;
+                            }
+                            objectMaterial = new THREE.MeshMatcapMaterial(matcapConfig);
+                            break;
+                        case 'standard':
+                        default:
+                            objectMaterial = new THREE.MeshStandardMaterial(materialConfig);
+                            break;
+                    }
                     
                     object.traverse((child) => {
                         if (child.isMesh) {
-                            child.material = material;
+                            child.material = objectMaterial;
                             child.castShadow = true;
                             child.receiveShadow = true;
                         }

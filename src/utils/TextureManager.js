@@ -7,31 +7,62 @@ export class TextureManager {
         this.textureCache = new Map();
         
         // Base path to cosmic textures
-        this.basePath = '/cosmic-texture-browser/public/512/webp/';
+        this.basePath = '/512/webp/';
         
         console.log('🖼️ TextureManager initialized');
     }
     
-    // Get available texture variants for a category
-    async getTextureVariants(category) {
-        if (category === 'none') return [];
+    // Load texture from File object (for file browser)
+    async loadTextureFromFile(file) {
+        if (!file) return null;
+        
+        const textureKey = `file_${file.name}_${file.lastModified}`;
+        
+        // Check cache first
+        if (this.textureCache.has(textureKey)) {
+            return this.textureCache.get(textureKey);
+        }
         
         try {
-            // For now, we'll use a predefined list of numbers
-            // In a real implementation, you might fetch this from a directory listing API
-            const variants = [];
-            for (let i = 1; i <= 50; i++) {
-                const paddedNum = i.toString().padStart(2, '0');
-                variants.push(paddedNum);
-            }
-            return variants;
+            // Create object URL for the file
+            const objectURL = URL.createObjectURL(file);
+            
+            const texture = await new Promise((resolve, reject) => {
+                this.textureLoader.load(
+                    objectURL,
+                    (loadedTexture) => {
+                        // Clean up object URL after loading
+                        URL.revokeObjectURL(objectURL);
+                        resolve(loadedTexture);
+                    },
+                    undefined,
+                    (error) => {
+                        URL.revokeObjectURL(objectURL);
+                        reject(error);
+                    }
+                );
+            });
+            
+            // Configure texture settings
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.generateMipmaps = true;
+            texture.minFilter = THREE.LinearMipmapLinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
+            // Cache the texture
+            this.textureCache.set(textureKey, texture);
+            
+            console.log(`✅ Texture loaded from file: ${file.name}`);
+            return texture;
+            
         } catch (error) {
-            console.warn(`⚠️ Could not load variants for category: ${category}`);
-            return [];
+            console.error(`❌ Failed to load texture from file: ${file.name}`, error);
+            return null;
         }
     }
     
-    // Load a texture from the cosmic texture browser
+    // Legacy method - kept for backward compatibility
     async loadTexture(category, variant) {
         if (category === 'none') return null;
         

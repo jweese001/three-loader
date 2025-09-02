@@ -11,15 +11,15 @@ export class ObjectManager {
         
         // Default material settings
         this.defaultMaterial = {
-            type: 'standard',
-            color: '#9dd9d9',
-            wireframe: true,
-            opacity: 0.6,
-            roughness: 0.5,
-            metalness: 0.0,
+            type: 'matcap', // Default to MatCap for better texture experience
+            color: '#ffffff', // White color lets MatCap textures show their full color
+            wireframe: false, // MatCap looks better solid
+            opacity: 1.0, // Full opacity for MatCap
+            roughness: 0.5, // Not used by MatCap but kept for other materials
+            metalness: 0.0, // Not used by MatCap but kept for other materials
             texture: {
-                category: 'none',
-                variant: null
+                file: null,
+                filename: null
             }
         };
         
@@ -178,6 +178,15 @@ export class ObjectManager {
                     roughness: materialSettings.roughness,
                     metalness: materialSettings.metalness,
                     map: texture
+                });
+                break;
+            case 'matcap':
+                material = new THREE.MeshMatcapMaterial({
+                    color: new THREE.Color(materialSettings.color),
+                    wireframe: materialSettings.wireframe,
+                    transparent: materialSettings.opacity < 1,
+                    opacity: materialSettings.opacity,
+                    matcap: texture // MatCap uses 'matcap' property, not 'map'
                 });
                 break;
             case 'standard':

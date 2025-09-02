@@ -373,8 +373,12 @@ export class UIController {
         
         // Get all material control elements
         const materialTypeSelect = document.getElementById('material-type');
-        const textureCategorySelect = document.getElementById('texture-category');
-        const textureVariantSelect = document.getElementById('texture-variant');
+        const textureBrowseBtn = document.getElementById('texture-browse-btn');
+        const textureFileInput = document.getElementById('texture-file-input');
+        const selectedTextureInfo = document.getElementById('selected-texture-info');
+        const texturePreview = document.getElementById('texture-preview');
+        const textureFilename = document.getElementById('texture-filename');
+        const clearTextureBtn = document.getElementById('clear-texture-btn');
         const colorInput = document.getElementById('material-color');
         const wireframeInput = document.getElementById('material-wireframe');
         const opacityInput = document.getElementById('material-opacity');
@@ -393,33 +397,46 @@ export class UIController {
             }
         });
         
-        // Texture category change
-        textureCategorySelect.addEventListener('change', async (event) => {
-            const category = event.target.value;
-            textureVariantSelect.style.display = category === 'none' ? 'none' : 'block';
-            
-            if (category !== 'none') {
-                // Load texture variants for selected category
-                const variants = await this.textureManager.getTextureVariants(category);
-                textureVariantSelect.innerHTML = '<option value="">Select variant...</option>';
-                variants.forEach(variant => {
-                    const option = document.createElement('option');
-                    option.value = variant;
-                    option.textContent = `Variant ${variant}`;
-                    textureVariantSelect.appendChild(option);
-                });
-            } else if (this.selectedObjectId) {
-                // Clear texture
-                this.updateObjectMaterial({ texture: { category: 'none', variant: null } });
+        // Texture browse button
+        textureBrowseBtn.addEventListener('click', () => {
+            textureFileInput.click();
+        });
+        
+        // Texture file selection
+        textureFileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file && this.selectedObjectId) {
+                try {
+                    // Show preview
+                    const previewUrl = URL.createObjectURL(file);
+                    texturePreview.src = previewUrl;
+                    textureFilename.textContent = file.name;
+                    selectedTextureInfo.style.display = 'flex';
+                    
+                    // Update material with file texture
+                    this.updateObjectMaterial({ texture: { file, filename: file.name } });
+                    
+                } catch (error) {
+                    console.error('❌ Failed to load texture file:', error);
+                    alert('Failed to load texture file: ' + error.message);
+                }
             }
         });
         
-        // Texture variant change
-        textureVariantSelect.addEventListener('change', (event) => {
-            if (this.selectedObjectId && event.target.value) {
-                const category = textureCategorySelect.value;
-                const variant = event.target.value;
-                this.updateObjectMaterial({ texture: { category, variant } });
+        // Clear texture button
+        clearTextureBtn.addEventListener('click', () => {
+            if (this.selectedObjectId) {
+                // Clear file input
+                textureFileInput.value = '';
+                selectedTextureInfo.style.display = 'none';
+                
+                // Revoke object URL
+                if (texturePreview.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(texturePreview.src);
+                }
+                
+                // Clear texture
+                this.updateObjectMaterial({ texture: { file: null, filename: null } });
             }
         });
         
@@ -469,8 +486,9 @@ export class UIController {
     
     updateMaterialControls(objectData) {
         const materialTypeSelect = document.getElementById('material-type');
-        const textureCategorySelect = document.getElementById('texture-category');
-        const textureVariantSelect = document.getElementById('texture-variant');
+        const selectedTextureInfo = document.getElementById('selected-texture-info');
+        const texturePreview = document.getElementById('texture-preview');
+        const textureFilename = document.getElementById('texture-filename');
         const colorInput = document.getElementById('material-color');
         const wireframeInput = document.getElementById('material-wireframe');
         const opacityInput = document.getElementById('material-opacity');
@@ -490,19 +508,15 @@ export class UIController {
             roughnessInput.value = objectData.material.roughness;
             metalnessInput.value = objectData.material.metalness;
             
-            // Update texture controls
+            // Update texture display
             const texture = objectData.material.texture;
-            if (texture) {
-                textureCategorySelect.value = texture.category || 'none';
-                if (texture.category !== 'none' && texture.variant) {
-                    textureVariantSelect.style.display = 'block';
-                    textureVariantSelect.value = texture.variant;
-                } else {
-                    textureVariantSelect.style.display = 'none';
-                }
+            if (texture && texture.filename) {
+                textureFilename.textContent = texture.filename;
+                selectedTextureInfo.style.display = 'flex';
+                // Note: We can't restore the file preview since we don't have the file reference
+                texturePreview.src = ''; // Clear preview for now
             } else {
-                textureCategorySelect.value = 'none';
-                textureVariantSelect.style.display = 'none';
+                selectedTextureInfo.style.display = 'none';
             }
             
             // Update displays
@@ -512,15 +526,16 @@ export class UIController {
             
             // Enable controls
             document.getElementById('material-panel').style.opacity = '1';
-            [materialTypeSelect, textureCategorySelect, textureVariantSelect, colorInput, wireframeInput, opacityInput, roughnessInput, metalnessInput].forEach(input => {
+            [materialTypeSelect, colorInput, wireframeInput, opacityInput, roughnessInput, metalnessInput].forEach(input => {
                 input.disabled = false;
             });
         } else {
             // Disable controls
             document.getElementById('material-panel').style.opacity = '0.6';
-            [materialTypeSelect, textureCategorySelect, textureVariantSelect, colorInput, wireframeInput, opacityInput, roughnessInput, metalnessInput].forEach(input => {
+            [materialTypeSelect, colorInput, wireframeInput, opacityInput, roughnessInput, metalnessInput].forEach(input => {
                 input.disabled = true;
             });
+            selectedTextureInfo.style.display = 'none';
         }
     }
     
@@ -532,14 +547,14 @@ export class UIController {
         
         // Handle texture loading if texture update is requested
         if (materialUpdates.texture) {
-            const { category, variant } = materialUpdates.texture;
+            const { file, filename } = materialUpdates.texture;
             let texture = null;
             
-            if (category !== 'none' && variant) {
+            if (file) {
                 try {
-                    texture = await this.textureManager.loadTexture(category, variant);
+                    texture = await this.textureManager.loadTextureFromFile(file);
                 } catch (error) {
-                    console.error('Failed to load texture:', error);
+                    console.error('Failed to load texture from file:', error);
                 }
             }
             
