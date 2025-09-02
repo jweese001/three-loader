@@ -24,30 +24,40 @@
 
         <!-- Main Layout -->
         <main class="app-main">
-            <!-- Left Sidebar - File Loading & Object List -->
+            <!-- Left Sidebar - Object Management -->
             <aside class="sidebar sidebar-left">
-                <div class="panel">
-                    <h3>Load Objects</h3>
-                    <div id="drop-zone" class="drop-zone">
-                        <div class="drop-content">
-                            <div class="drop-icon">📁</div>
-                            <p>Drag & drop .obj files here</p>
-                            <p>or</p>
-                        </div>
-                        <button id="file-select-btn" class="btn btn-outline">Choose Files</button>
-                        <input type="file" id="file-input" accept=".obj" multiple hidden>
+                <!-- Load Objects Panel -->
+                <div class="panel collapsible-panel" id="load-objects-panel">
+                    <div class="panel-header" data-target="load-objects-content">
+                        <h3>Load Objects</h3>
+                        <span class="collapse-arrow">▼</span>
                     </div>
-                    
-                    <div class="loading-indicator" id="loading-indicator" style="display: none;">
-                        <div class="spinner"></div>
-                        <span>Loading model...</span>
+                    <div class="panel-content" id="load-objects-content">
+                        <div class="load-controls">
+                            <button id="file-select-btn" class="btn btn-primary">Choose OBJ Files</button>
+                            <input type="file" id="file-input" accept=".obj" multiple hidden>
+                            <div class="drop-hint">
+                                <small>💡 You can also drag files anywhere on the page</small>
+                            </div>
+                        </div>
+                        
+                        <div class="loading-indicator" id="loading-indicator" style="display: none;">
+                            <div class="spinner"></div>
+                            <span>Loading model...</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="panel">
-                    <h3>Scene Objects</h3>
-                    <div id="objects-list" class="objects-list">
-                        <p class="no-objects">No objects loaded</p>
+                <!-- Scene Objects Panel -->
+                <div class="panel collapsible-panel" id="scene-objects-panel">
+                    <div class="panel-header" data-target="scene-objects-content">
+                        <h3>Scene Objects</h3>
+                        <span class="collapse-arrow">▼</span>
+                    </div>
+                    <div class="panel-content" id="scene-objects-content">
+                        <div id="objects-list" class="objects-list">
+                            <p class="no-objects">No objects loaded</p>
+                        </div>
                     </div>
                 </div>
             </aside>
@@ -140,6 +150,34 @@
                     <div class="panel-content" id="material-content">
                         <div class="controls-grid">
                             <label>
+                                <span>Texture</span>
+                                <div class="texture-selector">
+                                    <select id="texture-category">
+                                        <option value="none">No Texture</option>
+                                        <option value="metals">Metals</option>
+                                        <option value="gold">Gold</option>
+                                        <option value="diamonds">Diamonds</option>
+                                        <option value="iridescent">Iridescent</option>
+                                        <option value="ultra-realistic">Ultra Realistic</option>
+                                        <option value="toon">Toon</option>
+                                        <option value="skin">Skin</option>
+                                        <option value="red">Red</option>
+                                        <option value="orange">Orange</option>
+                                        <option value="yellow">Yellow</option>
+                                        <option value="green">Green</option>
+                                        <option value="blue">Blue</option>
+                                        <option value="purple">Purple</option>
+                                        <option value="black">Black</option>
+                                        <option value="gray">Gray</option>
+                                        <option value="white">White</option>
+                                    </select>
+                                    <select id="texture-variant" style="display: none;">
+                                        <option value="">Select variant...</option>
+                                    </select>
+                                </div>
+                            </label>
+                            
+                            <label>
                                 <span>Color</span>
                                 <input type="color" id="material-color" value="#9dd9d9">
                             </label>
@@ -229,7 +267,10 @@
                                 </label>
                             </div>
                             <div style="margin-top: 0.75rem;">
-                                <button id="uniform-scale-btn" class="btn btn-small">Lock Scale</button>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="uniform-scale-checkbox">
+                                    <span>Lock Scale</span>
+                                </label>
                             </div>
                         </div>
                     </div>

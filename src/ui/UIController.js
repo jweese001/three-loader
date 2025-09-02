@@ -24,17 +24,16 @@ export class UIController {
         this.setupAnimationControls();
         this.setupExportControls();
         this.setupUIToggle();
+        this.setupCollapsiblePanels();
     }
     
     setupDropZone() {
-        const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
         const fileSelectBtn = document.getElementById('file-select-btn');
         const loadingIndicator = document.getElementById('loading-indicator');
         
         // File select button
-        fileSelectBtn.addEventListener('click', (event) => {
-            event.stopPropagation(); // Prevent drop zone click from triggering
+        fileSelectBtn.addEventListener('click', () => {
             fileInput.click();
         });
         
@@ -44,26 +43,19 @@ export class UIController {
             this.handleFiles(files);
         });
         
-        // Drag and drop events
-        dropZone.addEventListener('click', () => {
-            fileInput.click();
-        });
-        
-        dropZone.addEventListener('dragover', (event) => {
+        // Global drag and drop for entire page
+        document.addEventListener('dragover', (event) => {
             event.preventDefault();
-            dropZone.classList.add('drag-over');
         });
         
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('drag-over');
-        });
-        
-        dropZone.addEventListener('drop', (event) => {
+        document.addEventListener('drop', (event) => {
             event.preventDefault();
-            dropZone.classList.remove('drag-over');
-            
-            const files = Array.from(event.dataTransfer.files);
-            this.handleFiles(files);
+            const files = Array.from(event.dataTransfer.files).filter(file => 
+                file.name.toLowerCase().endsWith('.obj')
+            );
+            if (files.length > 0) {
+                this.handleFiles(files);
+            }
         });
         
         console.log('📁 Drop zone setup complete');
@@ -516,12 +508,10 @@ export class UIController {
         
         // Scale controls
         let scaleLinked = false;
-        const uniformScaleBtn = document.getElementById('uniform-scale-btn');
+        const uniformScaleCheckbox = document.getElementById('uniform-scale-checkbox');
         
-        uniformScaleBtn.addEventListener('click', () => {
-            scaleLinked = !scaleLinked;
-            uniformScaleBtn.textContent = scaleLinked ? 'Unlock Scale' : 'Lock Scale';
-            uniformScaleBtn.classList.toggle('active', scaleLinked);
+        uniformScaleCheckbox.addEventListener('change', () => {
+            scaleLinked = uniformScaleCheckbox.checked;
         });
         
         ['x', 'y', 'z'].forEach(axis => {
@@ -580,7 +570,7 @@ export class UIController {
             
             // Enable transform panel
             document.getElementById('transform-panel').style.opacity = '1';
-            document.getElementById('uniform-scale-btn').disabled = false;
+            document.getElementById('uniform-scale-checkbox').disabled = false;
         } else {
             // Disable all transform controls
             [...posInputs, ...rotInputs, ...scaleInputs].forEach(input => {
@@ -588,7 +578,7 @@ export class UIController {
             });
             
             document.getElementById('transform-panel').style.opacity = '0.6';
-            document.getElementById('uniform-scale-btn').disabled = true;
+            document.getElementById('uniform-scale-checkbox').disabled = true;
         }
     }
     
@@ -1032,5 +1022,48 @@ export class UIController {
         // Focus and select text
         codeTextarea.focus();
         codeTextarea.select();
+    }
+    
+    setupCollapsiblePanels() {
+        // Setup collapsible panels for left sidebar
+        const panelHeaders = document.querySelectorAll('.collapsible-panel .panel-header');
+        
+        panelHeaders.forEach(header => {
+            const targetId = header.getAttribute('data-target');
+            const content = document.getElementById(targetId);
+            const arrow = header.querySelector('.collapse-arrow');
+            
+            if (!content) return;
+            
+            // Remove existing event listeners to prevent duplicates
+            const newHeader = header.cloneNode(true);
+            header.parentNode.replaceChild(newHeader, header);
+            
+            // Get references to the new elements
+            const newArrow = newHeader.querySelector('.collapse-arrow');
+            
+            newHeader.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Toggle the class
+                content.classList.toggle('collapsed');
+                
+                // Update UI based on new state
+                const nowCollapsed = content.classList.contains('collapsed');
+                newHeader.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
+                if (newArrow) {
+                    newArrow.style.transform = nowCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+                }
+                
+                console.log(`📋 ${nowCollapsed ? 'Collapsed' : 'Expanded'} panel: ${targetId}`);
+            });
+            
+            // Set initial state (all panels expanded by default)
+            newHeader.setAttribute('aria-expanded', 'true');
+            content.classList.remove('collapsed');
+        });
+        
+        console.log('📋 Collapsible panels setup complete');
     }
 }
