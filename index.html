@@ -162,23 +162,6 @@
                             </label>
                             
                             <label>
-                                <span>MatCap Texture</span>
-                                <div class="texture-file-selector">
-                                    <button type="button" id="texture-browse-btn" class="btn btn-secondary">
-                                        Browse MatCap Textures
-                                    </button>
-                                    <input type="file" id="texture-file-input" accept=".webp,.jpg,.jpeg,.png" style="display: none;">
-                                    <div id="selected-texture-info" class="texture-info" style="display: none;">
-                                        <img id="texture-preview" class="texture-preview" src="" alt="Texture Preview">
-                                        <div class="texture-details">
-                                            <span id="texture-filename">No texture selected</span>
-                                            <button type="button" id="clear-texture-btn" class="btn-small">Clear</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </label>
-                            
-                            <label>
                                 <span>Color</span>
                                 <input type="color" id="material-color" value="#ffffff">
                             </label>
@@ -205,6 +188,23 @@
                                 <input type="range" id="material-metalness" min="0" max="1" step="0.01" value="0.0">
                                 <span class="value-display">0.0</span>
                             </label>
+                            
+                            <!-- Texture Section - After Metalness as per mockup -->
+                            <div class="texture-section">
+                                <h4>Texture</h4>
+                                <div class="texture-layout">
+                                    <div class="texture-preview-container">
+                                        <div id="selected-texture-info" class="large-texture-preview">
+                                            <img id="texture-preview" class="texture-preview-large" src="" alt="Texture Preview">
+                                        </div>
+                                    </div>
+                                    <div class="texture-controls">
+                                        <button type="button" id="texture-browse-btn" class="texture-btn">Load</button>
+                                        <button type="button" id="clear-texture-btn" class="texture-btn">Clear</button>
+                                        <input type="file" id="texture-file-input" accept=".webp,.jpg,.jpeg,.png" style="display: none;">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

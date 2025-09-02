@@ -377,7 +377,6 @@ export class UIController {
         const textureFileInput = document.getElementById('texture-file-input');
         const selectedTextureInfo = document.getElementById('selected-texture-info');
         const texturePreview = document.getElementById('texture-preview');
-        const textureFilename = document.getElementById('texture-filename');
         const clearTextureBtn = document.getElementById('clear-texture-btn');
         const colorInput = document.getElementById('material-color');
         const wireframeInput = document.getElementById('material-wireframe');
@@ -410,8 +409,8 @@ export class UIController {
                     // Show preview
                     const previewUrl = URL.createObjectURL(file);
                     texturePreview.src = previewUrl;
-                    textureFilename.textContent = file.name;
                     selectedTextureInfo.style.display = 'flex';
+                    selectedTextureInfo.classList.add('has-texture');
                     
                     // Update material with file texture
                     this.updateObjectMaterial({ texture: { file, filename: file.name } });
@@ -428,12 +427,14 @@ export class UIController {
             if (this.selectedObjectId) {
                 // Clear file input
                 textureFileInput.value = '';
-                selectedTextureInfo.style.display = 'none';
+                // Keep texture preview container visible, just remove the texture
+                selectedTextureInfo.classList.remove('has-texture');
                 
                 // Revoke object URL
                 if (texturePreview.src.startsWith('blob:')) {
                     URL.revokeObjectURL(texturePreview.src);
                 }
+                texturePreview.src = '';
                 
                 // Clear texture
                 this.updateObjectMaterial({ texture: { file: null, filename: null } });
@@ -481,6 +482,7 @@ export class UIController {
             }
         });
         
+        
         console.log('🎨 Material controls setup complete');
     }
     
@@ -488,7 +490,6 @@ export class UIController {
         const materialTypeSelect = document.getElementById('material-type');
         const selectedTextureInfo = document.getElementById('selected-texture-info');
         const texturePreview = document.getElementById('texture-preview');
-        const textureFilename = document.getElementById('texture-filename');
         const colorInput = document.getElementById('material-color');
         const wireframeInput = document.getElementById('material-wireframe');
         const opacityInput = document.getElementById('material-opacity');
@@ -508,15 +509,18 @@ export class UIController {
             roughnessInput.value = objectData.material.roughness;
             metalnessInput.value = objectData.material.metalness;
             
+            // Always show texture preview container
+            selectedTextureInfo.style.display = 'flex';
+            
             // Update texture display
             const texture = objectData.material.texture;
             if (texture && texture.filename) {
-                textureFilename.textContent = texture.filename;
-                selectedTextureInfo.style.display = 'flex';
                 // Note: We can't restore the file preview since we don't have the file reference
                 texturePreview.src = ''; // Clear preview for now
+                selectedTextureInfo.classList.remove('has-texture'); // Show placeholder until texture loads
             } else {
-                selectedTextureInfo.style.display = 'none';
+                selectedTextureInfo.classList.remove('has-texture');
+                texturePreview.src = '';
             }
             
             // Update displays

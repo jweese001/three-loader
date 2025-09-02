@@ -140,13 +140,16 @@ export class ObjectManager {
     applyMaterialToObject(object, materialSettings, texture = null) {
         let material;
         
+        // Determine if material should be transparent
+        const needsTransparency = materialSettings.opacity < 1;
+        
         // Create material based on type
         switch (materialSettings.type) {
             case 'basic':
                 material = new THREE.MeshBasicMaterial({
                     color: new THREE.Color(materialSettings.color),
                     wireframe: materialSettings.wireframe,
-                    transparent: materialSettings.opacity < 1,
+                    transparent: needsTransparency,
                     opacity: materialSettings.opacity,
                     map: texture
                 });
@@ -155,7 +158,7 @@ export class ObjectManager {
                 material = new THREE.MeshLambertMaterial({
                     color: new THREE.Color(materialSettings.color),
                     wireframe: materialSettings.wireframe,
-                    transparent: materialSettings.opacity < 1,
+                    transparent: needsTransparency,
                     opacity: materialSettings.opacity,
                     map: texture
                 });
@@ -164,7 +167,7 @@ export class ObjectManager {
                 material = new THREE.MeshPhongMaterial({
                     color: new THREE.Color(materialSettings.color),
                     wireframe: materialSettings.wireframe,
-                    transparent: materialSettings.opacity < 1,
+                    transparent: needsTransparency,
                     opacity: materialSettings.opacity,
                     map: texture
                 });
@@ -173,7 +176,7 @@ export class ObjectManager {
                 material = new THREE.MeshPhysicalMaterial({
                     color: new THREE.Color(materialSettings.color),
                     wireframe: materialSettings.wireframe,
-                    transparent: materialSettings.opacity < 1,
+                    transparent: needsTransparency,
                     opacity: materialSettings.opacity,
                     roughness: materialSettings.roughness,
                     metalness: materialSettings.metalness,
@@ -184,7 +187,7 @@ export class ObjectManager {
                 material = new THREE.MeshMatcapMaterial({
                     color: new THREE.Color(materialSettings.color),
                     wireframe: materialSettings.wireframe,
-                    transparent: materialSettings.opacity < 1,
+                    transparent: needsTransparency,
                     opacity: materialSettings.opacity,
                     matcap: texture // MatCap uses 'matcap' property, not 'map'
                 });
@@ -194,7 +197,7 @@ export class ObjectManager {
                 material = new THREE.MeshStandardMaterial({
                     color: new THREE.Color(materialSettings.color),
                     wireframe: materialSettings.wireframe,
-                    transparent: materialSettings.opacity < 1,
+                    transparent: needsTransparency,
                     opacity: materialSettings.opacity,
                     roughness: materialSettings.roughness,
                     metalness: materialSettings.metalness,
