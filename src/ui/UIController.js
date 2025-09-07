@@ -18,6 +18,7 @@ export class UIController {
         // TODO: Initialize UI components
         this.setupDropZone();
         this.setupFileInput();
+        this.setupPrimitiveControls();
         this.setupViewportControls();
         this.setupCameraControls();
         this.setupMaterialControls();
@@ -110,6 +111,72 @@ export class UIController {
     setupFileInput() {
         // File input is handled in setupDropZone
         console.log('📁 File input integrated with drop zone');
+    }
+    
+    setupPrimitiveControls() {
+        try {
+            const primitiveSelect = document.getElementById('primitive-select');
+            const addPrimitiveBtn = document.getElementById('add-primitive-btn');
+            
+            if (!primitiveSelect) {
+                console.error('❌ primitive-select element not found');
+                return;
+            }
+            
+            if (!addPrimitiveBtn) {
+                console.error('❌ add-primitive-btn element not found');
+                return;
+            }
+            
+            // Enable/disable button based on selection
+            primitiveSelect.addEventListener('change', () => {
+                addPrimitiveBtn.disabled = !primitiveSelect.value;
+                console.log('Primitive selection changed:', primitiveSelect.value);
+            });
+            
+            // Add primitive button click
+            addPrimitiveBtn.addEventListener('click', async () => {
+            const selectedType = primitiveSelect.value;
+            if (!selectedType) return;
+            
+            try {
+                console.log(`✨ Creating primitive: ${selectedType}`);
+                
+                // Create the primitive
+                const objectData = this.objectManager.createPrimitive(selectedType);
+                
+                if (objectData) {
+                    // Update objects list
+                    this.updateObjectsList();
+                    
+                    // Select the new object
+                    this.selectObject(objectData.id);
+                    
+                    // Enable export button
+                    const exportBtn = document.getElementById('export-btn');
+                    if (exportBtn) exportBtn.disabled = false;
+                    
+                    // Reset selection
+                    primitiveSelect.value = '';
+                    addPrimitiveBtn.disabled = true;
+                    
+                    console.log(`✅ Primitive created successfully: ${objectData.name}`);
+                } else {
+                    console.error('❌ Failed to create primitive');
+                    alert('Failed to create primitive geometry');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error creating primitive:', error);
+                alert(`Error creating primitive: ${error.message}`);
+            }
+        });
+        
+        console.log('✨ Primitive controls setup complete');
+        
+        } catch (error) {
+            console.error('❌ Error setting up primitive controls:', error);
+        }
     }
     
     setupViewportControls() {

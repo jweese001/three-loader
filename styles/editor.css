@@ -219,6 +219,53 @@
     }
 }
 
+/* Primitives Section */
+.primitives-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.primitives-section label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.primitives-section label span {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.primitive-dropdown {
+    width: 100%;
+    padding: 0.6rem;
+    background: var(--surface-light);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.primitive-dropdown:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.primitive-dropdown option {
+    background: var(--surface-light);
+    color: var(--text-primary);
+}
+
+.section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 1rem 0;
+}
+
 /* Drop Zone */
 /* Load Controls - Compact Design */
 .load-controls {

@@ -33,6 +33,36 @@
                         <span class="collapse-arrow">▼</span>
                     </div>
                     <div class="panel-content" id="load-objects-content">
+                        <!-- Primitives Section -->
+                        <div class="primitives-section">
+                            <label>
+                                <span>Add Primitive</span>
+                                <select id="primitive-select" class="primitive-dropdown">
+                                    <option value="">Select Geometry...</option>
+                                    <option value="box">Box Geometry</option>
+                                    <option value="sphere">Sphere Geometry</option>
+                                    <option value="cylinder">Cylinder Geometry</option>
+                                    <option value="cone">Cone Geometry</option>
+                                    <option value="plane">Plane Geometry</option>
+                                    <option value="circle">Circle Geometry</option>
+                                    <option value="ring">Ring Geometry</option>
+                                    <option value="torus">Torus Geometry</option>
+                                    <option value="torusKnot">Torus Knot Geometry</option>
+                                    <option value="dodecahedron">Dodecahedron Geometry</option>
+                                    <option value="icosahedron">Icosahedron Geometry</option>
+                                    <option value="octahedron">Octahedron Geometry</option>
+                                    <option value="tetrahedron">Tetrahedron Geometry</option>
+                                    <option value="capsule">Capsule Geometry</option>
+                                    <option value="lathe">Lathe Geometry</option>
+                                    <option value="extrude">Extrude Geometry</option>
+                                </select>
+                            </label>
+                            <button id="add-primitive-btn" class="btn btn-secondary" disabled>Add to Scene</button>
+                        </div>
+                        
+                        <div class="section-divider"></div>
+                        
+                        <!-- OBJ Files Section -->
                         <div class="load-controls">
                             <button id="file-select-btn" class="btn btn-primary">Choose OBJ Files</button>
                             <input type="file" id="file-input" accept=".obj" multiple hidden>

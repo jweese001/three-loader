@@ -401,4 +401,224 @@ export class ObjectManager {
         
         return objectsData;
     }
+    
+    // Create primitive geometry
+    createPrimitive(type) {
+        let geometry;
+        let name;
+        
+        switch (type) {
+            case 'box':
+                geometry = new THREE.BoxGeometry(2, 2, 2);
+                name = 'Box';
+                break;
+            case 'sphere':
+                geometry = new THREE.SphereGeometry(1.5, 32, 16);
+                name = 'Sphere';
+                break;
+            case 'cylinder':
+                geometry = new THREE.CylinderGeometry(1, 1, 2, 32);
+                name = 'Cylinder';
+                break;
+            case 'cone':
+                geometry = new THREE.ConeGeometry(1, 2, 32);
+                name = 'Cone';
+                break;
+            case 'plane':
+                geometry = new THREE.PlaneGeometry(3, 3);
+                name = 'Plane';
+                break;
+            case 'circle':
+                geometry = new THREE.CircleGeometry(1.5, 32);
+                name = 'Circle';
+                break;
+            case 'ring':
+                geometry = new THREE.RingGeometry(0.5, 1.5, 32);
+                name = 'Ring';
+                break;
+            case 'torus':
+                geometry = new THREE.TorusGeometry(1.2, 0.4, 16, 100);
+                name = 'Torus';
+                break;
+            case 'torusKnot':
+                geometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
+                name = 'Torus Knot';
+                break;
+            case 'dodecahedron':
+                geometry = new THREE.DodecahedronGeometry(1.5);
+                name = 'Dodecahedron';
+                break;
+            case 'icosahedron':
+                geometry = new THREE.IcosahedronGeometry(1.5);
+                name = 'Icosahedron';
+                break;
+            case 'octahedron':
+                geometry = new THREE.OctahedronGeometry(1.5);
+                name = 'Octahedron';
+                break;
+            case 'tetrahedron':
+                geometry = new THREE.TetrahedronGeometry(1.5);
+                name = 'Tetrahedron';
+                break;
+            case 'capsule':
+                geometry = new THREE.CapsuleGeometry(0.8, 1.6, 4, 8);
+                name = 'Capsule';
+                break;
+            case 'lathe':
+                // Simple lathe shape - vase-like
+                const points = [];
+                for (let i = 0; i < 10; i++) {
+                    const y = (i - 4.5) * 0.4;
+                    const x = Math.sin(i * 0.2) * 0.5 + 0.8;
+                    points.push(new THREE.Vector2(x, y));
+                }
+                geometry = new THREE.LatheGeometry(points, 32);
+                name = 'Lathe';
+                break;
+            case 'extrude':
+                // Simple star shape extrude
+                const starShape = new THREE.Shape();
+                const outerRadius = 1.2;
+                const innerRadius = 0.6;
+                const starPoints = 5;
+                
+                starShape.moveTo(outerRadius, 0);
+                for (let i = 1; i <= starPoints * 2; i++) {
+                    const angle = (i * Math.PI) / starPoints;
+                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                    starShape.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+                }
+                
+                const extrudeSettings = {
+                    depth: 0.4,
+                    bevelEnabled: true,
+                    bevelSegments: 2,
+                    steps: 2,
+                    bevelSize: 0.1,
+                    bevelThickness: 0.1
+                };
+                
+                geometry = new THREE.ExtrudeGeometry(starShape, extrudeSettings);
+                name = 'Star';
+                break;
+            default:
+                console.error('Unknown primitive type:', type);
+                return null;
+        }
+        
+        // Create material with default settings
+        let material;
+        switch (this.defaultMaterial.type) {
+            case 'basic':
+                material = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color(this.defaultMaterial.color),
+                    wireframe: this.defaultMaterial.wireframe,
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity
+                });
+                break;
+            case 'lambert':
+                material = new THREE.MeshLambertMaterial({
+                    color: new THREE.Color(this.defaultMaterial.color),
+                    wireframe: this.defaultMaterial.wireframe,
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity
+                });
+                break;
+            case 'phong':
+                material = new THREE.MeshPhongMaterial({
+                    color: new THREE.Color(this.defaultMaterial.color),
+                    wireframe: this.defaultMaterial.wireframe,
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity
+                });
+                break;
+            case 'physical':
+                material = new THREE.MeshPhysicalMaterial({
+                    color: new THREE.Color(this.defaultMaterial.color),
+                    wireframe: this.defaultMaterial.wireframe,
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity,
+                    roughness: this.defaultMaterial.roughness,
+                    metalness: this.defaultMaterial.metalness
+                });
+                break;
+            case 'matcap':
+                material = new THREE.MeshMatcapMaterial({
+                    color: new THREE.Color(this.defaultMaterial.color),
+                    wireframe: this.defaultMaterial.wireframe,
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity
+                });
+                break;
+            case 'standard':
+            default:
+                material = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(this.defaultMaterial.color),
+                    wireframe: this.defaultMaterial.wireframe,
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity,
+                    roughness: this.defaultMaterial.roughness,
+                    metalness: this.defaultMaterial.metalness
+                });
+                break;
+        }
+        
+        // Create mesh
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        
+        // Create group (to match OBJ loading structure)
+        const group = new THREE.Group();
+        group.add(mesh);
+        
+        // Set up object metadata
+        this.objectCounter++;
+        const objectId = this.objectCounter;
+        
+        group.userData.isLoadedObject = true;
+        group.userData.isPrimitive = true;
+        group.userData.primitiveType = type;
+        group.userData.originalFileName = `${name.toLowerCase()}.primitive`;
+        group.userData.loadTime = Date.now();
+        group.userData.customId = objectId;
+        group.name = `${name}_${objectId}`;
+        
+        // Add to scene
+        this.threeScene.addObject(group);
+        
+        // Register with animation controller
+        if (this.animationController) {
+            this.animationController.addObject(objectId, group);
+        }
+        
+        // Store object data
+        const objectData = {
+            id: objectId,
+            name: group.name,
+            fileName: `${name.toLowerCase()}.primitive`,
+            sceneObject: group,
+            material: { ...this.defaultMaterial },
+            transform: {
+                position: { x: 0, y: 0, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 }
+            },
+            animation: {
+                type: 'none',
+                speed: 0.01
+            },
+            stats: this.getObjectStats(group),
+            isPrimitive: true,
+            primitiveType: type
+        };
+        
+        this.loadedObjects.set(objectId, objectData);
+        
+        console.log(`✨ Primitive created and added: ${name} (${type})`);
+        console.log('📊 Primitive stats:', objectData.stats);
+        
+        return objectData;
+    }
 }

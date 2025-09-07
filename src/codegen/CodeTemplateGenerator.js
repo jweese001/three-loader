@@ -223,7 +223,7 @@ ${objectDefinitions}`;
      * Generate individual object definition
      */
     generateObjectDefinition(objectData, index, includeComments) {
-        const { name, fileName, transform, stats } = objectData;
+        const { name, fileName, transform, stats, isPrimitive, primitiveType } = objectData;
         const varName = this.sanitizeVariableName(name);
         const materialRef = `MATERIAL_${index + 1}`;
         
@@ -236,7 +236,29 @@ ${objectDefinitions}`;
         const guide = includeComments ? `    // 💡 Edit these transform values for instant positioning changes!` : '';
         const statsComment = includeComments && stats ? `    // 📊 Stats: ${stats.meshes} meshes, ${stats.vertices} vertices, ${stats.faces} faces` : '';
         
-        return `const ${varName.toUpperCase()}_CONFIG = {
+        // Different handling for primitives vs OBJ files
+        if (isPrimitive) {
+            const geometryType = this.getGeometryTypeForPrimitive(primitiveType);
+            return `const ${varName.toUpperCase()}_CONFIG = {
+    type: 'primitive',                  // Primitive geometry
+    geometryType: '${primitiveType}',   // Primitive type
+    geometry: ${geometryType},          // Three.js geometry constructor
+    material: ${materialRef},           // Material reference
+${guide}
+    transform: {
+        // Position in 3D space (x, y, z)
+        position: [${position.x || 0}, ${position.y || 0}, ${position.z || 0}],
+        
+        // Rotation in radians (x, y, z)  
+        rotation: [${rotation.x || 0}, ${rotation.y || 0}, ${rotation.z || 0}],
+        
+        // Scale multipliers (x, y, z)
+        scale: [${scale.x || 1}, ${scale.y || 1}, ${scale.z || 1}]
+    }${statsComment ? '\n' + statsComment : ''}
+};`;
+        } else {
+            return `const ${varName.toUpperCase()}_CONFIG = {
+    type: 'obj',                        // OBJ file loader
     fileName: '${fileName || 'unknown.obj'}',           // OBJ file path
     material: ${materialRef},           // Material reference
 ${guide}
@@ -251,6 +273,52 @@ ${guide}
         scale: [${scale.x || 1}, ${scale.y || 1}, ${scale.z || 1}]
     }${statsComment ? '\n' + statsComment : ''}
 };`;
+        }
+    }
+    
+    /**
+     * Get Three.js geometry constructor for primitive type
+     */
+    getGeometryTypeForPrimitive(primitiveType) {
+        const geometryMap = {
+            'box': 'new THREE.BoxGeometry(2, 2, 2)',
+            'sphere': 'new THREE.SphereGeometry(1.5, 32, 16)',
+            'cylinder': 'new THREE.CylinderGeometry(1, 1, 2, 32)',
+            'cone': 'new THREE.ConeGeometry(1, 2, 32)',
+            'plane': 'new THREE.PlaneGeometry(3, 3)',
+            'circle': 'new THREE.CircleGeometry(1.5, 32)',
+            'ring': 'new THREE.RingGeometry(0.5, 1.5, 32)',
+            'torus': 'new THREE.TorusGeometry(1.2, 0.4, 16, 100)',
+            'torusKnot': 'new THREE.TorusKnotGeometry(1, 0.3, 100, 16)',
+            'dodecahedron': 'new THREE.DodecahedronGeometry(1.5)',
+            'icosahedron': 'new THREE.IcosahedronGeometry(1.5)',
+            'octahedron': 'new THREE.OctahedronGeometry(1.5)',
+            'tetrahedron': 'new THREE.TetrahedronGeometry(1.5)',
+            'capsule': 'new THREE.CapsuleGeometry(0.8, 1.6, 4, 8)',
+            'lathe': `new THREE.LatheGeometry(
+                Array.from({length: 10}, (_, i) => {
+                    const y = (i - 4.5) * 0.4;
+                    const x = Math.sin(i * 0.2) * 0.5 + 0.8;
+                    return new THREE.Vector2(x, y);
+                }), 32
+            )`,
+            'extrude': `(() => {
+                const starShape = new THREE.Shape();
+                const outerRadius = 1.2, innerRadius = 0.6, points = 5;
+                starShape.moveTo(outerRadius, 0);
+                for (let i = 1; i <= points * 2; i++) {
+                    const angle = (i * Math.PI) / points;
+                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                    starShape.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+                }
+                return new THREE.ExtrudeGeometry(starShape, {
+                    depth: 0.4, bevelEnabled: true, bevelSegments: 2, steps: 2, 
+                    bevelSize: 0.1, bevelThickness: 0.1
+                });
+            })()`
+        };
+        
+        return geometryMap[primitiveType] || 'new THREE.BoxGeometry(1, 1, 1)';
     }
     
     /**
