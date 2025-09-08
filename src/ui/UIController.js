@@ -146,6 +146,10 @@ export class UIController {
                 const objectData = this.objectManager.createPrimitive(selectedType);
                 
                 if (objectData) {
+                    // Hide viewport info message
+                    const viewportInfo = document.getElementById('viewport-info');
+                    if (viewportInfo) viewportInfo.style.display = 'none';
+                    
                     // Update objects list
                     this.updateObjectsList();
                     

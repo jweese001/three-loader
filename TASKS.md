@@ -89,86 +89,249 @@
 
 ## 🚀 Current Priorities
 
-### 🎯 **LIVE CODE GENERATION & COMPILATION** (New Branch: gltf-support)
-**Status**: 🚀 **PHASE 2 ACTIVE** - Phase 1 completed Sept 1, 2025
+### 🎯 **ENHANCED THREE.JS CODE EDITOR IDE** 
+**Status**: 🚀 **COMPREHENSIVE IMPLEMENTATION PLAN** - Updated September 7, 2025
 
-**Vision**: Enable users to load 3D models, see generated Three.js code, edit it directly, and see changes instantly in the viewport. Create a professional code-centric workflow for advanced users.
+**Vision**: Transform three-loader into a full Three.js development environment where visual editing and code editing work seamlessly together. Enable users to create production-ready JavaScript for 3D web scenes across all browsers.
 
-#### **Phase 1: Enhanced Code Generation** (Week 1) - ✅ **COMPLETED**
-- [x] Create `CodeTemplateGenerator.js` - Generate editable, structured Three.js code from loaded models ✅
-- [x] Extend `ExportManager` with `generateEditableCode()` method ✅
-- [x] Build modular code blocks for different object properties (materials, transforms, lighting) ✅
-- [x] Add self-contained, runnable Three.js scene generation ✅
-- [x] Implement parameter extraction and code formatting ✅
-- [x] Create code structure templates with clear sections and guidance comments ✅
-- [x] **BONUS**: Fixed 3 critical bugs during comprehensive testing ✅
-- [x] **BONUS**: Achieved 100% test success rate with performance validation ✅
+**Core Principle**: **BIDIRECTIONAL SYNC** - Changes in visual editor reflect in code and vice versa, maintaining both workflows simultaneously.
 
-**Phase 1 Results**: 🎉 **ALL FEATURES WORKING PERFECTLY**
-- **CodeTemplateGenerator.js** - Production ready with robust error handling
-- **4 Export Modes** - Standard, Editable, Compact, Educational
-- **Monaco Integration** - Live code generation in split view
-- **Performance** - <1ms generation for 50 objects
-- **Error Handling** - Graceful handling of null/invalid data
-- **Bug Fixes** - Module type, null handling, variable sanitization
+---
 
-#### **Phase 2: Live Code Compilation** (Week 2) - 🎯 **ACTIVE NOW**
-- [ ] Create `CodeCompiler.js` - Parse edited Three.js code and extract changes
-- [ ] Implement safe code execution with error handling
-- [ ] Build `LiveUpdateManager.js` for real-time viewport updates
-- [ ] Add debounced compilation (300ms delay) for performance
-- [ ] Create change detection system for smart updates
-- [ ] Implement error reporting and validation feedback
-- [ ] Integrate with existing `CodeEditorManager` for live updates
-- [ ] Add Monaco editor change listeners and compilation triggers
-- [ ] Implement error display and user feedback in editor
-- [ ] Comprehensive testing and performance optimization
+## 📋 **IMPLEMENTATION PHASES**
 
-#### **Phase 3: Real-time Synchronization** (Week 3) - ⏳ **PLANNED**
-- [ ] Create `SyncManager.js` for bidirectional sync between visual editor and code
-- [ ] Handle conflicts between visual panel changes and code edits
-- [ ] Maintain code formatting during auto-sync
-- [ ] Enhance `CodeEditorManager` with compilation triggers
-- [ ] Add live syntax validation and code assistance
-- [ ] Optimize performance for real-time updates
+### **Phase 1: Safe Code Execution Engine** (Weeks 1-2)
+**Goal**: Enable execution of arbitrary Three.js code safely with bidirectional sync
 
-#### **Phase 4: Advanced Features** (Week 4) - ⏳ **PLANNED**
-- [ ] Create `CodeTemplates` library (PBR materials, animations, lighting setups)
-- [ ] Add code snippet insertion and auto-completion
-- [ ] Implement template customization and user storage
-- [ ] Create advanced export formats (standalone HTML, ES6 modules, embedded assets)
-- [ ] Add project packaging options with build configuration
+#### **1.1 - Code Sandbox Architecture**
+- [ ] Create `CodeSandbox.js` - Web Worker-based safe code execution
+  - [ ] Implement Web Worker isolation for security
+  - [ ] Restrict API access (no DOM manipulation, file system)
+  - [ ] Provide full Three.js library access within sandbox
+  - [ ] Add error containment and detailed reporting
+  - [ ] Create resource limits (memory, computation caps)
 
-#### **Technical Architecture**:
+#### **1.2 - Dynamic Scene Builder**
+- [ ] Enhance `CodeCompiler.js` for arbitrary Three.js code
+  - [ ] Parse and execute user code in sandbox environment
+  - [ ] Extract scene objects, materials, lights, cameras dynamically
+  - [ ] Support all Three.js geometry types (beyond current 16 primitives)
+  - [ ] Handle custom shaders, post-processing effects
+  - [ ] Implement physics integration (Cannon.js/Ammo.js optional)
+
+#### **1.3 - Bidirectional Sync Foundation** 
+- [ ] Build `SyncManager.js` - Core bidirectional synchronization
+  - [ ] **Visual → Code**: Update code when visual panels change
+  - [ ] **Code → Visual**: Update UI panels when code is edited
+  - [ ] Handle conflict resolution (code edits override visual)
+  - [ ] Maintain code formatting during auto-sync
+  - [ ] Preserve user comments and custom code structure
+  - [ ] Implement smart change detection to avoid infinite loops
+
+#### **1.4 - Enhanced syncToUI() Method**
+- [ ] Upgrade existing `syncToUI()` for reverse-engineering
+  - [ ] Extract object properties from Three.js objects back to UI
+  - [ ] Support dynamic object creation/deletion from code
+  - [ ] Handle complex material properties and custom shaders
+  - [ ] Update visual panels to reflect code-generated changes
+  - [ ] Maintain UI state consistency during code execution
+
+---
+
+### **Phase 2: Comprehensive Three.js API Support** (Weeks 3-4)
+**Goal**: Support the complete Three.js ecosystem while maintaining visual editing
+
+#### **2.1 - Extended API Coverage**
+- [ ] **Geometry Support**: All 25+ Three.js geometries with parameters
+  - [ ] Extend current primitive system (16 types) to full Three.js API
+  - [ ] Add ParametricGeometry, TextGeometry, ConvexGeometry, etc.
+  - [ ] Support custom BufferGeometry creation from code
+  - [ ] Maintain visual primitive dropdown alongside code support
+
+- [ ] **Material Support**: Complete material system
+  - [ ] Extend current 6 material types to all Three.js materials
+  - [ ] Add ShaderMaterial with custom GLSL shader support
+  - [ ] Support RawShaderMaterial for advanced users
+  - [ ] Maintain current MatCap system (600+ textures) in visual editor
+  - [ ] Add visual shader node editor for ShaderMaterial
+
+- [ ] **Lighting & Environment**: Advanced lighting systems
+  - [ ] Extend current lighting to all light types
+  - [ ] Add shadow mapping configuration in visual editor
+  - [ ] Support IBL (Image-Based Lighting) and HDR environments
+  - [ ] Add visual environment map loading and preview
+
+- [ ] **Animation & Physics**: Advanced animation systems  
+  - [ ] Extend current 6 animation types to full animation API
+  - [ ] Add keyframe animation support with visual timeline
+  - [ ] Support morph targets and skeletal animation
+  - [ ] Optional physics integration with visual physics properties
+
+#### **2.2 - Enhanced Code Templates**
+- [ ] Upgrade `CodeTemplateGenerator.js` for full API support
+  - [ ] Generate fully functional, standalone Three.js scenes
+  - [ ] Include module loading, error handling, resize handlers
+  - [ ] Support ES6 modules and legacy script tags  
+  - [ ] Add performance optimization patterns
+  - [ ] Generate production-ready code for any browser
+
+#### **2.3 - IntelliSense & Documentation**
+- [ ] Enhance Monaco Editor with comprehensive Three.js support
+  - [ ] Add complete Three.js type definitions and autocomplete
+  - [ ] Provide inline documentation and code examples
+  - [ ] Implement smart autocomplete for methods and properties
+  - [ ] Add real-time error checking and suggestions
+  - [ ] Create contextual help system linked to Three.js docs
+
+---
+
+### **Phase 3: Production-Ready Scene Export** (Weeks 5-6)
+**Goal**: Generate web-ready, deployable Three.js applications
+
+#### **3.1 - Smart Export System**
+- [ ] Create `SceneExporter.js` for production exports
+  - [ ] Generate complete HTML files with embedded scenes
+  - [ ] Create modular JavaScript exports (ES6 modules)
+  - [ ] Support optimized builds with tree-shaking
+  - [ ] Add asset bundling and optimization
+  - [ ] Maintain current export system alongside new features
+
+#### **3.2 - Multiple Deployment Formats**
+- [ ] **Standalone HTML**: Self-contained web pages
+- [ ] **JavaScript Modules**: For integration with existing projects  
+- [ ] **Framework Components**: React/Vue/Angular components
+- [ ] **Node.js Exports**: Server-side compatible versions
+- [ ] **CDN-Ready Bundles**: Optimized for content delivery networks
+
+#### **3.3 - Asset Management Pipeline**
+- [ ] Build `AssetManager.js` for comprehensive asset handling
+  - [ ] Extend current OBJ/primitive system to all model formats
+  - [ ] Add automatic texture optimization and compression
+  - [ ] Implement model compression and LOD generation
+  - [ ] Support asset bundling and lazy loading strategies
+  - [ ] Prepare assets for CDN deployment
+
+---
+
+### **Phase 4: Advanced IDE Features** (Weeks 7-8)
+**Goal**: Professional development experience with collaboration
+
+#### **4.1 - Real-time Collaboration**
+- [ ] Build `CollaborationManager.js` for multi-user editing
+  - [ ] Enable scene sharing via URLs  
+  - [ ] Support real-time collaborative editing
+  - [ ] Add version history and branching system
+  - [ ] Create comment and annotation system
+  - [ ] Maintain visual editor collaboration alongside code
+
+#### **4.2 - Performance & Debugging Tools**
+- [ ] Create `PerformanceProfiler.js` for optimization
+  - [ ] Add frame rate monitoring and memory usage tracking
+  - [ ] Implement draw call optimization suggestions
+  - [ ] Create performance bottleneck identification
+  - [ ] Add visual performance metrics in UI
+  - [ ] Generate performance reports for optimization
+
+#### **4.3 - Extended Integrations**
+- [ ] **External Tool Support**:
+  - [ ] Add Blender scene import capabilities
+  - [ ] Support Figma/Sketch integration for UI overlays
+  - [ ] Integrate Git version control for projects
+  - [ ] Create package manager for Three.js extensions
+  - [ ] Maintain current visual editing workflow alongside integrations
+
+---
+
+## 🏗️ **TECHNICAL ARCHITECTURE**
+
+### **Enhanced File Structure**:
 ```javascript
-src/
-├── codegen/                         # NEW DIRECTORY
-│   ├── CodeTemplateGenerator.js     # Generate editable code from models
-│   ├── CodeCompiler.js              # Parse and execute edited code
-│   ├── LiveUpdateManager.js         # Handle real-time updates
-│   ├── SyncManager.js               # Bidirectional synchronization
-│   └── templates/
-│       ├── MaterialTemplates.js     # Material code templates
-│       ├── SceneTemplates.js        # Scene setup templates
-│       └── AnimationTemplates.js    # Animation code templates
-├── export/
-│   └── ExportManager.js             # ENHANCED with live code export
-└── ui/
-    └── CodeEditorManager.js         # ENHANCED with live compilation
+three-loader/
+├── src/
+│   ├── core/
+│   │   ├── Scene.js                    # EXISTING - Core scene management
+│   │   ├── SyncManager.js              # NEW - Bidirectional sync controller
+│   │   └── CodeSandbox.js              # NEW - Safe code execution
+│   ├── codegen/                        # EXISTING DIRECTORY - ENHANCED  
+│   │   ├── CodeTemplateGenerator.js    # EXISTING - Enhanced for full API
+│   │   ├── CodeCompiler.js             # EXISTING - Enhanced for arbitrary code
+│   │   ├── LiveUpdateManager.js        # EXISTING - Enhanced for bidirectional
+│   │   ├── SceneInterpreter.js         # NEW - Parse arbitrary Three.js code
+│   │   └── APIRegistry.js              # NEW - Complete Three.js API mapping
+│   ├── export/
+│   │   ├── ExportManager.js            # EXISTING - Enhanced production exports
+│   │   ├── SceneExporter.js            # NEW - Advanced export formats
+│   │   └── AssetManager.js             # NEW - Comprehensive asset handling
+│   ├── loaders/
+│   │   └── ObjectManager.js            # EXISTING - Enhanced for all formats
+│   ├── ui/
+│   │   ├── UIController.js             # EXISTING - Enhanced for sync
+│   │   ├── CodeEditorManager.js        # EXISTING - Enhanced Monaco integration
+│   │   └── VisualEditorManager.js      # NEW - Dedicated visual editing
+│   ├── collaboration/
+│   │   └── CollaborationManager.js     # NEW - Real-time sharing
+│   └── performance/
+│       └── PerformanceProfiler.js      # NEW - Performance monitoring
 ```
 
-#### **Key Benefits**:
-- **Educational**: Users learn Three.js API directly through hands-on editing
-- **Flexible**: Can modify any aspect of the scene through code (geometry, materials, lighting, animations)
-- **Professional**: Bridges the gap between visual editing and code-based development
-- **Powerful**: Enables complex customizations not possible through UI alone
-- **Export Ready**: Generate production-ready code for use in other projects
+### **Execution Flow**:
+1. **User loads model** → Both visual editor AND code editor populate
+2. **User edits visually** → Code automatically updates via SyncManager  
+3. **User edits code** → Visual editor updates + viewport renders changes
+4. **Code executed safely** → Sandbox environment prevents security issues
+5. **Changes synchronized** → Both editing modes stay in perfect sync
+6. **Export production-ready** → Multiple formats for any deployment scenario
 
-#### **User Workflow**:
-1. **Load Model** → Automatic code generation in Monaco editor
-2. **Edit Code** → Real-time compilation and viewport updates (300ms debounce)
-3. **Visual Feedback** → Instant preview of material/transform changes
-4. **Export Options** → Standalone HTML, ES6 modules, or packaged projects
+---
+
+## 🎯 **IMPLEMENTATION PRIORITIES**
+
+### **Immediate (Week 1-2)**:
+1. **Build CodeSandbox.js** - Safe Web Worker execution environment
+2. **Enhance SyncManager.js** - Core bidirectional synchronization  
+3. **Upgrade syncToUI()** - Reverse-engineer Three.js objects to UI
+4. **Test bidirectional workflow** - Ensure visual ↔ code sync works perfectly
+
+### **Short-term (Week 3-4)**:
+1. **Extend API support** - All Three.js geometries, materials, lighting
+2. **Enhance Monaco Editor** - Complete Three.js IntelliSense and docs
+3. **Upgrade code templates** - Production-ready scene generation
+4. **Maintain visual editing** - Ensure current UI features remain functional
+
+### **Medium-term (Month 2)**:
+1. **Build production export system** - Multiple deployment formats
+2. **Add performance profiling** - Optimization tools and monitoring
+3. **Implement asset management** - Complete asset pipeline optimization
+4. **Create framework integrations** - React/Vue/Angular component exports
+
+### **Long-term (Month 3+)**:
+1. **Add collaboration features** - Real-time sharing and version control
+2. **Build external integrations** - Blender, Figma, Git, package management
+3. **Create advanced shader editor** - Visual node-based shader creation
+4. **Implement advanced features** - Custom physics, advanced post-processing
+
+---
+
+## ✅ **SUCCESS CRITERIA**
+
+### **Core Requirements**:
+- ✅ **Bidirectional Sync**: Changes in visual editor reflect in code instantly
+- ✅ **Code → Visual**: Arbitrary Three.js code updates visual controls
+- ✅ **Visual → Code**: Visual panel changes update code automatically  
+- ✅ **Safe Execution**: Sandbox prevents malicious code execution
+- ✅ **Production Ready**: Generated JavaScript runs in any browser
+- ✅ **Performance**: Real-time updates with <300ms latency
+- ✅ **Comprehensive API**: Support for complete Three.js ecosystem
+- ✅ **Professional UX**: Both code and visual editing feel polished
+
+### **User Workflow Goals**:
+1. **Beginner**: Use visual editor, learn from generated code
+2. **Intermediate**: Switch between visual and code editing as needed
+3. **Advanced**: Edit code directly, use visual editor for quick tweaks
+4. **Expert**: Create complex scenes with full Three.js API, export for production
+
+This plan transforms three-loader into a **comprehensive Three.js IDE** while maintaining the excellent visual editing experience that already exists.
+
 
 ---
 

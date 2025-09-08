@@ -147,3 +147,10 @@ This is the **3/LOADER** project (v0.0.7) - a Three.js OBJ loader and editor wit
 - **Testing**: Dev server running on localhost:5173 (three-loader)
 - **Variable Naming**: Always check for naming conflicts in geometry creation (learned from `points` variable issue)
 - **Error Handling**: Comprehensive try-catch blocks especially in UI setup methods
+
+## 📋 **Three.js Development Reference**
+- **Implementation Plan**: See `IMPLEMENTATION_PLAN_ENHANCED_THREEJS_CODE_EDITOR.md` for comprehensive roadmap
+- **Code Editor Enhancement**: When working on Three.js, ThreeJS, or Three.js related features, always reference the implementation plan
+- **Current Limitations**: Code editor currently supports basic material/transform changes only
+- **Future Vision**: Transform into comprehensive Three.js development environment with full API support
+- **Key Focus Areas**: Safe code execution, complete API coverage, production-ready exports, real-time collaboration
