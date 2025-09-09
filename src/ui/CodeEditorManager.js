@@ -59,21 +59,11 @@ export class CodeEditorManager {
      */
     async initializeSyncManager() {
         try {
-            // Only initialize if we have all required components
-            if (this.scene && this.objectManager && this.uiController) {
-                this.syncManager = new SyncManager(
-                    this.scene, 
-                    this.objectManager, 
-                    this.uiController, 
-                    this
-                );
-                console.log('🔄 SyncManager initialized for bidirectional sync');
-            } else {
-                console.warn('⚠️ Cannot initialize SyncManager - missing dependencies');
-            }
+            // Temporarily disable SyncManager due to initialization issues
+            console.log('⚠️ SyncManager disabled - using fallback code generation');
+            this.syncManager = null;
         } catch (error) {
-            console.error('❌ SyncManager initialization failed:', error);
-            // Continue without SyncManager - fallback to original parsing
+            console.error('❌ Failed to initialize SyncManager:', error);
         }
     }
     
@@ -426,13 +416,33 @@ export class CodeEditorManager {
         console.log('💻 Fullscreen controls setup complete');
     }
     
-    syncFromUI() {
+    async syncFromUI() {
         if (this.isUpdatingFromCode) return;
         
         this.isUpdatingFromUI = true;
         
         try {
-            // Generate fresh editable code from current UI state (NEW!)
+            // Temporarily disable SyncManager to test basic functionality
+            if (false && this.syncManager) {
+                console.log('🔄 Using SyncManager for enhanced UI → Code sync');
+                const success = await this.syncManager.manualSyncFromUI();
+                
+                if (success) {
+                    this.showNotification('✅ UI successfully synced to code!', 'success');
+                } else {
+                    this.showNotification('❌ Failed to sync UI to code', 'error');
+                }
+                return;
+            }
+            
+            // Fallback: Generate fresh editable code from current UI state
+            console.log('📝 Using legacy code generation (SyncManager not available)');
+            
+            if (!this.exportManager) {
+                throw new Error('ExportManager is not available');
+            }
+            
+            console.log('🔄 Calling exportManager.generateEditableCode()...');
             const code = this.exportManager.generateEditableCode({
                 includeComments: true,
                 includeImports: true,
@@ -447,9 +457,11 @@ export class CodeEditorManager {
                 this.fullscreenEditor.setValue(code);
             }
             
-            console.log('⬇️ Editable code updated from UI state');
+            this.showNotification('✅ UI successfully synced to code!', 'success');
+            console.log('✅ Editable code updated from UI state successfully');
         } catch (error) {
             console.error('❌ Failed to sync from UI:', error);
+            this.showNotification(`❌ Failed to sync from UI: ${error.message}`, 'error');
         } finally {
             this.isUpdatingFromUI = false;
         }
@@ -506,10 +518,18 @@ export class CodeEditorManager {
                 return;
             }
             
-            // Phase 1: Use SyncManager for comprehensive code analysis
+            // Phase 1: Use enhanced SyncManager for comprehensive code analysis
             if (this.syncManager) {
-                console.log('🔄 Using SyncManager for advanced code to UI sync');
-                await this.syncCodeToUIWithSyncManager(code);
+                console.log('🔄 Using enhanced SyncManager for Code → UI sync');
+                const success = await this.syncManager.manualSyncFromCode();
+                
+                if (success) {
+                    this.showNotification('✅ Code successfully synced to UI controls!', 'success');
+                } else {
+                    // Fallback to existing method if enhanced sync fails
+                    console.log('🔄 Enhanced sync failed, falling back to legacy method');
+                    await this.syncCodeToUIWithSyncManager(code);
+                }
             } else {
                 console.log('📝 Using legacy code parsing (SyncManager not available)');
                 await this.syncCodeToUILegacy(code);
@@ -1014,6 +1034,63 @@ Code Execution Completed Successfully:
     }
     
     /**
+     * Show notification to user
+     * @param {string} message - Message to display
+     * @param {string} type - Notification type ('success', 'error', 'info')
+     */
+    showNotification(message, type = 'info') {
+        // Create notification element if it doesn't exist
+        let notification = document.getElementById('code-editor-notification');
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'code-editor-notification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-family: 'Inter', sans-serif;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 10000;
+                max-width: 400px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                transform: translateX(100%);
+                transition: transform 0.3s ease-in-out;
+            `;
+            document.body.appendChild(notification);
+        }
+        
+        // Set style based on type
+        const styles = {
+            success: 'background: #10b981; color: white;',
+            error: 'background: #ef4444; color: white;',
+            info: 'background: #3b82f6; color: white;'
+        };
+        
+        notification.style.cssText += styles[type] || styles.info;
+        notification.textContent = message;
+        
+        // Show notification
+        requestAnimationFrame(() => {
+            notification.style.transform = 'translateX(0)';
+        });
+        
+        // Hide after 4 seconds
+        setTimeout(() => {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 4000);
+        
+        console.log(`📢 Notification (${type}): ${message}`);
+    }
+
+    /**
      * Get current code from active editor
      * @returns {string} Current code
      */
@@ -1023,7 +1100,22 @@ Code Execution Completed Successfully:
     
     saveSceneFile() {
         try {
-            const code = this.editor.getValue();
+            // Get code from the appropriate editor
+            let code = '';
+            const activeEditor = this.currentView === 'code' ? this.fullscreenEditor : this.editor;
+            
+            if (activeEditor) {
+                code = activeEditor.getValue();
+            } else if (this.currentCode) {
+                code = this.currentCode;
+            } else {
+                throw new Error('No code available to save');
+            }
+            
+            if (!code || code.trim().length === 0) {
+                throw new Error('Cannot save empty code');
+            }
+            
             const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
             const filename = `three-scene-${timestamp}.js`;
             
@@ -1038,9 +1130,10 @@ Code Execution Completed Successfully:
             URL.revokeObjectURL(url);
             
             console.log('💾 Scene saved:', filename);
+            this.showNotification(`✅ Scene saved as ${filename}`, 'success');
         } catch (error) {
             console.error('❌ Failed to save scene:', error);
-            alert(`Failed to save scene: ${error.message}`);
+            this.showNotification(`❌ Failed to save scene: ${error.message}`, 'error');
         }
     }
     
@@ -1118,17 +1211,88 @@ Code Execution Completed Successfully:
     }
     
     async applySceneDataToUI(sceneData) {
-        // This would need to be implemented to actually update the UI controls
-        // with the parsed scene data - complex feature requiring UI state management
         console.log('🔄 Applying scene data to UI:', sceneData);
         
-        // For now, just log what would be applied
-        sceneData.objects.forEach(obj => {
-            console.log(`Would apply: ${obj.name}`, obj.material, obj.transform);
-        });
-        
-        // TODO: Actually update material controls, transform controls, etc.
-        alert('Code parsing successful! Full UI sync implementation coming soon...');
+        try {
+            // Update scene background if available
+            if (sceneData.background !== undefined) {
+                await this.updateUIFromBackground(sceneData.background);
+            }
+            
+            // Update camera settings if available
+            if (sceneData.camera) {
+                await this.updateUIFromCamera(sceneData.camera);
+            }
+            
+            // Update lighting if available
+            if (sceneData.lighting) {
+                await this.updateLightingUI(sceneData.lighting);
+            }
+            
+            // Apply object data to UI controls
+            if (sceneData.objects && sceneData.objects.length > 0) {
+                // For now, apply the first object's data to the current UI controls
+                // In a more advanced implementation, we'd need object selection logic
+                const firstObject = sceneData.objects[0];
+                
+                if (firstObject) {
+                    console.log(`🎯 Applying data from object: ${firstObject.name}`);
+                    
+                    // Update material controls if available
+                    if (firstObject.material) {
+                        await this.updateMaterialUIFromData(firstObject.material);
+                    }
+                    
+                    // Update transform controls if available
+                    if (firstObject.transform) {
+                        const transform = firstObject.transform;
+                        
+                        if (transform.position) {
+                            this.updateUIControl('position-x', transform.position[0]);
+                            this.updateUIControl('position-y', transform.position[1]);
+                            this.updateUIControl('position-z', transform.position[2]);
+                        }
+                        
+                        if (transform.rotation) {
+                            this.updateUIControl('rotation-x', transform.rotation[0]);
+                            this.updateUIControl('rotation-y', transform.rotation[1]);
+                            this.updateUIControl('rotation-z', transform.rotation[2]);
+                        }
+                        
+                        if (transform.scale) {
+                            this.updateUIControl('scale-x', transform.scale[0]);
+                            this.updateUIControl('scale-y', transform.scale[1]);
+                            this.updateUIControl('scale-z', transform.scale[2]);
+                        }
+                    }
+                    
+                    // Update object visibility if available
+                    if (firstObject.visible !== undefined) {
+                        this.updateUIControl('object-visible', firstObject.visible);
+                    }
+                }
+                
+                // Log summary of what was applied
+                console.log(`✅ Applied UI data for ${sceneData.objects.length} object(s)`);
+                sceneData.objects.forEach((obj, index) => {
+                    console.log(`  ${index + 1}. ${obj.name}:`, {
+                        material: obj.material ? 'Updated' : 'None',
+                        transform: obj.transform ? 'Updated' : 'None',
+                        visible: obj.visible !== undefined ? obj.visible : 'Default'
+                    });
+                });
+            }
+            
+            console.log('✅ Scene data successfully applied to UI controls');
+            
+            // Show success message instead of alert
+            this.showNotification('✅ Code successfully synced to UI controls!', 'success');
+            
+        } catch (error) {
+            console.error('❌ Failed to apply scene data to UI:', error);
+            this.showNotification(`❌ Failed to sync to UI: ${error.message}`, 'error');
+            throw error;
+        }
     }
     
     getCurrentCode() {

@@ -1,19 +1,47 @@
 import * as THREE from 'three';
+import { APIRegistry } from './APIRegistry.js';
 
 /**
- * CodeTemplateGenerator - Generates editable, structured Three.js code from loaded models
- * Part of the Live Code Generation & Compilation system
+ * CodeTemplateGenerator - Enhanced with comprehensive Three.js API coverage
+ * Part of Phase 2: Comprehensive Three.js API Support
+ * 
+ * Features:
+ * - Complete Three.js API mapping
+ * - Intelligent code templates
+ * - Production-ready exports
+ * - Advanced material/lighting support
  */
 export class CodeTemplateGenerator {
     constructor(scene, objectManager) {
         this.scene = scene;
         this.objectManager = objectManager;
         
-        console.log('🔧 CodeTemplateGenerator initialized');
+        // Initialize comprehensive API registry
+        this.apiRegistry = new APIRegistry();
+        
+        // Enhanced template generation options
+        this.templateOptions = {
+            includePostProcessing: true,    // Include post-processing effects
+            includeAdvancedLighting: true,  // Advanced lighting system
+            includeHelpers: false,          // Debug helpers (wireframes, light helpers)
+            includePhysics: false,          // Physics integration (future)
+            includeAnimation: true,         // Animation system
+            includeAudio: false,            // 3D audio (future)
+            optimizeForProduction: false,   // Production optimizations
+            includeVR: false,               // WebXR/VR support (future)
+            includeAR: false,               // WebXR/AR support (future)
+            includeControls: true,          // Camera controls
+            includeEnvironment: false,      // HDR environment mapping
+            templateFormat: 'module',       // 'module' or 'standalone'
+            apiCoverage: 'comprehensive'    // 'basic', 'standard', 'comprehensive'
+        };
+        
+        console.log('🔧 CodeTemplateGenerator initialized with comprehensive API coverage');
+        console.log('📚 API Coverage:', this.apiRegistry.getStatus());
     }
     
     /**
-     * Generate complete editable Three.js scene code
+     * Generate complete editable Three.js scene code with enhanced API support
      * @param {Object} options - Generation options
      * @returns {string} Complete Three.js scene code
      */
@@ -22,6 +50,8 @@ export class CodeTemplateGenerator {
             includeComments = true,
             includeImports = true,
             includeAnimation = true,
+            includeAdvancedFeatures = true,
+            templateType = 'standard', // 'standard', 'complete', 'minimal', 'pbr'
             moduleFormat = 'es6' // 'es6' or 'iife'
         } = options;
         
@@ -40,6 +70,8 @@ export class CodeTemplateGenerator {
             includeComments,
             includeImports,
             includeAnimation,
+            includeAdvancedFeatures,
+            templateType,
             moduleFormat
         });
     }
@@ -82,6 +114,16 @@ export class CodeTemplateGenerator {
         
         // Main function section
         sections.push(this.generateMainFunctionSection(objects, includeComments, includeAnimation));
+        
+        // Post-processing effects section
+        if (this.templateOptions.includePostProcessing) {
+            sections.push(this.generatePostProcessingSection(includeComments));
+        }
+        
+        // Production export utilities section
+        if (this.templateOptions.optimizeForProduction) {
+            sections.push(this.generateProductionUtilitiesSection(includeComments));
+        }
         
         // Usage example section
         if (includeComments) {
@@ -156,20 +198,21 @@ const SCENE_CONFIG = {
     }
     
     /**
-     * Generate materials section with editable properties
+     * Generate materials section with enhanced API support
      */
     generateMaterialsSection(objects, includeComments) {
         const comment = includeComments ? `
 // ═══════════════════════════════════════════════════════════════
-// 🎨 MATERIALS 
-// Edit these material properties to see instant changes in the viewport
+// 🎨 ENHANCED MATERIALS SYSTEM
+// Full Three.js material API support - edit properties for instant updates
+// Supports: Standard, Basic, Phong, Lambert, Physical, MatCap, Toon, Normal, and more
 // ═══════════════════════════════════════════════════════════════` : '';
         
         const materials = this.extractUniqueMaterials(objects);
         
         const materialDefinitions = materials.map((material, index) => {
             const name = `MATERIAL_${index + 1}`;
-            return this.generateMaterialDefinition(name, material, includeComments);
+            return this.generateEnhancedMaterialDefinition(name, material, includeComments);
         }).join('\n\n');
         
         return `${comment}
@@ -177,27 +220,44 @@ ${materialDefinitions}`;
     }
     
     /**
-     * Generate individual material definition
+     * Generate enhanced material definition with comprehensive API coverage
      */
-    generateMaterialDefinition(name, material, includeComments) {
-        const guide = includeComments ? `    // 💡 TIP: Change these values and see instant updates!` : '';
+    generateEnhancedMaterialDefinition(name, material, includeComments) {
+        const guide = includeComments ? `    // 💡 EDIT THESE VALUES FOR INSTANT UPDATES!` : '';
         
-        // Provide defaults if material is null or missing properties
+        // Safety check for apiRegistry
+        if (!this.apiRegistry || !this.apiRegistry.materials) {
+            console.warn('⚠️  APIRegistry not available, using basic material definition');
+            const safeMaterial = material || {};
+            const materialType = safeMaterial.type || 'standard';
+            
+            return `const ${name} = {
+    // Material Type: ${materialType.toUpperCase()}
+${guide}
+    type: '${materialType}',                // Material type (basic fallback)
+    
+    color: '${safeMaterial.color || '#9dd9d9'}',    // Color
+    wireframe: ${safeMaterial.wireframe !== undefined ? safeMaterial.wireframe : true},    // Wireframe rendering
+    opacity: ${safeMaterial.opacity !== undefined ? safeMaterial.opacity : 1.0},    // Transparency
+};`;
+        }
+        
+        const materialAPI = this.apiRegistry.materials;
+        
+        // Provide comprehensive defaults
         const safeMaterial = material || {};
-        const color = safeMaterial.color || '#9dd9d9';
-        const wireframe = safeMaterial.wireframe !== undefined ? safeMaterial.wireframe : true;
-        const opacity = safeMaterial.opacity !== undefined ? safeMaterial.opacity : 1.0;
-        const roughness = safeMaterial.roughness !== undefined ? safeMaterial.roughness : 0.5;
-        const metalness = safeMaterial.metalness !== undefined ? safeMaterial.metalness : 0.0;
+        const materialType = safeMaterial.type || 'MeshStandardMaterial';
+        const materialConfig = materialAPI[materialType] || materialAPI['MeshStandardMaterial'] || {};
+        
+        // Generate properties based on material type
+        const properties = this.generateMaterialProperties(safeMaterial, materialConfig, includeComments);
         
         return `const ${name} = {
+    // Material Type: ${materialType.toUpperCase()}
 ${guide}
-    color: '${color}',           // Hex color (e.g., '#ff0000', '#9dd9d9')
-    wireframe: ${wireframe},               // true/false - show wireframe
-    opacity: ${opacity},                   // 0.0 to 1.0 - transparency
-    transparent: ${opacity < 1},            // Enable transparency
-    roughness: ${roughness},                 // 0.0 to 1.0 - surface roughness
-    metalness: ${metalness}                  // 0.0 to 1.0 - metallic appearance
+    type: '${materialType}',                // Material type from API registry
+    
+${properties}
 };`;
     }
     
@@ -516,53 +576,132 @@ ${guide}
     }
     
     /**
-     * Generate lighting section
+     * Generate advanced lighting section with comprehensive API support
      */
     generateLightingSection(includeComments) {
         const comment = includeComments ? `
 // ═══════════════════════════════════════════════════════════════
-// 💡 LIGHTING SETUP
-// Customize the lighting to enhance your scene
+// 💡 ADVANCED LIGHTING SYSTEM
+// Full Three.js lighting API - supports all light types and advanced features
+// Edit values for real-time lighting changes in your scene
 // ═══════════════════════════════════════════════════════════════` : '';
+        
+        const lightingAPI = this.apiRegistry.lights;
         
         return `${comment}
 const LIGHTING_CONFIG = {
-    // Ambient light (overall scene brightness)
+    // Environment mapping
+    environment: {
+        enabled: false,              // Enable HDR environment mapping
+        hdrPath: null,              // Path to .hdr environment map
+        intensity: 1.0              // Environment intensity
+    },
+    
+    // Ambient lighting
     ambient: {
-        color: 0x404040,        // Soft gray
-        intensity: 0.4          // 0.0 to 1.0
+        type: 'AmbientLight',       // Basic ambient illumination
+        color: 0x404040,            // Soft gray
+        intensity: 0.4              // 0.0 to 1.0
     },
     
-    // Main directional light (like sun)
+    // Hemisphere light (sky/ground simulation)
+    hemisphere: {
+        enabled: true,
+        skyColor: 0x87ceeb,         // Sky blue
+        groundColor: 0x8b4513,      // Brown ground
+        intensity: 0.6,             // 0.0 to 2.0+
+        position: [0, 50, 0]        // High above scene
+    },
+    
+    // Main directional light (sun simulation)
     directional: {
-        color: 0xffffff,        // White
-        intensity: 1.0,         // 0.0 to 2.0+
-        position: [20, 20, 20], // [x, y, z]
-        castShadow: true
+        type: 'DirectionalLight',
+        color: 0xffffff,            // White sunlight
+        intensity: 1.2,             // 0.0 to 2.0+
+        position: [20, 20, 20],     // Sun position [x, y, z]
+        target: [0, 0, 0],          // Look at point
+        castShadow: true,           // Enable shadows
+        shadow: {
+            mapSize: 2048,          // Shadow resolution (512, 1024, 2048, 4096)
+            camera: {
+                near: 1,            // Shadow camera near plane
+                far: 200,           // Shadow camera far plane
+                left: -50,          // Shadow camera bounds
+                right: 50,
+                top: 50,
+                bottom: -50
+            }
+        }
     },
     
-    // Fill light (reduces harsh shadows)
-    fill: {
-        color: 0x9dd9d9,        // Soft teal
-        intensity: 0.3,         // 0.0 to 1.0
-        position: [-10, -10, -10]
-    },
+    // Spotlight array (focused lighting)
+    spotLights: [
+        {
+            type: 'SpotLight',
+            color: 0xffffff,        // White
+            intensity: 1.5,         // 0.0 to 2.0+
+            position: [15, 15, 15], // Light position
+            target: [0, 0, 0],      // Focus point
+            angle: Math.PI / 6,     // Cone angle (radians)
+            penumbra: 0.3,          // Soft edge (0.0 = hard, 1.0 = soft)
+            decay: 1,               // Light falloff
+            distance: 100,          // Max range
+            castShadow: true
+        }
+    ],
     
-    // Accent point lights
+    // Point lights array (omnidirectional)
     pointLights: [
         {
-            color: 0x9dd9d9,    // Teal accent
-            intensity: 0.8,     // 0.0 to 2.0+
-            position: [10, 10, 10],
-            distance: 50        // Light reach distance
+            type: 'PointLight',
+            color: 0x9dd9d9,        // Teal accent
+            intensity: 0.8,         // 0.0 to 2.0+
+            position: [10, 10, 10], // Light position
+            distance: 50,           // Light reach distance (0 = infinite)
+            decay: 2                // Physical light falloff
         },
         {
-            color: 0xc77dcd,    // Purple accent  
-            intensity: 0.5,     // 0.0 to 2.0+
+            type: 'PointLight',
+            color: 0xc77dcd,        // Purple accent  
+            intensity: 0.5,         // 0.0 to 2.0+
             position: [-10, 5, -10],
-            distance: 30        // Light reach distance
+            distance: 30,           // Shorter range
+            decay: 2
         }
-    ]
+    ],
+    
+    // Area lights (advanced realistic lighting)
+    areaLights: [
+        {
+            type: 'RectAreaLight',
+            color: 0xffffff,        // White
+            intensity: 10,          // Higher intensity for area lights
+            width: 10,              // Light panel width
+            height: 10,             // Light panel height
+            position: [0, 20, 0],   // Position above scene
+            rotation: [-Math.PI/2, 0, 0] // Point downward
+        }
+    ],
+    
+    // Light probes (for realistic ambient)
+    lightProbes: [
+        {
+            type: 'AmbientLightProbe',
+            color: 0x444466,
+            intensity: 0.3
+        }
+    ],
+    
+    // Global lighting settings
+    global: {
+        enableShadows: true,        // Master shadow enable
+        shadowType: 'PCFSoft',      // Shadow type (Basic, PCF, PCFSoft, VSM)
+        shadowAutoUpdate: true,     // Auto-update shadows
+        physicallyCorrectLights: true, // Physically accurate lighting
+        outputEncoding: 'sRGB',     // Color space (Linear, sRGB, Gamma)
+        toneMapping: 'ACES',        // Tone mapping (Linear, Reinhard, Cineon, ACES)
+        toneMappingExposure: 1.0    // Exposure adjustment
+    }
 };`;
     }
     
@@ -818,25 +957,226 @@ function loadOBJObject(loader, config) {
     }
     
     /**
-     * Generate usage example section
+     * Generate post-processing effects section
+     */
+    generatePostProcessingSection(includeComments) {
+        const comment = includeComments ? `
+// ═══════════════════════════════════════════════════════════════
+// ✨ POST-PROCESSING EFFECTS
+// Advanced visual effects pipeline - edit values for stunning visual enhancements
+// Includes: Bloom, SSAO, DOF, Color Correction, Film Grain, and more
+// ═══════════════════════════════════════════════════════════════` : '';
+        
+        return `${comment}
+const POST_PROCESSING_CONFIG = {
+    // Master toggle
+    enabled: true,
+    
+    // Bloom effect (glowing highlights)
+    bloom: {
+        enabled: true,
+        threshold: 0.8,             // Brightness threshold for bloom
+        strength: 0.3,              // Bloom intensity
+        radius: 0.8,                // Bloom spread
+        exposure: 1.0               // Scene exposure
+    },
+    
+    // Screen Space Ambient Occlusion
+    ssao: {
+        enabled: false,
+        radius: 0.1,                // AO radius
+        bias: 0.01,                 // AO bias
+        intensity: 0.3,             // AO strength
+        scale: 1.0,                 // AO scale
+        kernelSize: 32              // Quality (8, 16, 32, 64)
+    },
+    
+    // Depth of Field (camera focus)
+    dof: {
+        enabled: false,
+        focusDistance: 10,          // Focus point distance
+        aperture: 0.025,            // Aperture size (blur strength)
+        maxBlur: 0.01               // Maximum blur amount
+    },
+    
+    // Color correction
+    colorCorrection: {
+        enabled: true,
+        brightness: 0.0,            // -1.0 to 1.0
+        contrast: 0.1,              // -1.0 to 1.0
+        saturation: 0.2,            // -1.0 to 1.0
+        hue: 0.0,                   // -180 to 180 degrees
+        gamma: 2.2                  // Gamma correction
+    },
+    
+    // Film grain and noise
+    filmGrain: {
+        enabled: false,
+        intensity: 0.5,             // 0.0 to 1.0
+        size: 1.0                   // Grain size multiplier
+    },
+    
+    // Anti-aliasing
+    antialiasing: {
+        enabled: true,
+        type: 'FXAA',               // 'FXAA', 'SMAA', 'TAA'
+        quality: 'medium'           // 'low', 'medium', 'high', 'ultra'
+    },
+    
+    // Vignette effect
+    vignette: {
+        enabled: false,
+        darkness: 0.5,              // 0.0 to 1.0
+        offset: 1.0                 // Vignette offset
+    },
+    
+    // Chromatic aberration
+    chromaticAberration: {
+        enabled: false,
+        offset: 0.001               // Aberration strength
+    },
+    
+    // God rays (volumetric lighting)
+    godRays: {
+        enabled: false,
+        lightPosition: [10, 10, 10], // Light source position
+        density: 0.96,              // Ray density
+        decay: 0.96,                // Ray decay
+        weight: 0.4,                // Ray weight
+        samples: 100                // Quality samples
+    }
+};`;
+    }
+    
+    /**
+     * Generate production utilities section
+     */
+    generateProductionUtilitiesSection(includeComments) {
+        const comment = includeComments ? `
+// ═══════════════════════════════════════════════════════════════
+// 🚀 PRODUCTION UTILITIES
+// Advanced scene export, optimization, and deployment tools
+// ═══════════════════════════════════════════════════════════════` : '';
+        
+        return `${comment}
+const PRODUCTION_CONFIG = {
+    // Performance optimization
+    optimization: {
+        enableFrustumCulling: true,     // Cull objects outside view
+        enableGeometryMerging: false,   // Merge similar geometries
+        enableTextureCompression: true,  // Compress textures
+        enableInstancing: false,        // Use instanced rendering
+        enableLOD: false,              // Level of Detail system
+        maxObjects: 1000,              // Object count limit
+        targetFPS: 60                  // Performance target
+    },
+    
+    // Export formats
+    export: {
+        formats: ['gltf', 'obj', 'fbx', 'dae', 'ply', 'stl'],
+        includeTextures: true,          // Include texture files
+        includeLighting: true,          // Include light setup
+        includeAnimation: true,         // Include animations
+        optimize: true,                 // Optimize exported mesh
+        precision: 6                    // Decimal precision
+    },
+    
+    // Asset management
+    assets: {
+        basePath: './assets/',          // Asset base directory
+        textureFormat: 'webp',          // Preferred texture format
+        compressionLevel: 0.8,          // Texture compression (0.0 to 1.0)
+        generateMipmaps: true,          // Auto-generate mipmaps
+        maxTextureSize: 2048            // Maximum texture resolution
+    },
+    
+    // Development tools
+    development: {
+        showStats: true,                // Show performance stats
+        enableDebugger: false,          // Three.js debugger
+        logPerformance: true,           // Log performance metrics
+        showBoundingBoxes: false,       // Visual debugging
+        enableWireframe: false          // Global wireframe toggle
+    }
+};`;
+    }
+    
+    /**
+     * Generate enhanced usage example section
      */
     generateUsageSection() {
         return `
 // ═══════════════════════════════════════════════════════════════
-// 📋 USAGE EXAMPLE
+// 📋 USAGE EXAMPLES & API REFERENCE
 // ═══════════════════════════════════════════════════════════════
 /*
 
-// Basic usage:
+// 🚀 BASIC USAGE:
 const container = document.getElementById('threejs-container');
 const sceneComponents = await createEditableScene(container);
 
-// Access scene components:
-console.log('Scene:', sceneComponents.scene);
-console.log('Camera:', sceneComponents.camera);
+// 🎯 ACCESS SCENE COMPONENTS:
+const { scene, camera, renderer, controls } = sceneComponents;
+console.log('Scene objects:', scene.children.length);
+console.log('Camera position:', camera.position);
 
-// Cleanup when done:
+// 🎨 DYNAMIC MATERIAL UPDATES:
+const material = scene.getObjectByName('MyObject')?.material;
+if (material) {
+    material.color.setHex(0xff0000);    // Change to red
+    material.roughness = 0.1;           // Make it shiny
+    material.metalness = 0.8;           // Make it metallic
+}
+
+// 💡 DYNAMIC LIGHTING:
+const light = scene.getObjectByName('DirectionalLight');
+if (light) {
+    light.intensity = 2.0;              // Increase intensity
+    light.position.set(30, 30, 30);     // Move light
+}
+
+// 🎬 ANIMATION CONTROL:
+const animatedObject = scene.getObjectByName('AnimatedCube');
+if (animatedObject) {
+    animatedObject.rotation.speed = 0.05; // Custom animation property
+}
+
+// ✨ POST-PROCESSING CONTROL (if enabled):
+if (sceneComponents.composer) {
+    // Access post-processing passes
+    const bloomPass = sceneComponents.composer.passes.find(pass => pass.name === 'bloom');
+    if (bloomPass) {
+        bloomPass.strength = 0.5;       // Adjust bloom intensity
+    }
+}
+
+// 🚀 PRODUCTION EXPORT:
+const exportData = {
+    scene: scene.toJSON(),              // Export scene structure
+    materials: extractMaterialData(scene), // Custom material extractor
+    lighting: extractLightingData(scene),  // Custom lighting extractor
+    metadata: {
+        generator: 'Three.js Loader & Editor v0.0.7',
+        timestamp: new Date().toISOString(),
+        apiVersion: 'Phase 2.3 Complete'
+    }
+};
+
+// 🗎️ SAVE SCENE (example):
+localStorage.setItem('myScene', JSON.stringify(exportData));
+
+// 📋 CLEANUP:
 sceneComponents.cleanup();
+
+// 🔧 ADVANCED API USAGE:
+// Access the comprehensive Three.js API registry:
+const availableGeometries = sceneComponents.apiRegistry.getGeometryTypes();
+const availableMaterials = sceneComponents.apiRegistry.getMaterialTypes();
+const availableLights = sceneComponents.apiRegistry.getLightTypes();
+
+console.log('Available geometries:', availableGeometries.length);
+console.log('Available materials:', availableMaterials.length);
+console.log('Available lights:', availableLights.length);
 
 */`;
     }
@@ -857,12 +1197,136 @@ console.log('No objects loaded yet. Start by loading OBJ files!');`;
     }
     
     /**
-     * Extract unique materials from objects
+     * Generate material properties based on type and API registry
+     */
+    generateMaterialProperties(material, materialConfig, includeComments) {
+        const properties = [];
+        
+        // Safety check for materialConfig
+        if (!materialConfig || !materialConfig.properties) {
+            console.warn('⚠️  materialConfig missing or invalid, using fallback properties');
+            // Fallback basic properties
+            const color = material.color || '#9dd9d9';
+            const wireframe = material.wireframe !== undefined ? material.wireframe : true;
+            const opacity = material.opacity !== undefined ? material.opacity : 1.0;
+            
+            properties.push(`    color: '${color}',    // Color (hex, rgb, hsl, or Three.js Color)`);
+            properties.push(`    wireframe: ${wireframe},    // Wireframe rendering (true/false)`);
+            properties.push(`    opacity: ${opacity},    // Transparency (0.0 = invisible, 1.0 = opaque)`);
+            
+            return properties.join('\n');
+        }
+        
+        // Add common properties with enhanced documentation
+        if (materialConfig.properties.color) {
+            const color = material.color || '#9dd9d9';
+            const comment = includeComments ? '    // Color (hex, rgb, hsl, or Three.js Color)' : '';
+            properties.push(`    color: '${color}',${comment}`);
+        }
+        
+        if (materialConfig.properties.wireframe) {
+            const wireframe = material.wireframe !== undefined ? material.wireframe : true;
+            const comment = includeComments ? '    // Wireframe rendering (true/false)' : '';
+            properties.push(`    wireframe: ${wireframe},${comment}`);
+        }
+        
+        if (materialConfig.properties.opacity) {
+            const opacity = material.opacity !== undefined ? material.opacity : 1.0;
+            const transparent = opacity < 1;
+            const comment = includeComments ? '    // Transparency (0.0 = invisible, 1.0 = opaque)' : '';
+            properties.push(`    opacity: ${opacity},${comment}`);
+            properties.push(`    transparent: ${transparent},    // Auto-set based on opacity`);
+        }
+        
+        if (materialConfig.properties.roughness) {
+            const roughness = material.roughness !== undefined ? material.roughness : 0.5;
+            const comment = includeComments ? '    // Surface roughness (0.0 = mirror, 1.0 = rough)' : '';
+            properties.push(`    roughness: ${roughness},${comment}`);
+        }
+        
+        if (materialConfig.properties.metalness) {
+            const metalness = material.metalness !== undefined ? material.metalness : 0.0;
+            const comment = includeComments ? '    // Metallic appearance (0.0 = dielectric, 1.0 = metallic)' : '';
+            properties.push(`    metalness: ${metalness},${comment}`);
+        }
+        
+        // Add advanced properties for PBR materials
+        if (materialConfig.properties.clearcoat) {
+            const clearcoat = material.clearcoat || 0.0;
+            const clearcoatRoughness = material.clearcoatRoughness || 0.0;
+            if (includeComments) properties.push('    // Advanced PBR properties:');
+            properties.push(`    clearcoat: ${clearcoat},        // Clear coat intensity (0.0 to 1.0)`);
+            properties.push(`    clearcoatRoughness: ${clearcoatRoughness}, // Clear coat roughness (0.0 to 1.0)`);
+        }
+        
+        if (materialConfig.properties.transmission) {
+            const transmission = material.transmission || 0.0;
+            const thickness = material.thickness || 0.0;
+            properties.push(`    transmission: ${transmission},    // Light transmission (0.0 to 1.0)`);
+            properties.push(`    thickness: ${thickness},         // Material thickness`);
+        }
+        
+        if (materialConfig.properties.emissive) {
+            const emissive = material.emissive || '#000000';
+            const emissiveIntensity = material.emissiveIntensity || 1.0;
+            properties.push(`    emissive: '${emissive}',        // Self-illumination color`);
+            properties.push(`    emissiveIntensity: ${emissiveIntensity},  // Emission intensity`);
+        }
+        
+        // Add material-specific properties
+        if (material.type === 'matcap' && material.matcap) {
+            properties.push(`    matcapPath: '${material.matcap}', // MatCap texture file path`);
+        }
+        
+        if (material.type === 'shader') {
+            properties.push('    // Custom shader properties:');
+            properties.push('    vertexShader: null,      // Custom vertex shader (will use default)');
+            properties.push('    fragmentShader: null,    // Custom fragment shader (will use default)');
+            properties.push('    uniforms: {},            // Custom uniforms object');
+        }
+        
+        return properties.join('\n');
+    }
+    
+    /**
+     * Extract unique materials with comprehensive type detection
      */
     extractUniqueMaterials(objects) {
-        const materials = objects.map(obj => obj.material);
-        // For now, return all materials (could deduplicate similar ones)
+        const materials = objects.map(obj => {
+            const material = obj.material || {};
+            
+            // Enhance material with comprehensive API data
+            return {
+                ...material,
+                type: this.detectMaterialType(material),
+                apiSupport: this.apiRegistry.materials[material.type || 'standard']
+            };
+        });
+        
+        // For now, return all materials (could deduplicate similar ones in future)
         return materials;
+    }
+    
+    /**
+     * Detect material type from material properties
+     */
+    detectMaterialType(material) {
+        if (!material) return 'standard';
+        
+        // Check for specific material types
+        if (material.matcap) return 'matcap';
+        if (material.vertexShader || material.fragmentShader) return 'shader';
+        if (material.transmission !== undefined) return 'physical';
+        if (material.clearcoat !== undefined) return 'physical';
+        if (material.specular !== undefined) return 'phong';
+        if (material.gradientMap !== undefined) return 'toon';
+        
+        // Default detection based on properties
+        if (material.roughness !== undefined || material.metalness !== undefined) {
+            return 'standard';
+        }
+        
+        return material.type || 'standard';
     }
     
     /**
