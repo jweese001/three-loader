@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CameraController } from '../utils/CameraController.js';
+import { LightingManager } from '../lighting/LightingManager.js';
 
 export class ThreeScene {
     constructor(containerId) {
@@ -20,6 +21,7 @@ export class ThreeScene {
         
         // Lighting
         this.lights = [];
+        this.lightingManager = null;
         
         this.isInitialized = false;
     }
@@ -41,6 +43,7 @@ export class ThreeScene {
             this.initControls();
             this.initCameraController();
             this.initLighting();
+            this.initLightingManager();
             
             // Add renderer to DOM
             this.container.appendChild(this.renderer.domElement);
@@ -315,5 +318,33 @@ export class ThreeScene {
                 userData: obj.userData
             }))
         };
+    }
+    
+    /**
+     * Initialize advanced lighting manager
+     */
+    initLightingManager() {
+        this.lightingManager = new LightingManager(this.scene);
+        
+        // Replace default lighting with managed lighting
+        this.clearDefaultLights();
+        this.lightingManager.initializeDefaultLighting();
+        
+        console.log('✨ Advanced lighting manager initialized');
+    }
+    
+    /**
+     * Clear default lights to make way for managed lighting
+     */
+    clearDefaultLights() {
+        this.lights.forEach(light => this.scene.remove(light));
+        this.lights = [];
+    }
+    
+    /**
+     * Get lighting manager instance
+     */
+    getLightingManager() {
+        return this.lightingManager;
     }
 }

@@ -1,19 +1,28 @@
 import * as THREE from 'three';
+import { CodeSandbox } from '../core/CodeSandbox.js';
 
 /**
- * CodeCompiler - Parses and executes user-edited Three.js code safely
- * Part of Phase 2: Live Code Generation & Compilation system
+ * CodeCompiler - Parses and executes arbitrary Three.js code safely
+ * Enhanced for Phase 1: Safe Code Execution Engine
+ * Supports both template-based parsing and arbitrary code execution
  */
 export class CodeCompiler {
     constructor(scene, objectManager) {
         this.scene = scene;
         this.objectManager = objectManager;
         
+        // Initialize CodeSandbox for arbitrary code execution
+        this.codeSandbox = new CodeSandbox();
+        
         // Compilation state
         this.lastCompiledCode = '';
         this.lastValidState = null;
         this.compilationErrors = [];
         this.isCompiling = false;
+        
+        // Execution modes
+        this.executionMode = 'template'; // 'template' or 'arbitrary'
+        this.supportArbitraryCode = true;
         
         // Change detection
         this.lastKnownState = {
@@ -27,11 +36,12 @@ export class CodeCompiler {
     }
     
     /**
-     * Parse edited code and extract changes
+     * Parse and execute edited code (supports both template and arbitrary code)
      * @param {string} code - The edited Three.js code
-     * @returns {Promise<Object>} Parsed changes object
+     * @param {Object} options - Execution options
+     * @returns {Promise<Object>} Parsed changes or execution result
      */
-    async parseCode(code) {
+    async parseCode(code, options = {}) {
         if (this.isCompiling) {
             console.log('⏳ Compilation already in progress, skipping...');
             return null;
@@ -47,32 +57,27 @@ export class CodeCompiler {
                 return null;
             }
             
-            console.log('🔍 Parsing code changes...');
+            console.log('🔍 Processing code changes...');
             
-            const changes = {
-                materials: this.extractMaterialChanges(code),
-                transforms: this.extractTransformChanges(code),
-                lighting: this.extractLightingChanges(code),
-                sceneConfig: this.extractSceneConfigChanges(code),
-                timestamp: Date.now()
-            };
+            // Determine execution mode
+            const executionMode = this.determineExecutionMode(code, options);
             
-            // Validate changes before returning
-            const validationResult = this.validateChanges(changes);
-            if (!validationResult.valid) {
-                this.compilationErrors = validationResult.errors;
-                console.warn('⚠️ Code validation failed:', validationResult.errors);
-                this.isCompiling = false;
-                return { error: 'Validation failed', errors: validationResult.errors };
+            let result;
+            if (executionMode === 'arbitrary' && this.supportArbitraryCode) {
+                // Execute arbitrary Three.js code in sandbox
+                result = await this.executeArbitraryCode(code, options);
+            } else {
+                // Use template-based parsing (existing functionality)
+                result = await this.parseTemplateCode(code);
             }
             
             this.lastCompiledCode = code;
-            this.lastValidState = changes;
+            this.lastValidState = result;
             
-            console.log('✅ Code parsed successfully, changes detected:', Object.keys(changes).filter(k => k !== 'timestamp'));
+            console.log('✅ Code processing completed successfully');
             
             this.isCompiling = false;
-            return changes;
+            return result;
             
         } catch (error) {
             this.compilationErrors.push({
@@ -86,6 +91,337 @@ export class CodeCompiler {
             this.isCompiling = false;
             return { error: 'Compilation failed', errors: this.compilationErrors };
         }
+    }
+    
+    /**
+     * Determine execution mode based on code content
+     * @param {string} code - The Three.js code
+     * @param {Object} options - Execution options
+     * @returns {string} Execution mode ('template' or 'arbitrary')
+     */
+    determineExecutionMode(code, options) {
+        // Force mode if specified in options
+        if (options.mode) {
+            return options.mode;
+        }
+        
+        // Check if code follows template structure
+        const hasTemplateStructure = this.hasTemplateStructure(code);
+        
+        if (hasTemplateStructure) {
+            return 'template';
+        }
+        
+        // Check for arbitrary Three.js patterns
+        const hasArbitraryPatterns = this.hasArbitraryThreeJSPatterns(code);
+        
+        if (hasArbitraryPatterns && this.supportArbitraryCode) {
+            return 'arbitrary';
+        }
+        
+        // Default to template mode
+        return 'template';
+    }
+    
+    /**
+     * Check if code follows template structure
+     * @param {string} code - The Three.js code
+     * @returns {boolean} True if code has template structure
+     */
+    hasTemplateStructure(code) {
+        // Check for template-specific patterns
+        const templatePatterns = [
+            /MATERIAL_\d+\s*=/,
+            /OBJECT_\d+_CONFIG\s*=/,
+            /LIGHTING_CONFIG\s*=/,
+            /SCENE_CONFIG\s*=/
+        ];
+        
+        return templatePatterns.some(pattern => pattern.test(code));
+    }
+    
+    /**
+     * Check if code has arbitrary Three.js patterns
+     * @param {string} code - The Three.js code
+     * @returns {boolean} True if code has arbitrary patterns
+     */
+    hasArbitraryThreeJSPatterns(code) {
+        // Check for arbitrary Three.js usage patterns
+        const arbitraryPatterns = [
+            /new\s+THREE\./,
+            /scene\.add\(/,
+            /scene\.remove\(/,
+            /camera\.position/,
+            /renderer\.render/,
+            /geometry\s*=\s*new/,
+            /material\s*=\s*new/,
+            /mesh\s*=\s*new/,
+            /light\s*=\s*new/
+        ];
+        
+        return arbitraryPatterns.some(pattern => pattern.test(code));
+    }
+    
+    /**
+     * Execute arbitrary Three.js code in sandbox
+     * @param {string} code - The arbitrary Three.js code
+     * @param {Object} options - Execution options
+     * @returns {Promise<Object>} Execution result
+     */
+    async executeArbitraryCode(code, options = {}) {
+        console.log('🚀 Executing arbitrary Three.js code in sandbox...');
+        
+        try {
+            // Wait for sandbox to be ready
+            await this.waitForSandboxReady();
+            
+            // Prepare execution context
+            const context = this.prepareExecutionContext(options);
+            
+            // Execute code in sandbox
+            const result = await this.codeSandbox.executeCode(code, context);
+            
+            if (result.success) {
+                console.log('✅ Arbitrary code executed successfully:', {
+                    executionTime: result.executionTime + 'ms',
+                    memoryUsage: this.formatMemoryUsage(result.memoryUsage)
+                });
+                
+                return {
+                    type: 'arbitrary_execution',
+                    executionTime: result.executionTime,
+                    memoryUsage: result.memoryUsage,
+                    result: result.result,
+                    sceneObjects: result.result?.sceneObjects || [],
+                    materials: result.result?.materials || [],
+                    lights: result.result?.lights || [],
+                    camera: result.result?.camera,
+                    background: result.result?.background,
+                    timestamp: Date.now()
+                };
+                
+            } else {
+                throw new Error(result.error);
+            }
+            
+        } catch (error) {
+            console.error('❌ Arbitrary code execution failed:', error);
+            
+            this.compilationErrors.push({
+                type: 'arbitrary_execution_error',
+                message: error.message,
+                code: 'ARBITRARY_EXEC_FAILED'
+            });
+            
+            return {
+                error: 'Arbitrary code execution failed',
+                message: error.message,
+                type: 'arbitrary_execution_error'
+            };
+        }
+    }
+    
+    /**
+     * Parse template-based code (existing functionality)
+     * @param {string} code - The template-based code
+     * @returns {Promise<Object>} Parsed changes object
+     */
+    async parseTemplateCode(code) {
+        console.log('🔍 Parsing template-based code...');
+        
+        const changes = {
+            materials: this.extractMaterialChanges(code),
+            transforms: this.extractTransformChanges(code),
+            lighting: this.extractLightingChanges(code),
+            sceneConfig: this.extractSceneConfigChanges(code),
+            type: 'template_parsing',
+            timestamp: Date.now()
+        };
+        
+        // Validate changes before returning
+        const validationResult = this.validateChanges(changes);
+        if (!validationResult.valid) {
+            this.compilationErrors = validationResult.errors;
+            console.warn('⚠️ Code validation failed:', validationResult.errors);
+            return { error: 'Validation failed', errors: validationResult.errors };
+        }
+        
+        console.log('✅ Template code parsed successfully, changes detected:', 
+            Object.keys(changes).filter(k => !['type', 'timestamp'].includes(k)));
+        
+        return changes;
+    }
+    
+    /**
+     * Wait for CodeSandbox to be ready
+     * @returns {Promise<void>}
+     */
+    async waitForSandboxReady() {
+        const maxWaitTime = 5000; // 5 seconds
+        const checkInterval = 100; // 100ms
+        let elapsed = 0;
+        
+        while (!this.codeSandbox.isInitialized && elapsed < maxWaitTime) {
+            await new Promise(resolve => setTimeout(resolve, checkInterval));
+            elapsed += checkInterval;
+        }
+        
+        if (!this.codeSandbox.isInitialized) {
+            throw new Error('CodeSandbox initialization timeout');
+        }
+    }
+    
+    /**
+     * Prepare execution context for sandbox
+     * @param {Object} options - Execution options
+     * @returns {Object} Execution context
+     */
+    prepareExecutionContext(options = {}) {
+        const context = {
+            // Provide current scene objects as context
+            currentScene: this.serializeCurrentScene(),
+            
+            // Execution options
+            preserveExisting: options.preserveExisting !== false,
+            clearScene: options.clearScene === true,
+            
+            // Helper functions available in sandbox
+            helpers: {
+                deg2rad: (degrees) => degrees * (Math.PI / 180),
+                rad2deg: (radians) => radians * (180 / Math.PI),
+                randomColor: () => Math.random() * 0xffffff,
+                randomPosition: (range = 10) => [
+                    (Math.random() - 0.5) * range,
+                    (Math.random() - 0.5) * range,
+                    (Math.random() - 0.5) * range
+                ]
+            }
+        };
+        
+        return context;
+    }
+    
+    /**
+     * Serialize current scene for sandbox context
+     * @returns {Object} Serialized scene data
+     */
+    serializeCurrentScene() {
+        const serialized = {
+            objects: [],
+            lights: [],
+            camera: null,
+            background: null
+        };
+        
+        if (this.scene) {
+            this.scene.traverse((object) => {
+                if (object.isMesh || object.isGroup) {
+                    serialized.objects.push({
+                        uuid: object.uuid,
+                        name: object.name || 'Unnamed',
+                        type: object.type,
+                        position: [object.position.x, object.position.y, object.position.z],
+                        rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
+                        scale: [object.scale.x, object.scale.y, object.scale.z],
+                        visible: object.visible,
+                        geometry: object.geometry ? {
+                            type: object.geometry.type,
+                            parameters: object.geometry.parameters
+                        } : null,
+                        material: object.material ? this.serializeMaterial(object.material) : null
+                    });
+                }
+                
+                if (object.isLight) {
+                    serialized.lights.push({
+                        uuid: object.uuid,
+                        name: object.name || 'Unnamed Light',
+                        type: object.type,
+                        color: object.color.getHex(),
+                        intensity: object.intensity,
+                        position: [object.position.x, object.position.y, object.position.z],
+                        castShadow: object.castShadow
+                    });
+                }
+            });
+            
+            if (this.scene.background) {
+                serialized.background = this.scene.background.getHex ? 
+                    this.scene.background.getHex() : this.scene.background;
+            }
+        }
+        
+        return serialized;
+    }
+    
+    /**
+     * Serialize material for context
+     * @param {THREE.Material} material - Three.js material
+     * @returns {Object} Serialized material
+     */
+    serializeMaterial(material) {
+        const serialized = {
+            type: material.type,
+            uuid: material.uuid
+        };
+        
+        // Common material properties
+        if (material.color) serialized.color = material.color.getHex();
+        if (material.opacity !== undefined) serialized.opacity = material.opacity;
+        if (material.transparent !== undefined) serialized.transparent = material.transparent;
+        if (material.wireframe !== undefined) serialized.wireframe = material.wireframe;
+        
+        // PBR material properties
+        if (material.roughness !== undefined) serialized.roughness = material.roughness;
+        if (material.metalness !== undefined) serialized.metalness = material.metalness;
+        if (material.emissive) serialized.emissive = material.emissive.getHex();
+        if (material.emissiveIntensity !== undefined) serialized.emissiveIntensity = material.emissiveIntensity;
+        
+        // MatCap material properties
+        if (material.matcap) serialized.hasMatcap = true;
+        
+        return serialized;
+    }
+    
+    /**
+     * Format memory usage for display
+     * @param {number} bytes - Memory usage in bytes
+     * @returns {string} Formatted memory usage
+     */
+    formatMemoryUsage(bytes) {
+        if (bytes === 0) return '0 B';
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    }
+    
+    /**
+     * Set execution mode
+     * @param {string} mode - Execution mode ('template' or 'arbitrary')
+     */
+    setExecutionMode(mode) {
+        if (mode === 'arbitrary' && !this.supportArbitraryCode) {
+            console.warn('⚠️ Arbitrary code execution not supported, staying in template mode');
+            return;
+        }
+        
+        this.executionMode = mode;
+        console.log(`🔧 Execution mode set to: ${mode}`);
+    }
+    
+    /**
+     * Enable or disable arbitrary code support
+     * @param {boolean} enabled - Whether to enable arbitrary code
+     */
+    setArbitraryCodeSupport(enabled) {
+        this.supportArbitraryCode = enabled;
+        
+        if (!enabled && this.executionMode === 'arbitrary') {
+            this.executionMode = 'template';
+            console.log('🔧 Switched to template mode (arbitrary code disabled)');
+        }
+        
+        console.log(`🔧 Arbitrary code support: ${enabled ? 'enabled' : 'disabled'}`);
     }
     
     /**
@@ -583,6 +919,7 @@ export class CodeCompiler {
         this.lastValidState = null;
         this.compilationErrors = [];
         this.isCompiling = false;
+        this.executionMode = 'template';
         this.lastKnownState = {
             materials: new Map(),
             transforms: new Map(),
@@ -590,5 +927,46 @@ export class CodeCompiler {
             sceneConfig: {}
         };
         console.log('🔄 CodeCompiler state reset');
+    }
+    
+    /**
+     * Get compilation status and capabilities
+     * @returns {Object} Status information
+     */
+    getStatus() {
+        return {
+            isCompiling: this.isCompiling,
+            executionMode: this.executionMode,
+            supportsArbitraryCode: this.supportArbitraryCode,
+            sandboxStatus: this.codeSandbox ? this.codeSandbox.getStatus() : null,
+            lastCompiledAt: this.lastValidState?.timestamp,
+            compilationErrors: this.compilationErrors.length,
+            capabilities: {
+                templateParsing: true,
+                arbitraryExecution: this.supportArbitraryCode && this.codeSandbox?.isInitialized,
+                sceneExtraction: true,
+                materialParsing: true,
+                transformParsing: true,
+                lightingParsing: true
+            }
+        };
+    }
+    
+    /**
+     * Clean up resources
+     */
+    async cleanup() {
+        console.log('🧹 Cleaning up CodeCompiler...');
+        
+        // Reset state
+        this.reset();
+        
+        // Cleanup CodeSandbox
+        if (this.codeSandbox) {
+            await this.codeSandbox.cleanup();
+            this.codeSandbox = null;
+        }
+        
+        console.log('✅ CodeCompiler cleanup completed');
     }
 }

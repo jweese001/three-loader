@@ -1,6 +1,8 @@
 import * as monaco from 'monaco-editor';
 import { CodeCompiler } from '../codegen/CodeCompiler.js';
 import { LiveUpdateManager } from '../codegen/LiveUpdateManager.js';
+import { SyncManager } from '../core/SyncManager.js';
+import { ThreeJsIntelliSense } from './ThreeJsIntelliSense.js';
 
 export class CodeEditorManager {
     constructor(config) {
@@ -16,10 +18,16 @@ export class CodeEditorManager {
         this.isUpdatingFromCode = false;
         this.currentView = 'studio';
         
-        // Live compilation system (Phase 2)
+        // Live compilation system (Enhanced for Phase 1)
         this.codeCompiler = new CodeCompiler(this.scene, this.objectManager);
         this.liveUpdateManager = new LiveUpdateManager(this.scene, this.objectManager, this.codeCompiler);
         this.liveUpdatesEnabled = true;
+        
+        // Phase 1: Bidirectional synchronization system
+        this.syncManager = null; // Initialize after all dependencies are ready
+        
+        // Phase 2.5: Three.js IntelliSense
+        this.threeJsIntelliSense = new ThreeJsIntelliSense();
         
         this.init();
         console.log('💻 CodeEditorManager initialized');
@@ -40,7 +48,33 @@ export class CodeEditorManager {
         this.setupViewSwitching(); // Setup after all DOM elements are ready
         this.syncFromUI(); // Initialize with current scene state
         
+        // Phase 1: Initialize SyncManager after all components are ready
+        await this.initializeSyncManager();
+        
         console.log('💻 CodeEditorManager init completed');
+    }
+    
+    /**
+     * Initialize SyncManager for bidirectional synchronization
+     */
+    async initializeSyncManager() {
+        try {
+            // Only initialize if we have all required components
+            if (this.scene && this.objectManager && this.uiController) {
+                this.syncManager = new SyncManager(
+                    this.scene, 
+                    this.objectManager, 
+                    this.uiController, 
+                    this
+                );
+                console.log('🔄 SyncManager initialized for bidirectional sync');
+            } else {
+                console.warn('⚠️ Cannot initialize SyncManager - missing dependencies');
+            }
+        } catch (error) {
+            console.error('❌ SyncManager initialization failed:', error);
+            // Continue without SyncManager - fallback to original parsing
+        }
     }
     
     async setupMonacoEditor() {
@@ -57,18 +91,8 @@ export class CodeEditorManager {
             return;
         }
         
-        // Configure Monaco for JavaScript
-        monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
-            target: monaco.languages.typescript.ScriptTarget.ES2020,
-            allowNonTsExtensions: true,
-            moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-            module: monaco.languages.typescript.ModuleKind.ESNext,
-            noEmit: true,
-            esModuleInterop: true,
-            jsx: monaco.languages.typescript.JsxEmit.React,
-            allowJs: true,
-            typeRoots: ['node_modules/@types']
-        });
+        // Initialize Three.js IntelliSense
+        await this.threeJsIntelliSense.initialize();
         
         // Create the sidebar editor
         this.editor = monaco.editor.create(container, {
@@ -165,11 +189,16 @@ export class CodeEditorManager {
     }
     
     setupViewSwitching() {
+        console.log('🔄 Setting up view switching...');
+        console.log('🔍 DOM ready state:', document.readyState);
+        console.log('🔍 Available buttons:', Array.from(document.querySelectorAll('button')).map(btn => ({id: btn.id, text: btn.textContent})));
+        
         // View toggle button
         const viewToggleBtn = document.getElementById('view-toggle-btn');
         
         if (!viewToggleBtn) {
             console.error('❌ View toggle button not found!');
+            console.log('🔍 Searching for view-toggle-btn in DOM:', document.querySelector('[id*="view"]'));
             return;
         }
         
@@ -458,31 +487,538 @@ export class CodeEditorManager {
         return code;
     }
     
+    /**
+     * Enhanced syncToUI - Reverse-engineers Three.js code to update UI
+     * Supports both template-based and arbitrary Three.js code
+     */
     async syncToUI() {
         if (this.isUpdatingFromUI) return;
         
         this.isUpdatingFromCode = true;
+        console.log('⬆️ Starting code to UI synchronization...');
         
         try {
             const activeEditor = this.currentView === 'code' ? this.fullscreenEditor : this.editor;
             const code = activeEditor.getValue();
             
-            // Parse the code to extract scene data
-            const sceneData = this.parseSceneCode(code);
-            
-            if (sceneData) {
-                // Apply parsed data to UI
-                await this.applySceneDataToUI(sceneData);
-                console.log('⬆️ UI updated from code');
-            } else {
-                alert('Unable to parse scene code. Please check the code format.');
+            if (!code || code.trim().length === 0) {
+                console.warn('⚠️ No code to sync to UI');
+                return;
             }
+            
+            // Phase 1: Use SyncManager for comprehensive code analysis
+            if (this.syncManager) {
+                console.log('🔄 Using SyncManager for advanced code to UI sync');
+                await this.syncCodeToUIWithSyncManager(code);
+            } else {
+                console.log('📝 Using legacy code parsing (SyncManager not available)');
+                await this.syncCodeToUILegacy(code);
+            }
+            
+            console.log('✅ Code to UI synchronization completed');
+            
         } catch (error) {
-            console.error('❌ Failed to sync to UI:', error);
-            alert(`Failed to apply code to UI: ${error.message}`);
+            console.error('❌ Failed to sync code to UI:', error);
+            this.showSyncError('Code to UI sync failed', error.message);
         } finally {
             this.isUpdatingFromCode = false;
         }
+    }
+    
+    /**
+     * Advanced code to UI sync using SyncManager
+     * @param {string} code - The Three.js code to analyze
+     */
+    async syncCodeToUIWithSyncManager(code) {
+        try {
+            // Use enhanced CodeCompiler for arbitrary code execution
+            const result = await this.codeCompiler.parseCode(code, { mode: 'arbitrary' });
+            
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            
+            if (result.type === 'arbitrary_execution') {
+                // Apply execution results to UI
+                await this.applyArbitraryExecutionToUI(result);
+            } else if (result.type === 'template_parsing') {
+                // Apply template parsing results to UI
+                await this.applyTemplateParsingToUI(result);
+            }
+            
+            console.log('✅ SyncManager-based code sync completed');
+            
+        } catch (error) {
+            console.error('❌ SyncManager code sync failed:', error);
+            // Fallback to legacy parsing
+            console.log('🔄 Falling back to legacy code parsing...');
+            await this.syncCodeToUILegacy(code);
+        }
+    }
+    
+    /**
+     * Apply arbitrary code execution results to UI
+     * @param {Object} result - Execution result from CodeCompiler
+     */
+    async applyArbitraryExecutionToUI(result) {
+        console.log('🚀 Applying arbitrary code execution results to UI...');
+        
+        const { sceneObjects, materials, lights, camera, background } = result;
+        
+        // Update scene objects and their properties
+        if (sceneObjects && sceneObjects.length > 0) {
+            await this.updateUIFromSceneObjects(sceneObjects);
+        }
+        
+        // Update lighting
+        if (lights && lights.length > 0) {
+            await this.updateUIFromLights(lights);
+        }
+        
+        // Update camera
+        if (camera) {
+            await this.updateUIFromCamera(camera);
+        }
+        
+        // Update scene background
+        if (background !== undefined) {
+            await this.updateUIFromBackground(background);
+        }
+        
+        // Show execution stats
+        this.showExecutionStats(result);
+    }
+    
+    /**
+     * Apply template parsing results to UI
+     * @param {Object} result - Parsing result from CodeCompiler
+     */
+    async applyTemplateParsingToUI(result) {
+        console.log('📝 Applying template parsing results to UI...');
+        
+        const { materials, transforms, lighting, sceneConfig } = result;
+        
+        // Update materials
+        if (materials && materials.size > 0) {
+            for (const [materialId, material] of materials) {
+                await this.updateMaterialUI(materialId, material);
+            }
+        }
+        
+        // Update transforms
+        if (transforms && transforms.size > 0) {
+            for (const [objectId, transform] of transforms) {
+                await this.updateTransformUI(objectId, transform);
+            }
+        }
+        
+        // Update lighting
+        if (lighting && Object.keys(lighting).length > 0) {
+            await this.updateLightingUI(lighting);
+        }
+        
+        // Update scene config
+        if (sceneConfig && Object.keys(sceneConfig).length > 0) {
+            await this.updateSceneConfigUI(sceneConfig);
+        }
+    }
+    
+    /**
+     * Update UI from scene objects data
+     * @param {Array} sceneObjects - Scene objects from code execution
+     */
+    async updateUIFromSceneObjects(sceneObjects) {
+        for (const objData of sceneObjects) {
+            console.log(`🔄 Updating UI for object: ${objData.name || objData.uuid}`);
+            
+            // Update transform controls
+            if (objData.position) {
+                this.updateUIControl('position-x', objData.position[0]);
+                this.updateUIControl('position-y', objData.position[1]);
+                this.updateUIControl('position-z', objData.position[2]);
+            }
+            
+            if (objData.rotation) {
+                this.updateUIControl('rotation-x', objData.rotation[0]);
+                this.updateUIControl('rotation-y', objData.rotation[1]);
+                this.updateUIControl('rotation-z', objData.rotation[2]);
+            }
+            
+            if (objData.scale) {
+                this.updateUIControl('scale-x', objData.scale[0]);
+                this.updateUIControl('scale-y', objData.scale[1]);
+                this.updateUIControl('scale-z', objData.scale[2]);
+            }
+            
+            // Update material controls
+            if (objData.material) {
+                await this.updateMaterialUIFromData(objData.material);
+            }
+            
+            // Update object visibility
+            if (objData.visible !== undefined) {
+                this.updateUIControl('object-visible', objData.visible);
+            }
+        }
+    }
+    
+    /**
+     * Update material UI from material data
+     * @param {Object} materialData - Material data from code
+     */
+    async updateMaterialUIFromData(materialData) {
+        if (materialData.color !== null && materialData.color !== undefined) {
+            const colorHex = '#' + materialData.color.toString(16).padStart(6, '0');
+            this.updateUIControl('material-color', colorHex);
+        }
+        
+        if (materialData.opacity !== undefined) {
+            this.updateUIControl('material-opacity', materialData.opacity);
+        }
+        
+        if (materialData.wireframe !== undefined) {
+            this.updateUIControl('material-wireframe', materialData.wireframe);
+        }
+        
+        if (materialData.roughness !== undefined) {
+            this.updateUIControl('material-roughness', materialData.roughness);
+        }
+        
+        if (materialData.metalness !== undefined) {
+            this.updateUIControl('material-metalness', materialData.metalness);
+        }
+        
+        if (materialData.transparent !== undefined) {
+            this.updateUIControl('material-transparent', materialData.transparent);
+        }
+    }
+    
+    /**
+     * Update UI control element
+     * @param {string} controlId - Control element ID
+     * @param {*} value - New value
+     */
+    updateUIControl(controlId, value) {
+        const element = document.getElementById(controlId);
+        if (!element) {
+            console.warn(`⚠️ UI control not found: ${controlId}`);
+            return;
+        }
+        
+        try {
+            if (element.type === 'checkbox' || element.type === 'radio') {
+                element.checked = Boolean(value);
+            } else if (element.type === 'range' || element.type === 'number') {
+                element.value = Number(value);
+            } else {
+                element.value = String(value);
+            }
+            
+            // Trigger change event to update any listeners
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            console.log(`🔄 Updated UI control ${controlId}:`, value);
+            
+        } catch (error) {
+            console.error(`❌ Failed to update UI control ${controlId}:`, error);
+        }
+    }
+    
+    /**
+     * Update material UI controls
+     * @param {number} materialId - Material ID
+     * @param {Object} material - Material data
+     */
+    async updateMaterialUI(materialId, material) {
+        console.log(`🎨 Updating material UI for material ${materialId}:`, material);
+        
+        if (material.color) {
+            this.updateUIControl('material-color', material.color);
+        }
+        
+        if (material.wireframe !== undefined) {
+            this.updateUIControl('material-wireframe', material.wireframe);
+        }
+        
+        if (material.opacity !== undefined) {
+            this.updateUIControl('material-opacity', material.opacity);
+        }
+        
+        if (material.roughness !== undefined) {
+            this.updateUIControl('material-roughness', material.roughness);
+        }
+        
+        if (material.metalness !== undefined) {
+            this.updateUIControl('material-metalness', material.metalness);
+        }
+        
+        if (material.transparent !== undefined) {
+            this.updateUIControl('material-transparent', material.transparent);
+        }
+    }
+    
+    /**
+     * Update transform UI controls
+     * @param {number} objectId - Object ID
+     * @param {Object} transform - Transform data
+     */
+    async updateTransformUI(objectId, transform) {
+        console.log(`📐 Updating transform UI for object ${objectId}:`, transform);
+        
+        if (transform.position) {
+            this.updateUIControl('position-x', transform.position.x);
+            this.updateUIControl('position-y', transform.position.y);
+            this.updateUIControl('position-z', transform.position.z);
+        }
+        
+        if (transform.rotation) {
+            this.updateUIControl('rotation-x', transform.rotation.x);
+            this.updateUIControl('rotation-y', transform.rotation.y);
+            this.updateUIControl('rotation-z', transform.rotation.z);
+        }
+        
+        if (transform.scale) {
+            this.updateUIControl('scale-x', transform.scale.x);
+            this.updateUIControl('scale-y', transform.scale.y);
+            this.updateUIControl('scale-z', transform.scale.z);
+        }
+    }
+    
+    /**
+     * Show execution statistics
+     * @param {Object} result - Execution result
+     */
+    showExecutionStats(result) {
+        const stats = `
+Code Execution Completed Successfully:
+• Execution time: ${result.executionTime}ms
+• Memory usage: ${this.formatBytes(result.memoryUsage)}
+• Objects processed: ${result.sceneObjects?.length || 0}
+• Lights processed: ${result.lights?.length || 0}
+        `.trim();
+        
+        console.log('📊 Execution Stats:\n' + stats);
+        
+        // Show success notification
+        this.showNotification('Code synchronized to UI successfully!', 'success');
+    }
+    
+    /**
+     * Legacy code to UI sync (existing functionality)
+     * @param {string} code - The Three.js code to parse
+     */
+    async syncCodeToUILegacy(code) {
+        // Parse the code to extract scene data
+        const sceneData = this.parseSceneCode(code);
+        
+        if (sceneData) {
+            // Apply parsed data to UI
+            await this.applySceneDataToUI(sceneData);
+            console.log('⬆️ UI updated from code (legacy parsing)');
+        } else {
+            throw new Error('Unable to parse scene code. Please check the code format.');
+        }
+    }
+    
+    /**
+     * Show sync error notification
+     * @param {string} title - Error title
+     * @param {string} message - Error message
+     */
+    showSyncError(title, message) {
+        console.error(`❌ ${title}:`, message);
+        this.showNotification(`${title}: ${message}`, 'error');
+    }
+    
+    /**
+     * Show notification to user
+     * @param {string} message - Notification message
+     * @param {string} type - Notification type ('success', 'error', 'warning', 'info')
+     */
+    showNotification(message, type = 'info') {
+        // Create or update notification display
+        let notification = document.getElementById('sync-notification');
+        
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'sync-notification';
+            notification.className = 'sync-notification';
+            
+            const container = document.querySelector('.code-editor-view') || document.body;
+            container.appendChild(notification);
+        }
+        
+        notification.className = `sync-notification ${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <span class="notification-icon">
+                    ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}
+                </span>
+                <span class="notification-message">${message}</span>
+                <button class="notification-close" onclick="this.parentElement.parentElement.style.display='none'">×</button>
+            </div>
+        `;
+        
+        notification.style.display = 'block';
+        
+        // Auto-hide success notifications
+        if (type === 'success') {
+            setTimeout(() => {
+                if (notification) {
+                    notification.style.display = 'none';
+                }
+            }, 3000);
+        } else if (type === 'error') {
+            // Keep error notifications visible longer
+            setTimeout(() => {
+                if (notification) {
+                    notification.style.display = 'none';
+                }
+            }, 10000);
+        }
+    }
+    
+    /**
+     * Format bytes for display
+     * @param {number} bytes - Bytes to format
+     * @returns {string} Formatted string
+     */
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    /**
+     * Update UI from lights data
+     * @param {Array} lights - Lights from code execution
+     */
+    async updateUIFromLights(lights) {
+        console.log('💡 Updating lighting UI from code execution:', lights);
+        
+        // Update lighting controls based on extracted lights
+        for (const lightData of lights) {
+            console.log(`💡 Processing light: ${lightData.type}`, lightData);
+            
+            // Update based on light type
+            if (lightData.type === 'DirectionalLight' || lightData.type === 'AmbientLight') {
+                this.updateUIControl('light-intensity', lightData.intensity);
+                
+                if (lightData.color !== undefined) {
+                    const colorHex = '#' + lightData.color.toString(16).padStart(6, '0');
+                    this.updateUIControl('light-color', colorHex);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Update UI from camera data
+     * @param {Object} camera - Camera data from code execution
+     */
+    async updateUIFromCamera(camera) {
+        console.log('📷 Updating camera UI from code execution:', camera);
+        
+        if (camera.fov !== undefined) {
+            this.updateUIControl('camera-fov', camera.fov);
+        }
+        
+        if (camera.position) {
+            this.updateUIControl('camera-position-x', camera.position[0]);
+            this.updateUIControl('camera-position-y', camera.position[1]);
+            this.updateUIControl('camera-position-z', camera.position[2]);
+        }
+        
+        if (camera.near !== undefined) {
+            this.updateUIControl('camera-near', camera.near);
+        }
+        
+        if (camera.far !== undefined) {
+            this.updateUIControl('camera-far', camera.far);
+        }
+    }
+    
+    /**
+     * Update UI from background data
+     * @param {number} background - Background color from code execution
+     */
+    async updateUIFromBackground(background) {
+        console.log('🎨 Updating background UI from code execution:', background);
+        
+        if (background !== undefined) {
+            const colorHex = '#' + background.toString(16).padStart(6, '0');
+            this.updateUIControl('scene-background', colorHex);
+        }
+    }
+    
+    /**
+     * Update lighting UI from lighting data
+     * @param {Object} lighting - Lighting configuration
+     */
+    async updateLightingUI(lighting) {
+        console.log('💡 Updating lighting UI from template parsing:', lighting);
+        
+        if (lighting.ambient) {
+            this.updateUIControl('ambient-light-intensity', lighting.ambient.intensity);
+            if (lighting.ambient.color !== undefined) {
+                const colorHex = '#' + lighting.ambient.color.toString(16).padStart(6, '0');
+                this.updateUIControl('ambient-light-color', colorHex);
+            }
+        }
+        
+        if (lighting.directional) {
+            this.updateUIControl('directional-light-intensity', lighting.directional.intensity);
+            if (lighting.directional.color !== undefined) {
+                const colorHex = '#' + lighting.directional.color.toString(16).padStart(6, '0');
+                this.updateUIControl('directional-light-color', colorHex);
+            }
+        }
+    }
+    
+    /**
+     * Update scene config UI from scene configuration data
+     * @param {Object} sceneConfig - Scene configuration
+     */
+    async updateSceneConfigUI(sceneConfig) {
+        console.log('🎬 Updating scene config UI from template parsing:', sceneConfig);
+        
+        if (sceneConfig.backgroundColor !== undefined) {
+            const colorHex = '#' + sceneConfig.backgroundColor.toString(16).padStart(6, '0');
+            this.updateUIControl('scene-background-color', colorHex);
+        }
+        
+        if (sceneConfig.camera) {
+            const camera = sceneConfig.camera;
+            
+            if (camera.fov !== undefined) {
+                this.updateUIControl('camera-fov', camera.fov);
+            }
+            
+            if (camera.position) {
+                this.updateUIControl('camera-position-x', camera.position[0]);
+                this.updateUIControl('camera-position-y', camera.position[1]);
+                this.updateUIControl('camera-position-z', camera.position[2]);
+            }
+            
+            if (camera.near !== undefined) {
+                this.updateUIControl('camera-near', camera.near);
+            }
+            
+            if (camera.far !== undefined) {
+                this.updateUIControl('camera-far', camera.far);
+            }
+        }
+    }
+    
+    /**
+     * Get current code from active editor
+     * @returns {string} Current code
+     */
+    getCode() {
+        return this.getCurrentCode();
     }
     
     saveSceneFile() {
@@ -678,13 +1214,19 @@ export class CodeEditorManager {
         };
     }
 
-    dispose() {
-        // Phase 2: Clean up live compilation system
+    async dispose() {
+        // Phase 1: Clean up SyncManager
+        if (this.syncManager) {
+            await this.syncManager.cleanup();
+            this.syncManager = null;
+        }
+        
+        // Enhanced: Clean up live compilation system
         if (this.liveUpdateManager) {
             this.liveUpdateManager.reset();
         }
         if (this.codeCompiler) {
-            this.codeCompiler.reset();
+            await this.codeCompiler.cleanup();
         }
         
         if (this.editor) {
@@ -694,6 +1236,11 @@ export class CodeEditorManager {
             this.fullscreenEditor.dispose();
         }
         
-        console.log('🧹 CodeEditorManager disposed with Phase 2 cleanup');
+        // Dispose Three.js IntelliSense
+        if (this.threeJsIntelliSense) {
+            this.threeJsIntelliSense.dispose();
+        }
+        
+        console.log('🧹 CodeEditorManager disposed with Phase 2.5 cleanup');
     }
 }

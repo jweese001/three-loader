@@ -382,4 +382,442 @@ body {
     background: var(--text-muted);
 }
 
+/* Shader Editor Styles */
+.shader-section {
+    margin-bottom: 1.5rem;
+}
+
+.shader-section h4 {
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.shader-editor-container {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--surface);
+}
+
+.shader-editor {
+    height: 200px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.uniforms-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.uniform-control {
+    display: flex;
+    align-items: center;
+}
+
+.uniform-control label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.uniform-control label span {
+    min-width: 120px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.uniform-control input[type="number"] {
+    flex: 1;
+    max-width: 100px;
+    padding: 0.25rem 0.5rem;
+    background: var(--surface-light);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+}
+
+.shader-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.shader-actions .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+
+#shader-panel .panel-content {
+    padding: 1.25rem;
+}
+
+/* Hide shader panel by default */
+#shader-panel {
+    display: none;
+}
+
+/* Show shader panel when shader material is selected */
+body.shader-material-selected #shader-panel {
+    display: block;
+}
+
+/* Compile status styling */
+.compile-status {
+    padding: 0.5rem;
+    margin-top: 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.compile-status.success {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid var(--success);
+    color: var(--success);
+}
+
+.compile-status.error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--error);
+    color: var(--error);
+}
+
+/* Remove uniform button */
+.remove-uniform-btn {
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 3px;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-uniform-btn:hover {
+    background: #dc2626;
+}
+
+/* Special handling for line-based materials */
+.material-type-lineDashed,
+.material-type-lineBasic {
+    /* These materials work better with LineSegments */
+}
+
+.material-type-points {
+    /* Points material works with Points geometry */
+}
+
+/* Lighting Panel Styles */
+.lighting-section {
+    margin-bottom: 1.5rem;
+}
+
+.lighting-section h4 {
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.lighting-presets {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.preset-dropdown,
+.light-type-dropdown {
+    flex: 1;
+    padding: 0.5rem;
+    background: var(--surface-light);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+.lighting-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.add-light-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.lights-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+}
+
+.no-lights-message {
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.light-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-light);
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.light-item:hover {
+    background: var(--border);
+}
+
+.light-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.light-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.light-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.light-type {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    text-transform: capitalize;
+}
+
+.light-controls {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.light-controls .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    min-width: auto;
+}
+
+.light-properties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.light-property {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.light-property label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.light-property input[type="number"],
+.light-property input[type="color"],
+.light-property input[type="range"] {
+    padding: 0.375rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    transition: border-color 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+.light-property input[type="number"]:focus,
+.light-property input[type="color"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.light-property input[type="range"] {
+    padding: 0;
+}
+
+/* Full-width light property for sliders */
+.light-property-full {
+    grid-column: 1 / -1;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.slider-container input[type="range"] {
+    flex: 1;
+}
+
+.slider-value {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    min-width: 35px;
+    text-align: right;
+    font-weight: 500;
+}
+
+/* Apply consistent slider styling to light sliders */
+.light-angle {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.light-angle::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.light-angle::-webkit-slider-thumb:hover {
+    background: var(--primary-dark);
+    transform: scale(1.2);
+}
+
+.light-angle::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.light-angle::-moz-range-thumb:hover {
+    background: var(--primary-dark);
+    transform: scale(1.2);
+}
+
+.position-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.25rem;
+    grid-column: 1 / -1;
+    margin-top: 0.375rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.position-controls::before {
+    content: 'Position';
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    grid-column: 1 / -1;
+    margin-bottom: 0.25rem;
+}
+
+.position-controls input {
+    text-align: center;
+    padding: 0.25rem 0.375rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    transition: border-color 0.2s ease;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.position-controls input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+/* Light type icons */
+.light-item::before {
+    content: '💡';
+    margin-right: 0.5rem;
+}
+
+.light-item[data-light-type="ambient"]::before {
+    content: '🌍';
+}
+
+.light-item[data-light-type="directional"]::before {
+    content: '☀️';
+}
+
+.light-item[data-light-type="point"]::before {
+    content: '🔆';
+}
+
+.light-item[data-light-type="spot"]::before {
+    content: '🔦';
+}
+
+.light-item[data-light-type="hemisphere"]::before {
+    content: '🌅';
+}
+
+.light-item[data-light-type="rectArea"]::before {
+    content: '📱';
+}
+
+
+
 

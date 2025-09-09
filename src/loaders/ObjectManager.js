@@ -501,6 +501,99 @@ export class ObjectManager {
                 geometry = new THREE.ExtrudeGeometry(starShape, extrudeSettings);
                 name = 'Star';
                 break;
+            case 'parametric':
+                // Klein bottle parametric function
+                const parametricFunction = (u, v, target) => {
+                    u = u * Math.PI;
+                    v = v * 2 * Math.PI;
+                    const x = (3 + Math.cos(u/2) * Math.sin(v) - Math.sin(u/2) * Math.sin(2*v)) * Math.cos(u);
+                    const y = (3 + Math.cos(u/2) * Math.sin(v) - Math.sin(u/2) * Math.sin(2*v)) * Math.sin(u);
+                    const z = Math.sin(u/2) * Math.sin(v) + Math.cos(u/2) * Math.sin(2*v);
+                    target.set(x * 0.3, y * 0.3, z * 0.3);
+                };
+                geometry = new THREE.ParametricGeometry(parametricFunction, 20, 20);
+                name = 'Klein Bottle';
+                break;
+            case 'polyhedron':
+                // Custom polyhedron using vertices and faces
+                const vertices = [
+                    1, 1, 1,    -1, -1, 1,    -1, 1, -1,    1, -1, -1
+                ];
+                const indices = [
+                    2, 1, 0,    0, 3, 2,    1, 3, 0,    2, 3, 1
+                ];
+                geometry = new THREE.PolyhedronGeometry(vertices, indices, 1.5, 0);
+                name = 'Custom Polyhedron';
+                break;
+            case 'tube':
+                // Curved tube geometry
+                class CustomCurve extends THREE.Curve {
+                    getPoint(t, optionalTarget = new THREE.Vector3()) {
+                        const tx = t * 3 - 1.5;
+                        const ty = Math.sin(2 * Math.PI * t);
+                        const tz = Math.cos(2 * Math.PI * t);
+                        return optionalTarget.set(tx, ty, tz).multiplyScalar(0.8);
+                    }
+                }
+                const path = new CustomCurve();
+                geometry = new THREE.TubeGeometry(path, 20, 0.2, 8, false);
+                name = 'Tube';
+                break;
+            case 'convex':
+                // Convex hull of random points
+                const convexPoints = [];
+                for (let i = 0; i < 20; i++) {
+                    convexPoints.push(new THREE.Vector3(
+                        (Math.random() - 0.5) * 3,
+                        (Math.random() - 0.5) * 3,
+                        (Math.random() - 0.5) * 3
+                    ));
+                }
+                geometry = new THREE.ConvexGeometry(convexPoints);
+                name = 'Convex Hull';
+                break;
+            case 'decal':
+                // Decal geometry on a cube
+                const cubeGeometry = new THREE.BoxGeometry(2, 2, 2);
+                const position = new THREE.Vector3(0, 0, 1);
+                const orientation = new THREE.Euler(0, 0, 0);
+                const size = new THREE.Vector3(1, 1, 1);
+                geometry = new THREE.DecalGeometry(cubeGeometry, position, orientation, size);
+                name = 'Decal';
+                break;
+            case 'edges':
+                // Edges geometry from a dodecahedron
+                const baseGeometry = new THREE.DodecahedronGeometry(1.5);
+                geometry = new THREE.EdgesGeometry(baseGeometry);
+                name = 'Edges';
+                break;
+            case 'wireframe':
+                // Wireframe geometry from a icosahedron
+                const wireBaseGeometry = new THREE.IcosahedronGeometry(1.5, 1);
+                geometry = new THREE.WireframeGeometry(wireBaseGeometry);
+                name = 'Wireframe';
+                break;
+            case 'shape':
+                // Heart shape
+                const heartShape = new THREE.Shape();
+                const x = 0, y = 0;
+                heartShape.moveTo(x + 25, y + 25);
+                heartShape.bezierCurveTo(x + 25, y + 25, x + 20, y, x, y);
+                heartShape.bezierCurveTo(x - 30, y, x - 30, y + 35, x - 30, y + 35);
+                heartShape.bezierCurveTo(x - 30, y + 55, x - 10, y + 77, x + 25, y + 95);
+                heartShape.bezierCurveTo(x + 60, y + 77, x + 80, y + 55, x + 80, y + 35);
+                heartShape.bezierCurveTo(x + 80, y + 35, x + 80, y, x + 50, y);
+                heartShape.bezierCurveTo(x + 35, y, x + 25, y + 25, x + 25, y + 25);
+                geometry = new THREE.ShapeGeometry(heartShape);
+                geometry.scale(0.02, 0.02, 0.02);
+                name = 'Heart Shape';
+                break;
+            case 'text':
+                // Note: TextGeometry requires font loading, using placeholder
+                // In a real implementation, you would load a font first
+                geometry = new THREE.PlaneGeometry(2, 0.5);
+                name = 'Text (Placeholder)';
+                break;
             default:
                 console.error('Unknown primitive type:', type);
                 return null;
@@ -508,7 +601,16 @@ export class ObjectManager {
         
         // Create material with default settings
         let material;
-        switch (this.defaultMaterial.type) {
+        
+        // Special handling for line-based geometries
+        if (type === 'edges' || type === 'wireframe') {
+            material = new THREE.LineBasicMaterial({
+                color: new THREE.Color(this.defaultMaterial.color),
+                transparent: this.defaultMaterial.opacity < 1,
+                opacity: this.defaultMaterial.opacity
+            });
+        } else {
+            switch (this.defaultMaterial.type) {
             case 'basic':
                 material = new THREE.MeshBasicMaterial({
                     color: new THREE.Color(this.defaultMaterial.color),
@@ -551,6 +653,92 @@ export class ObjectManager {
                     opacity: this.defaultMaterial.opacity
                 });
                 break;
+            case 'shader':
+                // Default shader material with basic vertex/fragment shaders
+                material = new THREE.ShaderMaterial({
+                    vertexShader: `
+                        void main() {
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        uniform float time;
+                        uniform vec2 resolution;
+                        void main() {
+                            vec2 uv = gl_FragCoord.xy / resolution.xy;
+                            float r = sin(time + uv.x * 10.0) * 0.5 + 0.5;
+                            float g = sin(time + uv.y * 10.0) * 0.5 + 0.5;
+                            float b = sin(time + (uv.x + uv.y) * 5.0) * 0.5 + 0.5;
+                            gl_FragColor = vec4(r, g, b, 1.0);
+                        }
+                    `,
+                    uniforms: {
+                        time: { value: 0.0 },
+                        resolution: { value: new THREE.Vector2(800, 600) }
+                    }
+                });
+                break;
+            case 'toon':
+                material = new THREE.MeshToonMaterial({
+                    color: new THREE.Color(this.defaultMaterial.color),
+                    wireframe: this.defaultMaterial.wireframe,
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity
+                });
+                break;
+            case 'normal':
+                material = new THREE.MeshNormalMaterial({
+                    wireframe: this.defaultMaterial.wireframe,
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity
+                });
+                break;
+            case 'depth':
+                material = new THREE.MeshDepthMaterial({
+                    wireframe: this.defaultMaterial.wireframe,
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity
+                });
+                break;
+            case 'distance':
+                material = new THREE.MeshDistanceMaterial({
+                    wireframe: this.defaultMaterial.wireframe,
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity
+                });
+                break;
+            case 'lineDashed':
+                material = new THREE.LineDashedMaterial({
+                    color: new THREE.Color(this.defaultMaterial.color),
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity,
+                    dashSize: 3,
+                    gapSize: 1
+                });
+                break;
+            case 'lineBasic':
+                material = new THREE.LineBasicMaterial({
+                    color: new THREE.Color(this.defaultMaterial.color),
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity
+                });
+                break;
+            case 'points':
+                material = new THREE.PointsMaterial({
+                    color: new THREE.Color(this.defaultMaterial.color),
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity,
+                    size: 2,
+                    sizeAttenuation: true
+                });
+                break;
+            case 'sprite':
+                material = new THREE.SpriteMaterial({
+                    color: new THREE.Color(this.defaultMaterial.color),
+                    transparent: this.defaultMaterial.opacity < 1,
+                    opacity: this.defaultMaterial.opacity
+                });
+                break;
             case 'standard':
             default:
                 material = new THREE.MeshStandardMaterial({
@@ -562,10 +750,16 @@ export class ObjectManager {
                     metalness: this.defaultMaterial.metalness
                 });
                 break;
+            }
         }
         
-        // Create mesh
-        const mesh = new THREE.Mesh(geometry, material);
+        // Create mesh (or LineSegments for edge/wireframe geometries)
+        let mesh;
+        if (type === 'edges' || type === 'wireframe') {
+            mesh = new THREE.LineSegments(geometry, material);
+        } else {
+            mesh = new THREE.Mesh(geometry, material);
+        }
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         

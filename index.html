@@ -55,6 +55,15 @@
                                     <option value="capsule">Capsule Geometry</option>
                                     <option value="lathe">Lathe Geometry</option>
                                     <option value="extrude">Extrude Geometry</option>
+                                    <option value="parametric">Parametric Geometry</option>
+                                    <option value="polyhedron">Polyhedron Geometry</option>
+                                    <option value="tube">Tube Geometry</option>
+                                    <option value="convex">Convex Geometry</option>
+                                    <option value="decal">Decal Geometry</option>
+                                    <option value="edges">Edges Geometry</option>
+                                    <option value="wireframe">Wireframe Geometry</option>
+                                    <option value="shape">Shape Geometry</option>
+                                    <option value="text">Text Geometry</option>
                                 </select>
                             </label>
                             <button id="add-primitive-btn" class="btn btn-secondary" disabled>Add to Scene</button>
@@ -188,6 +197,15 @@
                                     <option value="lambert">Lambert</option>
                                     <option value="physical">Physical</option>
                                     <option value="matcap">MatCap</option>
+                                    <option value="shader">Shader</option>
+                                    <option value="toon">Toon</option>
+                                    <option value="normal">Normal</option>
+                                    <option value="depth">Depth</option>
+                                    <option value="distance">Distance</option>
+                                    <option value="lineDashed">Line Dashed</option>
+                                    <option value="lineBasic">Line Basic</option>
+                                    <option value="points">Points</option>
+                                    <option value="sprite">Sprite</option>
                                 </select>
                             </label>
                             
@@ -235,6 +253,59 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shader Editor Panel -->
+                <div class="panel collapsible-panel" id="shader-panel" style="display: none;">
+                    <div class="panel-header" data-target="shader-content">
+                        <h3>Shader Editor</h3>
+                        <span class="collapse-arrow">▼</span>
+                    </div>
+                    <div class="panel-content" id="shader-content">
+                        <div class="shader-section">
+                            <h4>Vertex Shader</h4>
+                            <div class="shader-editor-container">
+                                <div id="vertex-shader-editor" class="shader-editor"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="shader-section">
+                            <h4>Fragment Shader</h4>
+                            <div class="shader-editor-container">
+                                <div id="fragment-shader-editor" class="shader-editor"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="shader-section">
+                            <h4>Uniforms</h4>
+                            <div class="uniforms-container" id="uniforms-container">
+                                <div class="uniform-control">
+                                    <label>
+                                        <span>Time (u_time)</span>
+                                        <input type="number" id="uniform-time" step="0.01" value="0" data-uniform="time">
+                                    </label>
+                                </div>
+                                <div class="uniform-control">
+                                    <label>
+                                        <span>Resolution X</span>
+                                        <input type="number" id="uniform-resolution-x" step="1" value="800" data-uniform="resolution.x">
+                                    </label>
+                                </div>
+                                <div class="uniform-control">
+                                    <label>
+                                        <span>Resolution Y</span>
+                                        <input type="number" id="uniform-resolution-y" step="1" value="600" data-uniform="resolution.y">
+                                    </label>
+                                </div>
+                                <button id="add-uniform-btn" class="btn btn-secondary">Add Uniform</button>
+                            </div>
+                        </div>
+                        
+                        <div class="shader-actions">
+                            <button id="compile-shader-btn" class="btn btn-primary">Compile Shader</button>
+                            <button id="reset-shader-btn" class="btn btn-secondary">Reset to Default</button>
                         </div>
                     </div>
                 </div>
@@ -302,6 +373,67 @@
                                     <input type="checkbox" id="uniform-scale-checkbox">
                                     <span>Lock Scale</span>
                                 </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lighting Panel -->
+                <div class="panel collapsible-panel" id="lighting-panel">
+                    <div class="panel-header" data-target="lighting-content">
+                        <h3>Lighting</h3>
+                        <span class="collapse-arrow">▼</span>
+                    </div>
+                    <div class="panel-content" id="lighting-content">
+                        <div class="lighting-section">
+                            <h4>Presets</h4>
+                            <div class="lighting-presets">
+                                <select id="lighting-preset" class="preset-dropdown">
+                                    <option value="default">Default</option>
+                                    <option value="studio">Studio</option>
+                                    <option value="outdoor">Outdoor</option>
+                                    <option value="night">Night</option>
+                                    <option value="warm">Warm</option>
+                                    <option value="cool">Cool</option>
+                                </select>
+                                <button id="apply-preset-btn" class="btn btn-secondary">Apply</button>
+                            </div>
+                        </div>
+                        
+                        <div class="lighting-section">
+                            <h4>Global Settings</h4>
+                            <div class="lighting-controls">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="shadows-enabled" checked>
+                                    <span>Enable Shadows</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="environment-mapping">
+                                    <span>Environment Mapping</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="lighting-section">
+                            <h4>Add Light</h4>
+                            <div class="add-light-controls">
+                                <select id="light-type" class="light-type-dropdown">
+                                    <option value="">Select Light Type...</option>
+                                    <option value="ambient">Ambient Light</option>
+                                    <option value="directional">Directional Light</option>
+                                    <option value="point">Point Light</option>
+                                    <option value="spot">Spot Light</option>
+                                    <option value="hemisphere">Hemisphere Light</option>
+                                    <option value="rectArea">Rect Area Light</option>
+                                </select>
+                                <button id="add-light-btn" class="btn btn-secondary" disabled>Add Light</button>
+                            </div>
+                        </div>
+                        
+                        <div class="lighting-section">
+                            <h4>Active Lights</h4>
+                            <div id="lights-list" class="lights-list">
+                                <div class="no-lights-message">No custom lights added</div>
                             </div>
                         </div>
                     </div>

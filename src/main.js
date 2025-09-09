@@ -6,6 +6,7 @@ import { ThreeScene } from './core/Scene.js';
 import { ObjectManager } from './loaders/ObjectManager.js';
 import { UIController } from './ui/UIController.js';
 import { CodeEditorManager } from './ui/CodeEditorManager.js';
+import { ButtonController } from './ui/ButtonController.js';
 import { ExportManager } from './export/ExportManager.js';
 import { AnimationController } from './utils/AnimationController.js';
 import { TextureManager } from './utils/TextureManager.js';
@@ -17,6 +18,7 @@ class ThreeLoaderApp {
         this.objectManager = null;
         this.uiController = null;
         this.codeEditorManager = null;
+        this.buttonController = null;
         this.exportManager = null;
         this.animationController = null;
         this.textureManager = null;
@@ -59,6 +61,9 @@ class ThreeLoaderApp {
                 exportManager: this.exportManager,
                 uiController: this.uiController
             });
+            
+            // Initialize button controller to fix UI toggle issues
+            this.buttonController = new ButtonController();
             
             // Set up event listeners
             this.setupEventListeners();
@@ -126,6 +131,11 @@ class ThreeLoaderApp {
             
             // Update animations
             this.animationController.update();
+            
+            // Update UI Controller (including advanced animation)
+            if (this.uiController) {
+                this.uiController.update();
+            }
             
             // Render scene
             this.scene.render();

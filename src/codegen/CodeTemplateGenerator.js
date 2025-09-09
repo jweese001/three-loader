@@ -315,10 +315,204 @@ ${guide}
                     depth: 0.4, bevelEnabled: true, bevelSegments: 2, steps: 2, 
                     bevelSize: 0.1, bevelThickness: 0.1
                 });
-            })()`
+            })()`,
+            'parametric': `new THREE.ParametricGeometry(
+                (u, v, target) => {
+                    u = u * Math.PI;
+                    v = v * 2 * Math.PI;
+                    const x = (3 + Math.cos(u/2) * Math.sin(v) - Math.sin(u/2) * Math.sin(2*v)) * Math.cos(u);
+                    const y = (3 + Math.cos(u/2) * Math.sin(v) - Math.sin(u/2) * Math.sin(2*v)) * Math.sin(u);
+                    const z = Math.sin(u/2) * Math.sin(v) + Math.cos(u/2) * Math.sin(2*v);
+                    target.set(x * 0.3, y * 0.3, z * 0.3);
+                }, 20, 20
+            )`,
+            'polyhedron': 'new THREE.PolyhedronGeometry([1,1,1,-1,-1,1,-1,1,-1,1,-1,-1], [2,1,0,0,3,2,1,3,0,2,3,1], 1.5, 0)',
+            'tube': `(() => {
+                class CustomCurve extends THREE.Curve {
+                    getPoint(t, optionalTarget = new THREE.Vector3()) {
+                        const tx = t * 3 - 1.5;
+                        const ty = Math.sin(2 * Math.PI * t);
+                        const tz = Math.cos(2 * Math.PI * t);
+                        return optionalTarget.set(tx, ty, tz).multiplyScalar(0.8);
+                    }
+                }
+                return new THREE.TubeGeometry(new CustomCurve(), 20, 0.2, 8, false);
+            })()`,
+            'convex': `(() => {
+                const points = [];
+                for (let i = 0; i < 20; i++) {
+                    points.push(new THREE.Vector3((Math.random()-0.5)*3, (Math.random()-0.5)*3, (Math.random()-0.5)*3));
+                }
+                return new THREE.ConvexGeometry(points);
+            })()`,
+            'decal': `(() => {
+                const cubeGeometry = new THREE.BoxGeometry(2, 2, 2);
+                return new THREE.DecalGeometry(cubeGeometry, new THREE.Vector3(0,0,1), new THREE.Euler(0,0,0), new THREE.Vector3(1,1,1));
+            })()`,
+            'edges': 'new THREE.EdgesGeometry(new THREE.DodecahedronGeometry(1.5))',
+            'wireframe': 'new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(1.5, 1))',
+            'shape': `(() => {
+                const heartShape = new THREE.Shape();
+                const x = 0, y = 0;
+                heartShape.moveTo(x + 25, y + 25);
+                heartShape.bezierCurveTo(x + 25, y + 25, x + 20, y, x, y);
+                heartShape.bezierCurveTo(x - 30, y, x - 30, y + 35, x - 30, y + 35);
+                heartShape.bezierCurveTo(x - 30, y + 55, x - 10, y + 77, x + 25, y + 95);
+                heartShape.bezierCurveTo(x + 60, y + 77, x + 80, y + 55, x + 80, y + 35);
+                heartShape.bezierCurveTo(x + 80, y + 35, x + 80, y, x + 50, y);
+                heartShape.bezierCurveTo(x + 35, y, x + 25, y + 25, x + 25, y + 25);
+                const geometry = new THREE.ShapeGeometry(heartShape);
+                geometry.scale(0.02, 0.02, 0.02);
+                return geometry;
+            })()`,
+            'text': 'new THREE.PlaneGeometry(2, 0.5) // TextGeometry requires font loading'
         };
         
         return geometryMap[primitiveType] || 'new THREE.BoxGeometry(1, 1, 1)';
+    }
+    
+    /**
+     * Create material from configuration
+     */
+    createMaterialFromConfig(materialConfig) {
+        const { type = 'standard', color = '#ffffff', wireframe = false, transparent = false, 
+                opacity = 1.0, roughness = 0.5, metalness = 0.0 } = materialConfig;
+        
+        switch (type) {
+            case 'basic':
+                return new THREE.MeshBasicMaterial({
+                    color: new THREE.Color(color),
+                    wireframe, transparent, opacity
+                });
+                
+            case 'lambert':
+                return new THREE.MeshLambertMaterial({
+                    color: new THREE.Color(color),
+                    wireframe, transparent, opacity
+                });
+                
+            case 'phong':
+                return new THREE.MeshPhongMaterial({
+                    color: new THREE.Color(color),
+                    wireframe, transparent, opacity
+                });
+                
+            case 'physical':
+                return new THREE.MeshPhysicalMaterial({
+                    color: new THREE.Color(color),
+                    wireframe, transparent, opacity,
+                    roughness, metalness
+                });
+                
+            case 'matcap':
+                return new THREE.MeshMatcapMaterial({
+                    color: new THREE.Color(color),
+                    wireframe, transparent, opacity
+                });
+                
+            case 'shader':
+                return new THREE.ShaderMaterial({
+                    vertexShader: materialConfig.vertexShader || this.getDefaultVertexShader(),
+                    fragmentShader: materialConfig.fragmentShader || this.getDefaultFragmentShader(),
+                    uniforms: materialConfig.uniforms || this.getDefaultUniforms()
+                });
+                
+            case 'toon':
+                return new THREE.MeshToonMaterial({
+                    color: new THREE.Color(color),
+                    wireframe, transparent, opacity
+                });
+                
+            case 'normal':
+                return new THREE.MeshNormalMaterial({ wireframe, transparent, opacity });
+                
+            case 'depth':
+                return new THREE.MeshDepthMaterial({ wireframe, transparent, opacity });
+                
+            case 'distance':
+                return new THREE.MeshDistanceMaterial({ wireframe, transparent, opacity });
+                
+            case 'lineDashed':
+                return new THREE.LineDashedMaterial({
+                    color: new THREE.Color(color), transparent, opacity,
+                    dashSize: 3, gapSize: 1
+                });
+                
+            case 'lineBasic':
+                return new THREE.LineBasicMaterial({
+                    color: new THREE.Color(color), transparent, opacity
+                });
+                
+            case 'points':
+                return new THREE.PointsMaterial({
+                    color: new THREE.Color(color), transparent, opacity,
+                    size: 2, sizeAttenuation: true
+                });
+                
+            case 'sprite':
+                return new THREE.SpriteMaterial({
+                    color: new THREE.Color(color), transparent, opacity
+                });
+                
+            case 'standard':
+            default:
+                return new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(color),
+                    wireframe, transparent, opacity,
+                    roughness, metalness
+                });
+        }
+    }
+    
+    /**
+     * Get default vertex shader
+     */
+    getDefaultVertexShader() {
+        return `
+            uniform float time;
+            varying vec2 vUv;
+            
+            void main() {
+                vUv = uv;
+                vec3 pos = position;
+                
+                // Simple wave animation
+                pos.z += sin(pos.x * 5.0 + time) * 0.1;
+                pos.z += sin(pos.y * 5.0 + time * 1.5) * 0.1;
+                
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }`;
+    }
+    
+    /**
+     * Get default fragment shader
+     */
+    getDefaultFragmentShader() {
+        return `
+            uniform float time;
+            uniform vec2 resolution;
+            varying vec2 vUv;
+            
+            void main() {
+                vec2 uv = vUv;
+                
+                // Animated color pattern
+                float r = sin(time + uv.x * 10.0) * 0.5 + 0.5;
+                float g = sin(time + uv.y * 10.0 + 2.0) * 0.5 + 0.5;
+                float b = sin(time + (uv.x + uv.y) * 5.0 + 4.0) * 0.5 + 0.5;
+                
+                gl_FragColor = vec4(r, g, b, 1.0);
+            }`;
+    }
+    
+    /**
+     * Get default shader uniforms
+     */
+    getDefaultUniforms() {
+        return {
+            time: { value: 0.0 },
+            resolution: { value: new THREE.Vector2(800, 600) }
+        };
     }
     
     /**
@@ -599,14 +793,7 @@ function loadOBJObject(loader, config) {
             config.fileName,
             (object) => {
                 // Apply material
-                const material = new THREE.MeshStandardMaterial({
-                    color: new THREE.Color(config.material.color),
-                    wireframe: config.material.wireframe,
-                    transparent: config.material.transparent,
-                    opacity: config.material.opacity,
-                    roughness: config.material.roughness,
-                    metalness: config.material.metalness
-                });
+                const material = this.createMaterialFromConfig(config.material);
                 
                 object.traverse((child) => {
                     if (child.isMesh) {

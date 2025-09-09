@@ -1,3 +1,7 @@
+import { ShaderManager } from '../materials/ShaderManager.js';
+import { AdvancedAnimationManager } from '../animation/AdvancedAnimationManager.js';
+import { TimelinePanel } from './TimelinePanel.js';
+
 export class UIController {
     constructor(config) {
         this.scene = config.scene;
@@ -5,6 +9,11 @@ export class UIController {
         this.exportManager = config.exportManager;
         this.animationController = config.animationController;
         this.textureManager = config.textureManager;
+        this.shaderManager = new ShaderManager();
+        
+        // Initialize advanced animation system
+        this.advancedAnimationManager = new AdvancedAnimationManager(this.scene.scene);
+        this.timelinePanel = null;
         this.onObjectSelect = config.onObjectSelect;
         this.onObjectUpdate = config.onObjectUpdate;
         
@@ -25,8 +34,11 @@ export class UIController {
         this.setupTransformControls();
         this.setupAnimationControls();
         this.setupExportControls();
-        this.setupUIToggle();
+        this.setupLightingControls();
+        this.setupAdvancedAnimationControls();
+        // this.setupUIToggle(); // Disabled - now handled by ButtonController
         this.setupCollapsiblePanels();
+        this.shaderManager.initializeEventHandlers();
     }
     
     setupDropZone() {
@@ -464,8 +476,20 @@ export class UIController {
         
         // Material type change
         materialTypeSelect.addEventListener('change', (event) => {
+            const materialType = event.target.value;
             if (this.selectedObjectId) {
-                this.updateObjectMaterial({ type: event.target.value });
+                this.updateObjectMaterial({ type: materialType });
+                
+                // Show/hide shader panel for shader materials
+                this.shaderManager.toggleShaderPanel(materialType === 'shader');
+                
+                // If switching to shader material, set current material
+                if (materialType === 'shader') {
+                    const object = this.objectManager.getObjectById(this.selectedObjectId);
+                    if (object && object.children[0] && object.children[0].material) {
+                        this.shaderManager.setCurrentMaterial(object.children[0].material);
+                    }
+                }
             }
         });
         
@@ -899,6 +923,296 @@ export class UIController {
         }
     }
     
+    setupLightingControls() {
+        const lightingManager = this.scene.getLightingManager();
+        if (!lightingManager) {
+            console.warn('No lighting manager available');
+            return;
+        }
+        
+        // Preset controls
+        const presetSelect = document.getElementById('lighting-preset');
+        const applyPresetBtn = document.getElementById('apply-preset-btn');
+        
+        applyPresetBtn.addEventListener('click', () => {
+            const preset = presetSelect.value;
+            if (preset) {
+                lightingManager.applyLightingPreset(preset);
+                this.refreshLightsList();
+            }
+        });
+        
+        // Global settings
+        const shadowsCheckbox = document.getElementById('shadows-enabled');
+        const environmentCheckbox = document.getElementById('environment-mapping');
+        
+        shadowsCheckbox.addEventListener('change', (e) => {
+            lightingManager.setShadowsEnabled(e.target.checked);
+        });
+        
+        environmentCheckbox.addEventListener('change', (e) => {
+            // TODO: Implement environment mapping toggle
+            console.log('Environment mapping:', e.target.checked);
+        });
+        
+        // Add light controls
+        const lightTypeSelect = document.getElementById('light-type');
+        const addLightBtn = document.getElementById('add-light-btn');
+        
+        lightTypeSelect.addEventListener('change', (e) => {
+            addLightBtn.disabled = !e.target.value;
+        });
+        
+        addLightBtn.addEventListener('click', () => {
+            const lightType = lightTypeSelect.value;
+            if (lightType) {
+                this.addCustomLight(lightType);
+                lightTypeSelect.value = '';
+                addLightBtn.disabled = true;
+                this.refreshLightsList();
+            }
+        });
+        
+        // Initialize lights list
+        this.refreshLightsList();
+    }
+    
+    addCustomLight(type) {
+        const lightingManager = this.scene.getLightingManager();
+        const lightId = `custom-${type}-${Date.now()}`;
+        
+        // Default configurations for different light types
+        const defaultConfigs = {
+            ambient: {
+                type: 'ambient',
+                color: '#ffffff',
+                intensity: 0.5
+            },
+            directional: {
+                type: 'directional',
+                color: '#ffffff',
+                intensity: 1.0,
+                position: [10, 10, 10],
+                castShadow: true
+            },
+            point: {
+                type: 'point',
+                color: '#ffffff',
+                intensity: 1.0,
+                distance: 50,
+                position: [0, 5, 0],
+                castShadow: false
+            },
+            spot: {
+                type: 'spot',
+                color: '#ffffff',
+                intensity: 1.0,
+                distance: 50,
+                angle: Math.PI / 4,
+                penumbra: 0.1,
+                position: [0, 10, 0],
+                target: [0, 0, 0],
+                castShadow: true
+            },
+            hemisphere: {
+                type: 'hemisphere',
+                color: '#ffffff',
+                groundColor: '#444444',
+                intensity: 0.8,
+                position: [0, 10, 0]
+            },
+            rectArea: {
+                type: 'rectArea',
+                color: '#ffffff',
+                intensity: 1.0,
+                width: 10,
+                height: 10,
+                position: [0, 5, 0]
+            }
+        };
+        
+        const config = defaultConfigs[type] || defaultConfigs.point;
+        lightingManager.addLight(lightId, config);
+        
+        console.log(`💡 Added custom ${type} light: ${lightId}`);
+    }
+    
+    refreshLightsList() {
+        const lightsList = document.getElementById('lights-list');
+        const lightingManager = this.scene.getLightingManager();
+        
+        if (!lightingManager) return;
+        
+        const lightConfigs = lightingManager.getAllLightConfigs();
+        const customLights = Object.entries(lightConfigs).filter(([id]) => id.startsWith('custom-'));
+        
+        if (customLights.length === 0) {
+            lightsList.innerHTML = '<div class="no-lights-message">No custom lights added</div>';
+            return;
+        }
+        
+        const lightsHtml = customLights.map(([lightId, config]) => {
+            return this.createLightItemHtml(lightId, config);
+        }).join('');
+        
+        lightsList.innerHTML = lightsHtml;
+        
+        // Add event listeners for light controls
+        this.setupLightItemControls();
+    }
+    
+    createLightItemHtml(lightId, config) {
+        const shortId = lightId.replace('custom-', '').replace(/-\d+$/, '');
+        
+        return `
+            <div class="light-item" data-light-id="${lightId}" data-light-type="${config.type}">
+                <div class="light-header">
+                    <div>
+                        <div class="light-name">${shortId.charAt(0).toUpperCase() + shortId.slice(1)} Light</div>
+                        <div class="light-type">${config.type}</div>
+                    </div>
+                    <div class="light-controls">
+                        <button class="btn btn-sm toggle-light-btn" data-light-id="${lightId}">
+                            ${config.visible !== false ? 'Hide' : 'Show'}
+                        </button>
+                        <button class="btn btn-sm btn-danger remove-light-btn" data-light-id="${lightId}">Remove</button>
+                    </div>
+                </div>
+                
+                <div class="light-properties">
+                    <div class="light-property">
+                        <label>Color</label>
+                        <input type="color" class="light-color" data-light-id="${lightId}" value="${config.color || '#ffffff'}">
+                    </div>
+                    
+                    <div class="light-property">
+                        <label>Intensity</label>
+                        <input type="number" class="light-intensity" data-light-id="${lightId}" 
+                               value="${config.intensity}" min="0" max="5" step="0.1">
+                    </div>
+                    
+                    ${config.distance !== undefined ? `
+                    <div class="light-property">
+                        <label>Distance</label>
+                        <input type="number" class="light-distance" data-light-id="${lightId}" 
+                               value="${config.distance}" min="0" max="100" step="1">
+                    </div>
+                    ` : ''}
+                    
+                    ${config.type === 'spot' ? `
+                    <div class="light-property light-property-full">
+                        <label>Angle</label>
+                        <div class="slider-container">
+                            <input type="range" class="light-angle" data-light-id="${lightId}" 
+                                   value="${config.angle}" min="0.1" max="${Math.PI/2}" step="0.01">
+                            <span class="slider-value">${(config.angle * 180 / Math.PI).toFixed(0)}°</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${config.type !== 'ambient' ? `
+                    <div class="position-controls">
+                        <input type="number" class="light-pos-x" data-light-id="${lightId}" 
+                               value="${config.position[0]}" step="0.5" placeholder="X">
+                        <input type="number" class="light-pos-y" data-light-id="${lightId}" 
+                               value="${config.position[1]}" step="0.5" placeholder="Y">
+                        <input type="number" class="light-pos-z" data-light-id="${lightId}" 
+                               value="${config.position[2]}" step="0.5" placeholder="Z">
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    setupLightItemControls() {
+        const lightingManager = this.scene.getLightingManager();
+        
+        // Toggle light visibility
+        document.querySelectorAll('.toggle-light-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const lightId = e.target.dataset.lightId;
+                const config = lightingManager.getLightConfig(lightId);
+                const newVisibility = config.visible !== false ? false : true;
+                
+                lightingManager.updateLight(lightId, { visible: newVisibility });
+                e.target.textContent = newVisibility ? 'Hide' : 'Show';
+            });
+        });
+        
+        // Remove light
+        document.querySelectorAll('.remove-light-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const lightId = e.target.dataset.lightId;
+                lightingManager.removeLight(lightId);
+                this.refreshLightsList();
+            });
+        });
+        
+        // Update light properties
+        this.setupLightPropertyControls();
+    }
+    
+    setupLightPropertyControls() {
+        const lightingManager = this.scene.getLightingManager();
+        
+        // Color changes
+        document.querySelectorAll('.light-color').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const lightId = e.target.dataset.lightId;
+                lightingManager.updateLight(lightId, { color: e.target.value });
+            });
+        });
+        
+        // Intensity changes
+        document.querySelectorAll('.light-intensity').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const lightId = e.target.dataset.lightId;
+                lightingManager.updateLight(lightId, { intensity: parseFloat(e.target.value) });
+            });
+        });
+        
+        // Position changes
+        document.querySelectorAll('.light-pos-x, .light-pos-y, .light-pos-z').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const lightId = e.target.dataset.lightId;
+                const config = lightingManager.getLightConfig(lightId);
+                const position = [...config.position];
+                
+                if (e.target.classList.contains('light-pos-x')) position[0] = parseFloat(e.target.value);
+                if (e.target.classList.contains('light-pos-y')) position[1] = parseFloat(e.target.value);
+                if (e.target.classList.contains('light-pos-z')) position[2] = parseFloat(e.target.value);
+                
+                lightingManager.updateLight(lightId, { position });
+            });
+        });
+        
+        // Distance changes
+        document.querySelectorAll('.light-distance').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const lightId = e.target.dataset.lightId;
+                lightingManager.updateLight(lightId, { distance: parseFloat(e.target.value) });
+            });
+        });
+        
+        // Angle changes (for spot lights)
+        document.querySelectorAll('.light-angle').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const lightId = e.target.dataset.lightId;
+                const angleValue = parseFloat(e.target.value);
+                
+                // Update the light
+                lightingManager.updateLight(lightId, { angle: angleValue });
+                
+                // Update the display value
+                const valueDisplay = e.target.parentElement.querySelector('.slider-value');
+                if (valueDisplay) {
+                    valueDisplay.textContent = `${(angleValue * 180 / Math.PI).toFixed(0)}°`;
+                }
+            });
+        });
+    }
+    
     setupExportControls() {
         // Export button
         const exportBtn = document.getElementById('export-btn');
@@ -974,106 +1288,6 @@ export class UIController {
         console.log('📤 Export controls setup complete');
     }
     
-    setupUIToggle() {
-        console.log('🎮 Setting up UI toggle...');
-        
-        const toggleUIBtn = document.getElementById('toggle-ui-btn');
-        const appContainer = document.querySelector('.app-container');
-        
-        console.log('🔍 Toggle button found:', !!toggleUIBtn);
-        console.log('🔍 App container found:', !!appContainer);
-        console.log('🔍 Initial DOM check:', {
-            leftSidebar: !!document.querySelector('.sidebar-left'),
-            rightSidebar: !!document.querySelector('.sidebar-right'),
-            leftSidebarClasses: document.querySelector('.sidebar-left')?.className,
-            rightSidebarClasses: document.querySelector('.sidebar-right')?.className
-        });
-        
-        if (!toggleUIBtn) {
-            console.error('❌ Toggle UI button not found - DOM may not be ready');
-            console.log('🔍 All buttons in DOM:', Array.from(document.querySelectorAll('button')).map(btn => btn.id || btn.textContent));
-            return;
-        }
-        
-        if (!appContainer) {
-            console.error('❌ App container not found');
-            console.log('🔍 Available containers:', Array.from(document.querySelectorAll('.app*')).map(el => el.className));
-            return;
-        }
-        
-        let isUIHidden = false;
-        
-        const toggleUI = () => {
-            isUIHidden = !isUIHidden;
-            console.log(`🔄 CSS-ONLY Toggle UI: ${isUIHidden ? 'HIDE' : 'SHOW'}`);
-            
-            if (isUIHidden) {
-                console.log('🙈 HIDING UI - CSS handles everything');
-                appContainer.classList.add('ui-hidden');
-                toggleUIBtn.innerHTML = 'Show UI';
-                toggleUIBtn.title = 'Show UI (H)';
-                
-            } else {
-                console.log('👁️ SHOWING UI - CSS handles everything');
-                appContainer.classList.remove('ui-hidden');
-                toggleUIBtn.innerHTML = 'Hide UI';
-                toggleUIBtn.title = 'Hide UI (H)';
-            }
-            
-            // Trigger scene resize after CSS changes take effect
-            setTimeout(() => {
-                if (this.scene && this.scene.handleResize) {
-                    this.scene.handleResize();
-                    console.log('✅ Scene resized after UI toggle');
-                }
-            }, 100);
-        };
-        
-        toggleUIBtn.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            console.log('🖱️ Toggle button clicked - EVENT FIRED!');
-            
-            // Debug current state
-            console.log('🔍 Before toggle - Current state:', {
-                isUIHidden: isUIHidden,
-                appContainerClasses: appContainer.className,
-                leftSidebarExists: !!document.querySelector('.sidebar-left'),
-                rightSidebarExists: !!document.querySelector('.sidebar-right'),
-                leftSidebarDisplay: document.querySelector('.sidebar-left')?.style.display,
-                rightSidebarDisplay: document.querySelector('.sidebar-right')?.style.display
-            });
-            
-            toggleUI();
-            
-            // Debug after toggle
-            setTimeout(() => {
-                console.log('🔍 After toggle - New state:', {
-                    isUIHidden: isUIHidden,
-                    appContainerClasses: appContainer.className,
-                    leftSidebarDisplay: document.querySelector('.sidebar-left')?.style.display,
-                    rightSidebarDisplay: document.querySelector('.sidebar-right')?.style.display,
-                    leftSidebarComputedDisplay: window.getComputedStyle(document.querySelector('.sidebar-left')).display,
-                    rightSidebarComputedDisplay: window.getComputedStyle(document.querySelector('.sidebar-right')).display
-                });
-            }, 100);
-        });
-        
-        // Keyboard shortcut: Press 'H' to toggle UI
-        document.addEventListener('keydown', (event) => {
-            if (event.key.toLowerCase() === 'h' && !event.ctrlKey && !event.metaKey && !event.altKey) {
-                // Only trigger if not in an input field
-                if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) {
-                    console.log('⌨️ H key pressed - toggling UI');
-                    toggleUI();
-                    event.preventDefault();
-                }
-            }
-        });
-        
-        console.log('👁️ UI toggle setup complete (Button + H key)');
-    }
-    
     updateObjectsList() {
         const objectsList = document.getElementById('objects-list');
         const objects = this.objectManager.getAllObjects();
@@ -1117,15 +1331,39 @@ export class UIController {
         });
     }
     
-    selectObject(objectId) {
+    selectObject(objectIdOrData) {
+        // Handle both objectId (number) and objectData (object) parameters
+        let objectId, objectData;
+        
+        if (typeof objectIdOrData === 'number') {
+            // Called with objectId
+            objectId = objectIdOrData;
+            objectData = this.objectManager.getObject(objectId);
+        } else if (objectIdOrData && typeof objectIdOrData === 'object') {
+            // Called with objectData
+            objectData = objectIdOrData;
+            objectId = objectData.id;
+        } else {
+            console.error('selectObject called with invalid parameter:', objectIdOrData);
+            return;
+        }
+        
         this.selectedObjectId = objectId;
-        const objectData = this.objectManager.getObject(objectId);
         
         // Update UI
         this.updateObjectsList();
         this.updateMaterialControls(objectData);
         this.updateTransformControls(objectData);
         this.updateAnimationControls(objectData);
+        
+        // Add object to advanced animation system if not already added
+        if (this.advancedAnimationManager && objectData &&
+            !this.advancedAnimationManager.keyframes.has(objectData.id.toString())) {
+            this.advancedAnimationManager.addObjectToAnimation(objectData.id.toString());
+        }
+        
+        // Update animation info
+        this.updateAnimationInfo();
         
         // Notify main app
         if (this.onObjectSelect) {
@@ -1239,6 +1477,382 @@ export class UIController {
         });
         
         console.log('📋 Collapsible panels setup complete');
+    }
+    
+    setupAdvancedAnimationControls() {
+        // Create timeline panel button in the header
+        const headerActions = document.querySelector('.header-actions');
+        if (headerActions) {
+            const timelineToggleBtn = document.createElement('button');
+            timelineToggleBtn.id = 'timeline-toggle-btn';
+            timelineToggleBtn.className = 'btn btn-secondary';
+            timelineToggleBtn.innerHTML = '🎬 Timeline';
+            timelineToggleBtn.title = 'Toggle Animation Timeline';
+            
+            timelineToggleBtn.addEventListener('click', () => {
+                this.toggleTimelinePanel();
+            });
+            
+            headerActions.appendChild(timelineToggleBtn);
+        }
+        
+        // Enhance existing animation panel instead of creating a new one
+        this.enhanceExistingAnimationPanel();
+        
+        // Remove any duplicate advanced animation panels that might have been created
+        this.removeDuplicateAdvancedAnimationPanels();
+        
+        // Also remove from left sidebar if it was added there
+        this.cleanupLeftSidebarForSceneObjectsOnly();
+        
+        console.log('🎬 Advanced animation controls setup complete');
+    }
+    
+    enhanceExistingAnimationPanel() {
+        const animationContent = document.getElementById('animation-content');
+        if (!animationContent) {
+            console.warn('Animation panel not found, cannot enhance');
+            return;
+        }
+        
+        console.log('🎬 Enhancing existing animation panel...');
+        
+        // Add advanced animation mode controls to existing animation panel
+        const advancedAnimationHTML = `
+            <div class="section-divider"></div>
+            <div class="animation-mode-section">
+                <h4>Advanced Animation Mode</h4>
+                <div class="animation-mode-controls">
+                    <label>
+                        <input type="radio" name="animation-mode" value="simple" checked> Simple
+                    </label>
+                    <label>
+                        <input type="radio" name="animation-mode" value="keyframe"> Keyframe
+                    </label>
+                    <label>
+                        <input type="radio" name="animation-mode" value="physics"> Physics
+                    </label>
+                </div>
+            </div>
+            
+            <div class="keyframe-section" style="display: none;">
+                <h4>Keyframe Animation</h4>
+                <div class="keyframe-controls">
+                    <button id="add-keyframe-btn" class="btn btn-small btn-primary" title="Add keyframe at current object state">
+                        + Add Keyframe
+                    </button>
+                    <button id="remove-keyframe-btn" class="btn btn-small btn-secondary" title="Remove selected keyframes">
+                        🗑️ Remove
+                    </button>
+                    <button id="preview-animation-btn" class="btn btn-small btn-outline" title="Preview animation">
+                        👁️ Preview
+                    </button>
+                </div>
+                <div class="interpolation-controls">
+                    <label>Interpolation:</label>
+                    <select id="keyframe-interpolation">
+                        <option value="linear">Linear</option>
+                        <option value="smooth">Smooth</option>
+                        <option value="step">Step</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="physics-section" style="display: none;">
+                <h4>Physics Animation</h4>
+                <div class="physics-controls">
+                    <div class="physics-setting">
+                        <label>Body Type:</label>
+                        <select id="physics-body-type">
+                            <option value="dynamic">Dynamic</option>
+                            <option value="static">Static</option>
+                            <option value="kinematic">Kinematic</option>
+                        </select>
+                    </div>
+                    <div class="physics-setting">
+                        <label>Shape:</label>
+                        <select id="physics-shape">
+                            <option value="box">Box</option>
+                            <option value="sphere">Sphere</option>
+                            <option value="cylinder">Cylinder</option>
+                            <option value="hull">Convex Hull</option>
+                        </select>
+                    </div>
+                    <button id="add-physics-body-btn" class="btn btn-small btn-primary">
+                        ⚡ Add Physics
+                    </button>
+                </div>
+            </div>
+            
+            <div class="animation-info">
+                <small id="animation-status">Ready for animation</small>
+            </div>
+        `;
+        
+        // Append to existing animation content
+        animationContent.insertAdjacentHTML('beforeend', advancedAnimationHTML);
+        this.setupAdvancedAnimationEventListeners();
+    }
+    
+    removeDuplicateAdvancedAnimationPanels() {
+        // Remove any existing advanced animation panels from the sidebar
+        const existingAdvancedPanels = document.querySelectorAll('#advanced-animation-panel');
+        existingAdvancedPanels.forEach(panel => {
+            panel.remove();
+            console.log('🗑️ Removed duplicate advanced animation panel');
+        });
+    }
+    
+    cleanupLeftSidebarForSceneObjectsOnly() {
+        // Ensure left sidebar only contains scene-related panels
+        // Remove any animation-related panels from left sidebar
+        const leftSidebar = document.querySelector('.sidebar-left');
+        if (leftSidebar) {
+            const animationPanelsInLeftSidebar = leftSidebar.querySelectorAll('[id*="advanced-animation"], [id*="timeline"]');
+            animationPanelsInLeftSidebar.forEach(panel => {
+                if (panel.id !== 'timeline-toggle-btn') { // Keep the timeline button in header
+                    panel.remove();
+                    console.log('🗑️ Removed animation panel from left sidebar:', panel.id);
+                }
+            });
+        }
+    }
+    
+    setupAdvancedAnimationEventListeners() {
+        // Animation mode selection
+        const modeInputs = document.querySelectorAll('input[name="animation-mode"]');
+        modeInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                this.switchAnimationMode(e.target.value);
+            });
+        });
+        
+        // Keyframe controls
+        document.getElementById('add-keyframe-btn')?.addEventListener('click', () => {
+            this.addKeyframeForSelectedObject();
+        });
+        
+        document.getElementById('remove-keyframe-btn')?.addEventListener('click', () => {
+            this.removeSelectedKeyframes();
+        });
+        
+        document.getElementById('preview-animation-btn')?.addEventListener('click', () => {
+            this.previewAnimation();
+        });
+        
+        document.getElementById('keyframe-interpolation')?.addEventListener('change', (e) => {
+            this.updateSelectedKeyframesInterpolation(e.target.value);
+        });
+        
+        // Physics controls
+        document.getElementById('add-physics-body-btn')?.addEventListener('click', () => {
+            this.addPhysicsBodyToSelectedObject();
+        });
+        
+        document.getElementById('remove-physics-body-btn')?.addEventListener('click', () => {
+            this.removePhysicsBodyFromSelectedObject();
+        });
+        
+        // Animation data management
+        document.getElementById('export-animation-btn')?.addEventListener('click', () => {
+            this.exportAnimationData();
+        });
+        
+        document.getElementById('import-animation-btn')?.addEventListener('click', () => {
+            document.getElementById('animation-file-input').click();
+        });
+        
+        document.getElementById('animation-file-input')?.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                this.importAnimationData(e.target.files[0]);
+            }
+        });
+    }
+    
+    switchAnimationMode(mode) {
+        const keyframeSection = document.querySelector('.keyframe-section');
+        const physicsSection = document.querySelector('.physics-section');
+        const currentModeDisplay = document.getElementById('animation-current-mode');
+        
+        // Hide all sections
+        keyframeSection.style.display = 'none';
+        physicsSection.style.display = 'none';
+        
+        // Show relevant section
+        switch (mode) {
+            case 'keyframe':
+                keyframeSection.style.display = 'block';
+                currentModeDisplay.textContent = 'Keyframe';
+                break;
+            case 'physics':
+                physicsSection.style.display = 'block';
+                currentModeDisplay.textContent = 'Physics';
+                break;
+            default:
+                currentModeDisplay.textContent = 'Simple';
+        }
+        
+        console.log(`Animation mode switched to: ${mode}`);
+    }
+    
+    toggleTimelinePanel() {
+        if (this.timelinePanel) {
+            // Dispose existing timeline panel
+            this.timelinePanel.dispose();
+            this.timelinePanel = null;
+            
+            const toggleBtn = document.getElementById('timeline-toggle-btn');
+            toggleBtn.textContent = '🎬 Timeline';
+            toggleBtn.classList.remove('active');
+        } else {
+            // Create new timeline panel
+            this.timelinePanel = new TimelinePanel(this.advancedAnimationManager);
+            
+            const toggleBtn = document.getElementById('timeline-toggle-btn');
+            toggleBtn.textContent = '🎬 Hide Timeline';
+            toggleBtn.classList.add('active');
+        }
+    }
+    
+    addKeyframeForSelectedObject() {
+        if (!this.selectedObjectId) {
+            alert('Please select an object first');
+            return;
+        }
+        
+        const object = this.objectManager.getObjectById(this.selectedObjectId);
+        if (!object || !object.children[0]) return;
+        
+        const mesh = object.children[0];
+        const currentTime = this.advancedAnimationManager.currentTime;
+        
+        // Capture current object state
+        const properties = {
+            position: mesh.position.toArray(),
+            rotation: mesh.rotation.toArray(),
+            scale: mesh.scale.toArray()
+        };
+        
+        const keyframeId = this.advancedAnimationManager.addKeyframe(
+            this.selectedObjectId.toString(),
+            currentTime,
+            properties
+        );
+        
+        this.updateAnimationInfo();
+        
+        console.log(`Keyframe added for object ${this.selectedObjectId} at time ${currentTime}`);
+    }
+    
+    removeSelectedKeyframes() {
+        if (this.timelinePanel) {
+            this.timelinePanel.removeSelectedKeyframes();
+            this.updateAnimationInfo();
+        }
+    }
+    
+    previewAnimation() {
+        if (this.advancedAnimationManager.isPlaying) {
+            this.advancedAnimationManager.pause();
+        } else {
+            this.advancedAnimationManager.play();
+        }
+        
+        // Update timeline if open
+        if (this.timelinePanel) {
+            const playBtn = document.getElementById('timeline-play');
+            if (playBtn) {
+                playBtn.textContent = this.advancedAnimationManager.isPlaying ? '⏸️' : '▶️';
+            }
+        }
+    }
+    
+    updateSelectedKeyframesInterpolation(interpolation) {
+        if (this.timelinePanel) {
+            this.timelinePanel.updateSelectedKeyframesInterpolation(interpolation);
+        }
+    }
+    
+    addPhysicsBodyToSelectedObject() {
+        if (!this.selectedObjectId) {
+            alert('Please select an object first');
+            return;
+        }
+        
+        const bodyType = document.getElementById('physics-body-type').value;
+        const shape = document.getElementById('physics-shape').value;
+        
+        this.advancedAnimationManager.addPhysicsBody(
+            this.selectedObjectId.toString(),
+            bodyType,
+            shape
+        );
+        
+        console.log(`Physics body added to object ${this.selectedObjectId}: ${bodyType} ${shape}`);
+    }
+    
+    removePhysicsBodyFromSelectedObject() {
+        if (!this.selectedObjectId) return;
+        
+        this.advancedAnimationManager.removePhysicsBody(this.selectedObjectId.toString());
+        console.log(`Physics body removed from object ${this.selectedObjectId}`);
+    }
+    
+    exportAnimationData() {
+        const data = this.advancedAnimationManager.exportAnimationData();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'animation_data.json';
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        console.log('Animation data exported');
+    }
+    
+    async importAnimationData(file) {
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            
+            this.advancedAnimationManager.importAnimationData(data);
+            this.updateAnimationInfo();
+            
+            console.log('Animation data imported');
+        } catch (error) {
+            console.error('Failed to import animation data:', error);
+            alert('Failed to import animation data: ' + error.message);
+        }
+    }
+    
+    updateAnimationInfo() {
+        const info = this.advancedAnimationManager.getAnimationInfo();
+        
+        const durationDisplay = document.getElementById('animation-duration-display');
+        const keyframeCountDisplay = document.getElementById('animation-keyframe-count');
+        
+        if (durationDisplay) {
+            durationDisplay.textContent = info.duration.toFixed(1) + 's';
+        }
+        
+        if (keyframeCountDisplay) {
+            keyframeCountDisplay.textContent = info.totalKeyframes.toString();
+        }
+    }
+    
+    // Override the render method to update advanced animation
+    update() {
+        // Update advanced animation system
+        if (this.advancedAnimationManager) {
+            this.advancedAnimationManager.update();
+        }
+        
+        // Update timeline panel if active
+        if (this.timelinePanel && this.advancedAnimationManager.isPlaying) {
+            this.updateAnimationInfo();
+        }
     }
     
 }
