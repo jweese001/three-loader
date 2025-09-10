@@ -3,6 +3,26 @@ import { CodeCompiler } from '../codegen/CodeCompiler.js';
 import { LiveUpdateManager } from '../codegen/LiveUpdateManager.js';
 import { SyncManager } from '../core/SyncManager.js';
 import { ThreeJsIntelliSense } from './ThreeJsIntelliSense.js';
+import { CodeAdapter } from '../utils/CodeAdapter.js';
+
+// Configure Monaco Environment for web workers
+self.MonacoEnvironment = {
+    getWorkerUrl: function (moduleId, label) {
+        if (label === 'json') {
+            return './monaco-editor/json.worker.js';
+        }
+        if (label === 'css' || label === 'scss' || label === 'less') {
+            return './monaco-editor/css.worker.js';
+        }
+        if (label === 'html' || label === 'handlebars' || label === 'razor') {
+            return './monaco-editor/html.worker.js';
+        }
+        if (label === 'typescript' || label === 'javascript') {
+            return './monaco-editor/ts.worker.js';
+        }
+        return './monaco-editor/editor.worker.js';
+    }
+};
 
 export class CodeEditorManager {
     constructor(config) {
@@ -28,6 +48,9 @@ export class CodeEditorManager {
         
         // Phase 2.5: Three.js IntelliSense
         this.threeJsIntelliSense = new ThreeJsIntelliSense();
+        
+        // Phase 3: Smart Code Adaptation System
+        this.codeAdapter = new CodeAdapter();
         
         this.init();
         console.log('💻 CodeEditorManager initialized');
@@ -59,11 +82,20 @@ export class CodeEditorManager {
      */
     async initializeSyncManager() {
         try {
-            // Temporarily disable SyncManager due to initialization issues
-            console.log('⚠️ SyncManager disabled - using fallback code generation');
-            this.syncManager = null;
+            console.log('🔄 Initializing SyncManager for Phase 3 code execution...');
+            this.syncManager = new SyncManager(
+                this.scene,
+                this.objectManager, 
+                this.uiController,
+                this
+            );
+            
+            await this.syncManager.initialize();
+            console.log('✅ SyncManager initialized successfully');
         } catch (error) {
             console.error('❌ Failed to initialize SyncManager:', error);
+            console.warn('⚠️ Falling back to legacy code parsing');
+            this.syncManager = null;
         }
     }
     
@@ -422,8 +454,8 @@ export class CodeEditorManager {
         this.isUpdatingFromUI = true;
         
         try {
-            // Temporarily disable SyncManager to test basic functionality
-            if (false && this.syncManager) {
+            // Use SyncManager for enhanced UI → Code sync if available
+            if (this.syncManager) {
                 console.log('🔄 Using SyncManager for enhanced UI → Code sync');
                 const success = await this.syncManager.manualSyncFromUI();
                 
@@ -518,7 +550,25 @@ export class CodeEditorManager {
                 return;
             }
             
-            // Phase 1: Use enhanced SyncManager for comprehensive code analysis
+            // Phase 1: Check if this is adapted code and use enhanced execution
+            const isAdaptedCode = code.includes('🔄 AUTO-ADAPTED FROM STANDALONE THREE.JS FILE');
+            
+            if (isAdaptedCode && this.syncManager) {
+                console.log('🔄 Detected adapted code - using enhanced execution path');
+                try {
+                    const result = await this.syncManager.executeCodeInSandbox(code);
+                    if (result.success) {
+                        this.showNotification('✅ Adapted code successfully executed in viewport!', 'success');
+                        return;
+                    } else {
+                        console.error('Enhanced execution failed:', result.error);
+                    }
+                } catch (error) {
+                    console.error('Enhanced execution error:', error);
+                }
+            }
+            
+            // Phase 2: Use enhanced SyncManager for comprehensive code analysis
             if (this.syncManager) {
                 console.log('🔄 Using enhanced SyncManager for Code → UI sync');
                 const success = await this.syncManager.manualSyncFromCode();
@@ -1139,26 +1189,75 @@ Code Execution Completed Successfully:
     
     async loadSceneFile(file) {
         try {
-            const code = await this.readFileAsText(file);
+            console.log('📁 Loading scene file:', file.name);
+            
+            // Read the original file content
+            const originalCode = await this.readFileAsText(file);
+            console.log('📄 Original code length:', originalCode.length);
+            
+            // Use smart adaptation system to analyze and transform if needed
+            const adaptationResult = this.codeAdapter.adaptCode(originalCode);
+            
+            if (adaptationResult.wasAdapted) {
+                console.log('🔄 Standalone file detected and adapted:', {
+                    confidence: adaptationResult.analysis.confidence + '%',
+                    elementsPreserved: adaptationResult.adaptationSummary.elementsPreserved,
+                    transformations: adaptationResult.adaptationSummary.transformationsApplied
+                });
+            }
+            
+            // Load the adapted code into the editor(s)
+            const codeToLoad = adaptationResult.transformedCode;
             
             if (this.editor) {
-                this.editor.setValue(code);
+                this.editor.setValue(codeToLoad);
             }
             if (this.fullscreenEditor) {
-                this.fullscreenEditor.setValue(code);
+                this.fullscreenEditor.setValue(codeToLoad);
             }
             
-            this.currentCode = code;
+            this.currentCode = codeToLoad;
             
-            // Optionally auto-sync to UI
-            if (confirm('Apply loaded scene to UI controls?')) {
+            // Show appropriate notification based on adaptation
+            let notificationMessage;
+            if (adaptationResult.wasAdapted) {
+                notificationMessage = `✅ Loaded and adapted: ${file.name} (standalone → three-loader compatible)`;
+                console.log('🔧 Adaptation Summary:', adaptationResult.adaptationSummary);
+            } else {
+                notificationMessage = `✅ Loaded: ${file.name}`;
+            }
+            
+            this.showNotification(notificationMessage, 'success');
+            
+            // Auto-sync to viewport with enhanced confirmation dialog
+            let confirmMessage = 'Apply loaded scene to UI controls?';
+            if (adaptationResult.wasAdapted) {
+                confirmMessage = `Apply adapted ${file.name} to viewport?\n\n` +
+                    `🔧 Adaptation applied (${adaptationResult.analysis.confidence.toFixed(0)}% confidence)\n` +
+                    `📦 ${adaptationResult.adaptationSummary.elementsPreserved} creative elements preserved\n` +
+                    `🔄 ${adaptationResult.adaptationSummary.transformationsApplied.length} transformations applied`;
+            }
+            
+            if (confirm(confirmMessage)) {
+                console.log('🔄 Syncing adapted code to UI...');
                 await this.syncToUI();
+                
+                if (adaptationResult.wasAdapted) {
+                    // Show additional success message for adapted files
+                    setTimeout(() => {
+                        this.showNotification(
+                            `🎯 ${file.name} successfully adapted and loaded into viewport!`, 
+                            'success'
+                        );
+                    }, 1000);
+                }
             }
             
             console.log('📁 Scene loaded:', file.name);
+            
         } catch (error) {
             console.error('❌ Failed to load scene:', error);
-            alert(`Failed to load scene: ${error.message}`);
+            this.showNotification(`❌ Failed to load scene: ${error.message}`, 'error');
         }
     }
     

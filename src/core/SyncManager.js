@@ -305,7 +305,15 @@ export class SyncManager {
      */
     async executeCodeInSandbox(code) {
         try {
-            // Wrap user code to capture scene state
+            // Check if this is adapted standalone code
+            const isAdaptedCode = code.includes('🔄 AUTO-ADAPTED FROM STANDALONE THREE.JS FILE');
+            
+            if (isAdaptedCode) {
+                console.log('🔧 Executing adapted standalone Three.js code with enhanced context...');
+                return await this.executeAdaptedCodeInSandbox(code);
+            }
+            
+            // Standard execution for three-loader generated code
             const wrappedCode = this.wrapCodeForStateExtraction(code);
             
             // Execute in sandbox
@@ -323,6 +331,235 @@ export class SyncManager {
                 type: 'execution_error'
             };
         }
+    }
+    
+    /**
+     * Execute adapted standalone Three.js code with enhanced context bridge
+     * @param {string} adaptedCode - Adapted standalone code
+     * @returns {Promise<Object>} Execution result
+     */
+    async executeAdaptedCodeInSandbox(adaptedCode) {
+        try {
+            console.log('🌉 Executing adapted code directly in main thread for full Three.js access...');
+            
+            // Clear existing scene objects (keep lights and camera)
+            const existingObjects = [];
+            this.scene.scene.children.forEach(child => {
+                if (child.type !== 'DirectionalLight' && child.type !== 'HemisphereLight' && 
+                    child.type !== 'PointLight' && child.type !== 'SpotLight' && 
+                    child.type !== 'AmbientLight' && !child.isCamera) {
+                    existingObjects.push(child);
+                }
+            });
+            existingObjects.forEach(obj => this.scene.scene.remove(obj));
+            
+            // Create execution context with real Three.js objects
+            const scene = this.scene.scene;
+            const camera = this.scene.camera; 
+            const renderer = this.scene.renderer;
+            
+            // Remove adaptation header and imports for execution  
+            let cleanCode = adaptedCode.replace(/\/\*\*[\s\S]*?\*\/\s*/, '');
+            cleanCode = cleanCode.replace(/import\s+.*?from\s+['"].*?['"];?\s*/g, '');
+            
+            console.log('🚀 Executing adapted Three.js code...');
+            console.log('Clean code length:', cleanCode.length);
+            console.log('Clean code preview:', cleanCode.substring(0, 200) + '...');
+            
+            // Direct execution in main thread context with full variable scope
+            const executeCode = new Function(
+                'THREE', 'scene', 'camera', 'renderer', 'console',
+                `
+                try {
+                    // Execute the cleaned adapted code
+                    ${cleanCode}
+                    
+                    console.log('Code execution completed');
+                    console.log('Scene children count:', scene.children.length);
+                    return { success: true, message: 'Code executed successfully' };
+                } catch (error) {
+                    console.error('Code execution error:', error);
+                    console.error('Error stack:', error.stack);
+                    return { success: false, error: error.message, stack: error.stack };
+                }
+                `
+            );
+            
+            // Execute with real context
+            const result = executeCode(window.THREE, scene, camera, renderer, console);
+            
+            if (result.success) {
+                console.log('✅ Adapted code executed successfully in viewport');
+                
+                // Debug scene state
+                console.log('🔍 Scene debug info:', {
+                    childrenCount: this.scene.scene.children.length,
+                    cameraPosition: {
+                        x: this.scene.camera.position.x,
+                        y: this.scene.camera.position.y, 
+                        z: this.scene.camera.position.z
+                    },
+                    cameraTarget: this.scene.camera.lookAt ? 'has lookAt' : 'no lookAt'
+                });
+                
+                // List scene children for debugging
+                this.scene.scene.children.forEach((child, index) => {
+                    console.log(`Child ${index}:`, child.type, child.name || 'unnamed');
+                });
+                
+                // Force viewport update
+                if (this.scene.renderer) {
+                    this.scene.renderer.render(this.scene.scene, this.scene.camera);
+                }
+                return { success: true, message: 'Adapted code executed and viewport updated' };
+            } else {
+                console.error('❌ Adapted code execution failed:', result.error);
+                if (result.stack) {
+                    console.error('Error stack:', result.stack);
+                }
+                return { success: false, error: result.error };
+            }
+            
+        } catch (error) {
+            console.error('❌ Direct execution failed:', error);
+            return {
+                success: false,
+                error: error.message,
+                type: 'direct_execution_error'
+            };
+        }
+    }
+    
+    /**
+     * Get scene object for context bridge
+     * @returns {Object} Scene object for sandbox context
+     */
+    getSceneForContext() {
+        if (!this.scene || !this.scene.scene) {
+            console.error('❌ Scene not available for context bridge');
+            return null;
+        }
+        return this.scene.scene;
+    }
+    
+    /**
+     * Get camera object for context bridge  
+     * @returns {Object} Camera object for sandbox context
+     */
+    getCameraForContext() {
+        if (!this.scene || !this.scene.camera) {
+            console.error('❌ Camera not available for context bridge');
+            return null;
+        }
+        return this.scene.camera;
+    }
+    
+    /**
+     * Get renderer object for context bridge
+     * @returns {Object} Renderer object for sandbox context  
+     */
+    getRendererForContext() {
+        if (!this.scene || !this.scene.renderer) {
+            console.error('❌ Renderer not available for context bridge');
+            return null;
+        }
+        return this.scene.renderer;
+    }
+    
+    /**
+     * Wrap adapted code for proper execution in three-loader context
+     * @param {string} adaptedCode - Adapted standalone code
+     * @returns {string} Wrapped code ready for execution
+     */
+    wrapAdaptedCodeForExecution(adaptedCode) {
+        return `
+// Enhanced context bridge for adapted standalone Three.js code
+try {
+    console.log('🔧 Executing adapted code with three-loader context...');
+    
+    // Execute adapted user code
+    ${adaptedCode}
+    
+    // Capture scene state after execution
+    __results.sceneState = {
+        objects: [],
+        materials: [],
+        lights: [],
+        camera: {
+            position: camera ? [camera.position.x, camera.position.y, camera.position.z] : [0, 0, 5],
+            rotation: camera ? [camera.rotation.x, camera.rotation.y, camera.rotation.z] : [0, 0, 0],
+            fov: camera ? camera.fov : 75
+        },
+        background: scene ? scene.background : null
+    };
+    
+    // Extract objects added to scene
+    if (scene && scene.children) {
+        scene.traverse((object) => {
+            if (object.isMesh) {
+                __results.sceneState.objects.push({
+                    name: object.name || 'Unnamed',
+                    type: 'Mesh',
+                    geometry: object.geometry ? object.geometry.type : 'Unknown',
+                    material: object.material ? object.material.type : 'Unknown',
+                    position: [object.position.x, object.position.y, object.position.z],
+                    rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
+                    scale: [object.scale.x, object.scale.y, object.scale.z]
+                });
+            } else if (object.isLight) {
+                __results.sceneState.lights.push({
+                    name: object.name || 'Unnamed',
+                    type: object.type,
+                    color: object.color ? object.color.getHex() : 0xffffff,
+                    intensity: object.intensity || 1,
+                    position: [object.position.x, object.position.y, object.position.z]
+                });
+            }
+        });
+    }
+    
+    console.log('✅ Adapted code execution completed');
+    console.log('📊 Scene state captured:', __results.sceneState);
+    
+} catch (error) {
+    console.error('❌ Error in adapted code execution:', error);
+    __results.error = error.message;
+    throw error;
+}
+        `;
+    }
+    
+    /**
+     * Process results from adapted code execution
+     * @param {Object} result - Raw execution result
+     * @returns {Object} Processed result for three-loader integration
+     */
+    processAdaptedCodeResults(result) {
+        console.log('🔄 Processing adapted code results...');
+        
+        if (result.result && result.result.sceneState) {
+            const sceneState = result.result.sceneState;
+            console.log('📦 Extracted scene state:', {
+                objects: sceneState.objects.length,
+                lights: sceneState.lights.length,
+                camera: sceneState.camera
+            });
+            
+            return {
+                success: true,
+                result: {
+                    objects: sceneState.objects,
+                    lights: sceneState.lights, 
+                    camera: sceneState.camera,
+                    background: sceneState.background,
+                    executionTime: result.executionTime,
+                    memoryUsage: result.memoryUsage
+                },
+                type: 'adapted_execution_success'
+            };
+        }
+        
+        return result;
     }
     
     /**
@@ -699,16 +936,35 @@ try {
      * @returns {Promise<string>} Updated code
      */
     async generateCodeFromVisualState(codeStructure) {
+        console.log('🔧 generateCodeFromVisualState: Starting...');
+        
         // Use existing CodeTemplateGenerator but preserve user structure
-        const templateGenerator = this.objectManager.exportManager?.codeTemplateGenerator;
+        const templateGenerator = this.codeEditorManager.exportManager?.codeTemplateGenerator;
+        console.log('🔧 templateGenerator available:', !!templateGenerator);
+        console.log('🔧 exportManager available:', !!this.codeEditorManager.exportManager);
         
         if (templateGenerator) {
-            const generatedCode = templateGenerator.generateEditableCode();
-            
-            // Merge with preserved structure
-            return this.mergeCodeWithStructure(generatedCode, codeStructure);
+            console.log('🔧 Calling templateGenerator.generateEditableCode()...');
+            try {
+                const generatedCode = templateGenerator.generateEditableCode({
+                    includeComments: true,
+                    includeImports: true,
+                    includeAnimation: true
+                });
+                console.log('🔧 Generated code length:', generatedCode?.length || 0);
+                
+                // Merge with preserved structure
+                console.log('🔧 Merging with code structure...');
+                const mergedCode = this.mergeCodeWithStructure(generatedCode, codeStructure);
+                console.log('🔧 Final merged code length:', mergedCode?.length || 0);
+                return mergedCode;
+            } catch (templateError) {
+                console.error('🔧 Error in templateGenerator.generateEditableCode():', templateError);
+                throw templateError;
+            }
         }
         
+        console.log('🔧 Using fallback generateBasicCode()');
         return this.generateBasicCode();
     }
     
@@ -745,20 +1001,9 @@ try {
      * @param {boolean} preserveCursor - Whether to preserve cursor position
      */
     async updateCodeEditor(newCode, preserveCursor = true) {
-        if (this.codeEditorManager && this.codeEditorManager.editor) {
-            const editor = this.codeEditorManager.editor;
-            
-            let cursorPosition = null;
-            if (preserveCursor) {
-                cursorPosition = editor.getPosition();
-            }
-            
-            // Update code
-            editor.setValue(newCode);
-            
-            if (preserveCursor && cursorPosition) {
-                editor.setPosition(cursorPosition);
-            }
+        if (this.codeEditorManager) {
+            // Use CodeEditorManager's setCode method to update both editors
+            this.codeEditorManager.setCode(newCode);
         }
     }
     
@@ -808,19 +1053,37 @@ try {
      */
     captureVisualState() {
         // Capture current scene state for comparison
+        console.log('🔍 captureVisualState: this.scene =', this.scene);
+        console.log('🔍 captureVisualState: this.scene type =', typeof this.scene);
+        console.log('🔍 captureVisualState: this.scene.scene =', this.scene?.scene);
+        console.log('🔍 captureVisualState: this.scene constructor =', this.scene?.constructor?.name);
+        
         if (this.scene && this.objectManager) {
             this.visualState.objects = new Map();
             
-            this.scene.traverse((object) => {
-                if (object.userData && object.userData.isLoadedObject) {
-                    this.visualState.objects.set(object.uuid, {
-                        position: object.position.clone(),
-                        rotation: object.rotation.clone(),
-                        scale: object.scale.clone(),
-                        material: object.material ? this.serializeMaterial(object.material) : null
-                    });
-                }
-            });
+            // Get the actual Three.js Scene object (scene might be a wrapper)
+            const actualScene = this.scene.scene || this.scene;
+            console.log('🔍 actualScene =', actualScene);
+            console.log('🔍 actualScene type =', typeof actualScene);
+            console.log('🔍 actualScene.traverse =', actualScene?.traverse);
+            
+            if (actualScene && actualScene.traverse) {
+                console.log('✅ About to call actualScene.traverse...');
+                actualScene.traverse((object) => {
+                    if (object.userData && object.userData.isLoadedObject) {
+                        this.visualState.objects.set(object.uuid, {
+                            position: object.position.clone(),
+                            rotation: object.rotation.clone(),
+                            scale: object.scale.clone(),
+                            material: object.material ? this.serializeMaterial(object.material) : null
+                        });
+                    }
+                });
+                console.log('✅ actualScene.traverse completed successfully');
+            } else {
+                console.error('❌ Scene object does not have traverse method:', this.scene);
+                console.error('❌ actualScene:', actualScene);
+            }
         }
     }
     
@@ -881,32 +1144,39 @@ try {
         };
         
         if (this.scene) {
-            this.scene.traverse((object) => {
-                if (object.isMesh || object.isGroup) {
-                    serialized.objects.push({
-                        uuid: object.uuid,
-                        name: object.name,
-                        type: object.type,
-                        position: [object.position.x, object.position.y, object.position.z],
-                        rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
-                        scale: [object.scale.x, object.scale.y, object.scale.z]
-                    });
-                }
-                
-                if (object.isLight) {
-                    serialized.lights.push({
-                        uuid: object.uuid,
-                        type: object.type,
-                        color: object.color.getHex(),
-                        intensity: object.intensity,
-                        position: [object.position.x, object.position.y, object.position.z]
-                    });
-                }
-            });
+            // Get the actual Three.js Scene object (scene might be a wrapper)
+            const actualScene = this.scene.scene || this.scene;
             
-            if (this.scene.background) {
-                serialized.background = this.scene.background.getHex ? 
-                    this.scene.background.getHex() : this.scene.background;
+            if (actualScene && actualScene.traverse) {
+                actualScene.traverse((object) => {
+                    if (object.isMesh || object.isGroup) {
+                        serialized.objects.push({
+                            uuid: object.uuid,
+                            name: object.name,
+                            type: object.type,
+                            position: [object.position.x, object.position.y, object.position.z],
+                            rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
+                            scale: [object.scale.x, object.scale.y, object.scale.z]
+                        });
+                    }
+                    
+                    if (object.isLight) {
+                        serialized.lights.push({
+                            uuid: object.uuid,
+                            type: object.type,
+                            color: object.color.getHex(),
+                            intensity: object.intensity,
+                            position: [object.position.x, object.position.y, object.position.z]
+                        });
+                    }
+                });
+                
+                // Check scene background
+                const sceneBackground = actualScene.background;
+                if (sceneBackground) {
+                    serialized.background = sceneBackground.getHex ? 
+                        sceneBackground.getHex() : sceneBackground;
+                }
             }
         }
         
@@ -1003,6 +1273,108 @@ animate();
         };
     }
     
+    /**
+     * Manual sync from UI to Code (for "From UI" button)
+     * @returns {Promise<boolean>} Success status
+     */
+    async manualSyncFromUI() {
+        console.log('🔄 Manual sync: UI → Code');
+        
+        try {
+            this.syncState.isVisualSyncing = true;
+            
+            // Force capture current visual state
+            console.log('📋 Step 1: Capturing visual state...');
+            this.captureVisualState();
+            
+            // Generate code from current visual state
+            console.log('📋 Step 2: Getting current code...');
+            const currentCode = this.codeEditorManager.getCode();
+            console.log('📋 Current code length:', currentCode?.length || 0);
+            
+            console.log('📋 Step 3: Parsing code structure...');
+            const codeStructure = this.parseCodeStructure(currentCode);
+            
+            console.log('📋 Step 4: Generating code from visual state...');
+            const updatedCode = await this.generateCodeFromVisualState(codeStructure);
+            console.log('📋 Updated code length:', updatedCode?.length || 0);
+            
+            // Update code editor
+            console.log('📋 Step 5: Updating code editor...');
+            await this.updateCodeEditor(updatedCode, true);
+            
+            console.log('✅ Manual UI → Code sync completed');
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Manual UI → Code sync failed:', error);
+            console.error('❌ Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+            return false;
+        } finally {
+            this.syncState.isVisualSyncing = false;
+        }
+    }
+    
+    /**
+     * Manual sync from Code to UI (for "To UI" button)
+     * @returns {Promise<boolean>} Success status
+     */
+    async manualSyncFromCode() {
+        console.log('🔄 Manual sync: Code → UI');
+        
+        try {
+            this.syncState.isCodeSyncing = true;
+            
+            // Get current code and execute it
+            const currentCode = this.codeEditorManager.getCode();
+            const executionResult = await this.executeCodeInSandbox(currentCode);
+            
+            if (executionResult.success) {
+                // Update visual editor and viewport
+                await this.updateVisualFromCode(executionResult.result);
+                this.updateViewport(executionResult.result);
+                
+                console.log('✅ Manual Code → UI sync completed');
+                return true;
+            } else {
+                throw new Error(executionResult.error || 'Code execution failed');
+            }
+            
+        } catch (error) {
+            console.error('❌ Manual Code → UI sync failed:', error);
+            return false;
+        } finally {
+            this.syncState.isCodeSyncing = false;
+        }
+    }
+    
+    /**
+     * Enhanced sync status for debugging
+     * @returns {Object} Comprehensive sync status
+     */
+    getEnhancedSyncStatus() {
+        return {
+            initialized: this.codeSandbox?.isInitialized || false,
+            sandboxReady: this.codeSandbox?.isReady || false,
+            visualSyncing: this.syncState.isVisualSyncing,
+            codeSyncing: this.syncState.isCodeSyncing,
+            lastVisualChange: this.syncState.lastVisualChange,
+            lastCodeChange: this.syncState.lastCodeChange,
+            syncDirection: this.syncState.syncDirection,
+            preserveCodeStructure: this.syncState.preserveCodeStructure,
+            visualStateSize: this.visualState.objects.size,
+            codeStateLength: this.codeState.lastParsedCode.length,
+            eventListenersCount: this.eventListeners.size,
+            pendingTimers: {
+                visual: !!this.visualSyncTimer,
+                code: !!this.codeSyncTimer
+            }
+        };
+    }
+
     /**
      * Clean up resources and event listeners
      */
