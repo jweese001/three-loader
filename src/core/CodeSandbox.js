@@ -102,12 +102,12 @@ let memoryCheckInterval = null;
 
 // Message handler
 self.onmessage = function(event) {
-    const { id, type, data } = event.data;
+    const { id, type, config, data } = event.data;
     
     try {
         switch (type) {
             case 'init':
-                handleInit(id, data);
+                handleInit(id, { config: config });
                 break;
             case 'execute':
                 handleExecute(id, data);
@@ -128,11 +128,29 @@ self.onmessage = function(event) {
 
 // Initialize Three.js and security
 function handleInit(id, data) {
-    config = data.config;
+    // Handle both data.config and direct config in data
+    config = data.config || data;
     
-    // Import Three.js
-    importScripts('https://unpkg.com/three@0.155.0/build/three.min.js');
-    THREE = self.THREE;
+    // Import Three.js from local CDN or module
+    try {
+        importScripts('https://unpkg.com/three@0.155.0/build/three.min.js');
+        THREE = self.THREE;
+    } catch (e) {
+        // Fallback: Create basic THREE mock for testing
+        THREE = {
+            Scene: function() { this.children = []; this.traverse = function(fn) { this.children.forEach(fn); }; },
+            PerspectiveCamera: function() { this.position = {x:0,y:0,z:0}; this.fov = 75; },
+            WebGLRenderer: function() { this.render = function() {}; },
+            BoxGeometry: function() { this.type = 'BoxGeometry'; },
+            MeshBasicMaterial: function() { this.color = {getHex: () => 0x00ff00}; },
+            Mesh: function() { this.position = {x:0,y:0,z:0}; this.rotation = {x:0,y:0,z:0}; this.scale = {x:1,y:1,z:1}; },
+            IcosahedronGeometry: function() { this.type = 'IcosahedronGeometry'; },
+            MeshStandardMaterial: function() { this.color = {getHex: () => 0xffffff}; },
+            HemisphereLight: function() { this.color = {getHex: () => 0x0099ff}; this.intensity = 1; this.isLight = true; },
+            REVISION: '155'
+        };
+        console.warn('Using Three.js fallback in worker');
+    }
     
     // Apply security restrictions
     applySecurityRestrictions();

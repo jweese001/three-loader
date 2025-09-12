@@ -810,6 +810,12 @@ export class ObjectManager {
         
         this.loadedObjects.set(objectId, objectData);
         
+        // Hide viewport info messages when content is loaded
+        const viewportInfo = document.getElementById('viewport-info');
+        if (viewportInfo) {
+            viewportInfo.style.display = 'none';
+        }
+        
         console.log(`✨ Primitive created and added: ${name} (${type})`);
         console.log('📊 Primitive stats:', objectData.stats);
         

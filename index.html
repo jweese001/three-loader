@@ -494,6 +494,9 @@
             <div class="editor-panel">
                 <div class="editor-toolbar">
                     <div class="editor-actions">
+                        <button id="animation-toggle-btn" class="toolbar-btn animation-toggle" data-state="off" title="Toggle between UI controls and code animations" style="display: none;">
+                            <span class="animation-text">Scripted Anim: OFF</span>
+                        </button>
                         <button id="save-scene-code-btn" class="toolbar-btn">Save</button>
                         <button id="load-scene-code-btn" class="toolbar-btn">Load</button>
                         <button id="sync-from-ui-code-btn" class="toolbar-btn">From UI</button>
@@ -521,6 +524,73 @@
                     <div class="modal-actions">
                         <button id="copy-code-btn" class="btn btn-primary">Copy to Clipboard</button>
                         <button id="download-code-btn" class="btn btn-secondary">Download File</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene Preview Modal -->
+        <div id="scene-preview-modal" class="modal" style="display: none;">
+            <div class="modal-content large-modal">
+                <div class="modal-header">
+                    <h3>Scene Preview</h3>
+                    <button id="close-preview-modal-btn" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="preview-info">
+                        <div class="file-info">
+                            <h4 id="preview-filename">Loading...</h4>
+                            <div class="file-stats">
+                                <span id="preview-file-size">--</span> • 
+                                <span id="preview-objects-count">-- objects</span> • 
+                                <span id="preview-code-type">--</span>
+                            </div>
+                        </div>
+                        <div class="preview-status" id="preview-status">
+                            <span class="status-indicator">⏳</span>
+                            <span class="status-text">Analyzing file...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-content">
+                        <div class="preview-tabs">
+                            <button class="preview-tab active" data-tab="summary">Summary</button>
+                            <button class="preview-tab" data-tab="code">Code Preview</button>
+                        </div>
+                        
+                        <div class="preview-tab-content">
+                            <div id="preview-summary" class="tab-panel active">
+                                <div class="scene-summary">
+                                    <div class="summary-section">
+                                        <h5>Objects Found</h5>
+                                        <div id="preview-objects-list" class="objects-list-preview">
+                                            <p class="loading-text">Analyzing...</p>
+                                        </div>
+                                    </div>
+                                    <div class="summary-section">
+                                        <h5>Materials & Textures</h5>
+                                        <div id="preview-materials-list" class="materials-list-preview">
+                                            <p class="loading-text">Analyzing...</p>
+                                        </div>
+                                    </div>
+                                    <div class="summary-section">
+                                        <h5>Lighting & Camera</h5>
+                                        <div id="preview-lighting-info" class="lighting-info-preview">
+                                            <p class="loading-text">Analyzing...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="preview-code" class="tab-panel">
+                                <textarea id="preview-code-text" readonly rows="15" placeholder="Code preview will appear here..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button id="import-confirmed-btn" class="btn btn-primary" disabled>Load into Editor</button>
+                        <button id="cancel-import-btn" class="btn btn-secondary">Cancel</button>
                     </div>
                 </div>
             </div>

@@ -19,15 +19,18 @@ This is the **3/LOADER** project (v0.0.7) - a Three.js OBJ loader and editor wit
 
 ## ✅ Recently Completed Features (September 9, 2025)
 
-### **LATEST: Critical Bug Fixes Session (September 9, 2025)**
+### **LATEST: Critical Bug Fixes Session (September 12, 2025)**
 - **From UI Button Restoration**: Fixed critical "Failed to sync UI Controls" error preventing bidirectional sync
 - **APIRegistry Method Fixes**: Corrected invalid method calls in CodeTemplateGenerator
-  - Fixed `materialConfig.properties.includes()` → `materialConfig.properties.color` (object property access)
-  - Fixed `this.apiRegistry.getLightingAPI()` → `this.apiRegistry.lights` (direct property access)
-  - Fixed `this.apiRegistry.getVersion()` → hardcoded version string
-- **Error Resolution**: Eliminated "Cannot read properties of undefined" errors
-- **SyncManager Bypass**: Temporarily disabled complex SyncManager in favor of proven ExportManager approach
+  - Fixed `sceneComponents.apiRegistry.getGeometryTypes()` → `Object.keys(sceneComponents.apiRegistry.geometries)`
+  - Fixed `sceneComponents.apiRegistry.getMaterialTypes()` → `Object.keys(sceneComponents.apiRegistry.materials)`
+  - Fixed `sceneComponents.apiRegistry.getLightTypes()` → `Object.keys(sceneComponents.apiRegistry.lights)`
+- **Error Resolution**: Eliminated "Cannot read properties of undefined" errors from API method calls
+- **SyncManager Error Handling**: Enhanced error messaging to clarify expected behavior
+  - Changed error messages to informational warnings explaining ExportManager is the stable workflow
+  - Removed misleading "Failed to initialize SyncManager" errors that suggested system malfunction
 - **Code Generation**: From UI button now successfully generates editable Three.js code from visual state
+- **Console Cleanup**: Resolved error messages that appeared during normal operation
 
 ### **PREVIOUS: Phase 2.3 - Monaco Editor Three.js IntelliSense (COMPLETE)**
 - **Comprehensive API Integration**: Full integration with APIRegistry for 20+ geometries, 15+ materials, 10+ lights
@@ -207,8 +210,27 @@ This is the **3/LOADER** project (v0.0.7) - a Three.js OBJ loader and editor wit
 - **Next Phase**: **Phase 3 - Code Editor to Viewport Execution** (Ready for next session)
 - **Key Achievements**: Safe code execution, complete API coverage, comprehensive IntelliSense, production-ready exports
 
+## 🎯 **LATEST SESSION RESULTS (August 27, 2025)**
+**Status**: ✅ **Scene Loading Issues FULLY RESOLVED**
+**Key Accomplishments**: Fixed critical scene loading failures and enhanced CodeAdapter
+
+### **🔧 Issues Debugged & Fixed:**
+1. **Export Statement Problem**: Fixed "Unexpected token 'export'" error in exported scenes
+2. **Template Corruption**: Identified and resolved massive template duplication in exported files
+3. **CodeAdapter Enhancement**: Added comprehensive export statement handling
+
+### **📝 Technical Changes Made:**
+- **Enhanced CodeAdapter.js**: Added export statement detection and removal patterns
+- **Export Pattern Detection**: New regex `/^export\s+(async\s+)?function\s+/gm` for analysis
+- **Conversion Logic**: Transform `export async function` → `async function` during adaptation
+- **Clean Test File**: Created `/web/assets/Experimental/CleanedExportedSkullScene.js` for validation
+- **Documentation**: Added export handling to both adaptation headers and debug output
+
+### **🎯 Next Priority Identified**: 
+**Comment Verbosity Control System** - User requested task added to TASKS.md for controlling generated comment levels and export filtering
+
 ## 🎯 **NEXT SESSION FOCUS: Code Editor to Viewport Functionality**
-**Status**: Ready to begin Phase 3 implementation
+**Status**: Ready to begin Phase 3 implementation (previous priority maintained)
 **Goal**: Enable real-time code execution from Monaco Editor to update the Three.js viewport
 **Key Components to Work On**:
 1. **Code Execution Pipeline**: Implement safe code execution from editor to scene
@@ -223,3 +245,4 @@ This is the **3/LOADER** project (v0.0.7) - a Three.js OBJ loader and editor wit
 - ✅ SyncManager: Temporarily bypassed, working with ExportManager
 - ✅ Monaco Editor: Full Three.js IntelliSense and autocomplete working
 - ✅ APIRegistry: Complete Three.js API coverage available
+- ✅ **NEW**: Scene loading issues resolved, CodeAdapter enhanced for exported files

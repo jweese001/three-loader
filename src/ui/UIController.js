@@ -39,6 +39,9 @@ export class UIController {
         // this.setupUIToggle(); // Disabled - now handled by ButtonController
         this.setupCollapsiblePanels();
         this.shaderManager.initializeEventHandlers();
+        
+        // Initialize export button state
+        this.updateExportButtonState();
     }
     
     setupDropZone() {
@@ -102,12 +105,15 @@ export class UIController {
                 // Update objects list
                 this.updateObjectsList();
                 
-                // Select the new object
-                this.selectObject(objectData.id);
+                // Update export button state first (most important)
+                this.updateExportButtonState();
                 
-                // Enable export button
-                const exportBtn = document.getElementById('export-btn');
-                if (exportBtn) exportBtn.disabled = false;
+                // Try to select the new object (may fail due to animation system)
+                try {
+                    this.selectObject(objectData.id);
+                } catch (selectionError) {
+                    console.warn('⚠️ Failed to select object (non-critical):', selectionError);
+                }
                 
                 console.log(`✅ File loaded successfully: ${file.name}`);
                 
@@ -165,12 +171,15 @@ export class UIController {
                     // Update objects list
                     this.updateObjectsList();
                     
-                    // Select the new object
-                    this.selectObject(objectData.id);
+                    // Update export button state first (most important)
+                    this.updateExportButtonState();
                     
-                    // Enable export button
-                    const exportBtn = document.getElementById('export-btn');
-                    if (exportBtn) exportBtn.disabled = false;
+                    // Try to select the new object (may fail due to animation system)
+                    try {
+                        this.selectObject(objectData.id);
+                    } catch (selectionError) {
+                        console.warn('⚠️ Failed to select object (non-critical):', selectionError);
+                    }
                     
                     // Reset selection
                     primitiveSelect.value = '';
@@ -179,12 +188,10 @@ export class UIController {
                     console.log(`✅ Primitive created successfully: ${objectData.name}`);
                 } else {
                     console.error('❌ Failed to create primitive');
-                    alert('Failed to create primitive geometry');
                 }
                 
             } catch (error) {
                 console.error('❌ Error creating primitive:', error);
-                alert(`Error creating primitive: ${error.message}`);
             }
         });
         
@@ -244,13 +251,20 @@ export class UIController {
                 setTimeout(() => this.triggerCodeSync(), 100);
                 this.updateAnimationControls(null);
                 
-                // Disable export button
-                document.getElementById('export-btn').disabled = true;
+                // Update export button state
+                this.updateExportButtonState();
                 
                 // Show viewport info again
                 const viewportInfo = document.getElementById('viewport-info');
                 if (viewportInfo) viewportInfo.style.display = 'block';
             }
+        });
+        
+        // Export scene button
+        const exportBtn = document.getElementById('export-btn');
+        exportBtn.addEventListener('click', () => {
+            console.log('🔘 Export button clicked');
+            this.exportScene();
         });
         
         console.log('🎯 Viewport controls setup complete');
@@ -1249,6 +1263,7 @@ export class UIController {
                 copyCodeBtn.textContent = 'Copied! ✓';
                 setTimeout(() => {
                     copyCodeBtn.textContent = originalText;
+                    modal.style.display = 'none'; // Close modal after feedback
                 }, 2000);
                 
             } catch (error) {
@@ -1260,6 +1275,7 @@ export class UIController {
                 copyCodeBtn.textContent = 'Copied! ✓';
                 setTimeout(() => {
                     copyCodeBtn.textContent = originalText;
+                    modal.style.display = 'none'; // Close modal after feedback
                 }, 2000);
             }
         });
@@ -1276,7 +1292,13 @@ export class UIController {
             a.click();
             
             URL.revokeObjectURL(url);
+            
+            // Close modal after download
+            modal.style.display = 'none';
         });
+        
+        // Clear any stuck modals on initialization (temp fix for stuck dialogs)
+        modal.style.display = 'none';
         
         // ESC key to close modal
         document.addEventListener('keydown', (event) => {
@@ -1396,10 +1418,8 @@ export class UIController {
                     // Update objects list
                     this.updateObjectsList();
                     
-                    // Disable export if no objects left
-                    if (this.objectManager.getAllObjects().length === 0) {
-                        document.getElementById('export-btn').disabled = true;
-                    }
+                    // Update export button state
+                    this.updateExportButtonState();
                 }
                 break;
         }
@@ -1434,6 +1454,37 @@ export class UIController {
         // Focus and select text
         codeTextarea.focus();
         codeTextarea.select();
+    }
+    
+    /**
+     * Update export button state based on scene content
+     */
+    updateExportButtonState() {
+        console.log('🔘 updateExportButtonState() called');
+        
+        const exportBtn = document.getElementById('export-btn');
+        if (!exportBtn) {
+            console.error('❌ Export button element not found!');
+            return;
+        }
+        
+        console.log('🔘 Export button element found:', exportBtn);
+        
+        if (!this.objectManager) {
+            console.error('❌ ObjectManager not available!');
+            return;
+        }
+        
+        const objects = this.objectManager.getAllObjects();
+        console.log('🔘 getAllObjects() returned:', objects);
+        console.log('🔘 Objects array length:', objects ? objects.length : 'null/undefined');
+        console.log('🔘 Objects array contents:', objects);
+        
+        const hasObjects = objects && objects.length > 0;
+        
+        exportBtn.disabled = !hasObjects;
+        console.log(`🔘 Export button ${hasObjects ? 'ENABLED' : 'DISABLED'} - ${objects ? objects.length : 0} objects`);
+        console.log('🔘 Export button disabled property:', exportBtn.disabled);
     }
     
     setupCollapsiblePanels() {

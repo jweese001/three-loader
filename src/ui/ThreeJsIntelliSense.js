@@ -1,4 +1,5 @@
 import * as monaco from 'monaco-editor';
+import { APIRegistry } from '../codegen/APIRegistry.js';
 
 export class ThreeJsIntelliSense {
     constructor() {
@@ -6,6 +7,10 @@ export class ThreeJsIntelliSense {
         this.customCompletionProvider = null;
         this.hoverProvider = null;
         this.signatureProvider = null;
+        
+        // Phase 2.3: Enhanced API integration
+        this.apiRegistry = new APIRegistry();
+        console.log('🧠 ThreeJsIntelliSense initialized with comprehensive API registry');
     }
     
     async initialize() {
@@ -64,9 +69,78 @@ export class ThreeJsIntelliSense {
         });
     }
     
+    generateEnhancedTypeDefinitions() {
+        let typeDefinitions = '\n// Enhanced Three.js API definitions from APIRegistry\n';
+        
+        // Generate geometry type definitions from APIRegistry
+        typeDefinitions += '\n// Enhanced Geometry Types\n';
+        Object.entries(this.apiRegistry.geometries).forEach(([key, geometry]) => {
+            const className = geometry.className;
+            const params = geometry.parameters.map(p => `${p.name}?: ${p.type || 'number'}`).join(', ');
+            
+            typeDefinitions += `declare class ${className} extends BufferGeometry {\n`;
+            typeDefinitions += `    constructor(${params});\n`;
+            typeDefinitions += '}\n\n';
+        });
+        
+        // Generate material type definitions from APIRegistry  
+        typeDefinitions += '\n// Enhanced Material Types\n';
+        Object.entries(this.apiRegistry.materials).forEach(([key, material]) => {
+            const className = material.className;
+            
+            typeDefinitions += `declare class ${className} extends Material {\n`;
+            typeDefinitions += `    constructor(parameters?: ${className}Parameters);\n`;
+            
+            // Add key properties
+            if (material.properties) {
+                Object.entries(material.properties).forEach(([propKey, prop]) => {
+                    if (prop.type) {
+                        typeDefinitions += `    ${propKey}: ${this.mapPropertyType(prop.type)};\n`;
+                    }
+                });
+            }
+            
+            typeDefinitions += '}\n\n';
+        });
+        
+        // Generate lighting type definitions from APIRegistry
+        typeDefinitions += '\n// Enhanced Lighting Types\n';
+        Object.entries(this.apiRegistry.lighting).forEach(([key, light]) => {
+            const className = light.className;
+            const params = light.parameters?.map(p => `${p.name}?: ${p.type || 'ColorRepresentation | number'}`).join(', ') || '';
+            
+            typeDefinitions += `declare class ${className} extends Light {\n`;
+            typeDefinitions += `    constructor(${params});\n`;
+            
+            // Add specific light properties
+            if (light.properties) {
+                Object.entries(light.properties).forEach(([propKey, prop]) => {
+                    typeDefinitions += `    ${propKey}: ${this.mapPropertyType(prop.type || 'number')};\n`;
+                });
+            }
+            
+            typeDefinitions += '}\n\n';
+        });
+        
+        return typeDefinitions;
+    }
+    
+    mapPropertyType(apiType) {
+        const typeMap = {
+            'color': 'ColorRepresentation',
+            'texture': 'Texture | null',
+            'number': 'number',
+            'boolean': 'boolean',
+            'string': 'string',
+            'vector3': 'Vector3',
+            'object3d': 'Object3D'
+        };
+        return typeMap[apiType?.toLowerCase()] || 'any';
+    }
+
     async addThreeJsTypeDefinitions() {
-        // Add Three.js type definitions
-        const threeJsTypes = `
+        // Enhanced Three.js type definitions using APIRegistry
+        const threeJsTypes = this.generateEnhancedTypeDefinitions() + `
 declare module 'three' {
     export namespace THREE {
         // Core classes
@@ -403,8 +477,89 @@ declare const THREE: typeof import('three').THREE;
         console.log('🔍 Three.js completion provider registered');
     }
     
+    getEnhancedAPICompletions(model, position) {
+        const completions = [];
+        
+        // Generate geometry completions from APIRegistry
+        Object.entries(this.apiRegistry.geometries).forEach(([key, geometry]) => {
+            const className = geometry.className;
+            const params = geometry.parameters.map(p => `\${${p.name}:${p.defaultValue || (p.type === 'number' ? '1' : '""')}}`).join(', ');
+            
+            completions.push({
+                label: `new THREE.${className}()`,
+                kind: monaco.languages.CompletionItemKind.Constructor,
+                documentation: geometry.description || `Creates a ${className} geometry`,
+                insertText: `new THREE.${className}(${params})`,
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                range: this.getWordRange(model, position),
+                detail: `${className} - ${geometry.category || 'Geometry'}`
+            });
+        });
+        
+        // Generate material completions from APIRegistry
+        Object.entries(this.apiRegistry.materials).forEach(([key, material]) => {
+            const className = material.className;
+            
+            // Build parameter object from properties
+            let paramString = '{ ';
+            if (material.properties && Object.keys(material.properties).length > 0) {
+                const propEntries = Object.entries(material.properties).slice(0, 3); // First 3 props
+                paramString += propEntries.map(([propKey, prop], index) => {
+                    const defaultVal = this.getDefaultValueForType(prop.type);
+                    return `${propKey}: \${${index + 1}:${defaultVal}}`;
+                }).join(', ');
+            }
+            paramString += ' }';
+            
+            completions.push({
+                label: `new THREE.${className}()`,
+                kind: monaco.languages.CompletionItemKind.Constructor,
+                documentation: material.description || `Creates a ${className} material`,
+                insertText: `new THREE.${className}(${paramString})`,
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                range: this.getWordRange(model, position),
+                detail: `${className} - Material`
+            });
+        });
+        
+        // Generate lighting completions from APIRegistry
+        Object.entries(this.apiRegistry.lighting).forEach(([key, light]) => {
+            const className = light.className;
+            const params = light.parameters?.map((p, index) => {
+                const defaultVal = this.getDefaultValueForType(p.type);
+                return `\${${index + 1}:${defaultVal}}`;
+            }).join(', ') || '';
+            
+            completions.push({
+                label: `new THREE.${className}()`,
+                kind: monaco.languages.CompletionItemKind.Constructor,
+                documentation: light.description || `Creates a ${className} light`,
+                insertText: `new THREE.${className}(${params})`,
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                range: this.getWordRange(model, position),
+                detail: `${className} - Light`
+            });
+        });
+        
+        return completions;
+    }
+    
+    getDefaultValueForType(type) {
+        const defaults = {
+            'color': '0xffffff',
+            'number': '1',
+            'boolean': 'true',
+            'string': '""',
+            'texture': 'null'
+        };
+        return defaults[type?.toLowerCase()] || '1';
+    }
+    
     getThreeJsCompletions(model, position) {
         const completions = [];
+        
+        // Enhanced completions from APIRegistry
+        completions.push(...this.getEnhancedAPICompletions(model, position));
         
         // Three.js object creation completions
         completions.push(...[
@@ -547,7 +702,73 @@ declare const THREE: typeof import('three').THREE;
         console.log('ℹ️ Three.js hover provider registered');
     }
     
+    getAPIRegistryHoverInfo(word) {
+        // Check geometries
+        const geometry = Object.values(this.apiRegistry.geometries).find(g => 
+            g.className.includes(word) || word.includes(g.className.replace('Geometry', ''))
+        );
+        if (geometry) {
+            const params = geometry.parameters.map(p => `${p.name}: ${p.type || 'number'}`).join(', ');
+            return {
+                title: `THREE.${geometry.className}`,
+                description: `**${geometry.description || 'Creates geometry'}**\n\nParameters: ${params}\n\nCategory: ${geometry.category || 'Geometry'}`
+            };
+        }
+        
+        // Check materials
+        const material = Object.values(this.apiRegistry.materials).find(m => 
+            m.className.includes(word) || word.includes(m.className.replace('Material', ''))
+        );
+        if (material) {
+            let description = `**${material.description || 'Creates material'}**\n\nType: ${material.type}\n`;
+            
+            if (material.properties && Object.keys(material.properties).length > 0) {
+                description += '\nKey Properties:\n';
+                Object.entries(material.properties).slice(0, 5).forEach(([key, prop]) => {
+                    description += `- ${key}: ${prop.type || 'any'}\n`;
+                });
+            }
+            
+            return {
+                title: `THREE.${material.className}`,
+                description
+            };
+        }
+        
+        // Check lighting
+        const light = Object.values(this.apiRegistry.lighting).find(l => 
+            l.className.includes(word) || word.includes(l.className.replace('Light', ''))
+        );
+        if (light) {
+            const params = light.parameters?.map(p => `${p.name}: ${p.type || 'number'}`).join(', ') || '';
+            let description = `**${light.description || 'Creates light'}**\n`;
+            
+            if (params) {
+                description += `\nParameters: ${params}\n`;
+            }
+            
+            if (light.properties && Object.keys(light.properties).length > 0) {
+                description += '\nProperties:\n';
+                Object.entries(light.properties).slice(0, 4).forEach(([key, prop]) => {
+                    description += `- ${key}: ${prop.type || 'any'}\n`;
+                });
+            }
+            
+            return {
+                title: `THREE.${light.className}`,
+                description
+            };
+        }
+        
+        return null;
+    }
+    
     getThreeJsHoverInfo(word) {
+        // First check APIRegistry for enhanced hover info
+        const apiHoverInfo = this.getAPIRegistryHoverInfo(word);
+        if (apiHoverInfo) return apiHoverInfo;
+        
+        // Fallback to basic hover data
         const hoverData = {
             'Scene': {
                 title: 'THREE.Scene',
@@ -646,11 +867,100 @@ declare const THREE: typeof import('three').THREE;
         return [];
     }
     
+    generateAPIRegistrySnippets() {
+        const snippets = [];
+        
+        // Generate material setup snippets
+        Object.entries(this.apiRegistry.materials).forEach(([key, material]) => {
+            if (material.category === 'Standard') { // Focus on most commonly used materials
+                snippets.push({
+                    label: `three-${key}-material`,
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    documentation: `Creates a ${material.className} with common properties`,
+                    insertText: [
+                        `// Create ${material.className}`,
+                        `const material = new THREE.${material.className}({`,
+                        ...this.generateMaterialPropertiesSnippet(material),
+                        '});'
+                    ].join('\n'),
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    range: this.getWordRange(null, null)
+                });
+            }
+        });
+        
+        // Generate lighting setup snippets
+        Object.entries(this.apiRegistry.lighting).forEach(([key, light], index) => {
+            if (index < 4) { // Limit to most common lights
+                const params = light.parameters?.map((p, i) => `\${${i + 1}:${this.getDefaultValueForType(p.type)}}`).join(', ') || '';
+                snippets.push({
+                    label: `three-${key}-light`,
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    documentation: `Creates and configures a ${light.className}`,
+                    insertText: [
+                        `// Create ${light.className}`,
+                        `const ${key} = new THREE.${light.className}(${params});`,
+                        `${key}.position.set(\${${light.parameters?.length + 1 || 1}:5}, \${${light.parameters?.length + 2 || 2}:5}, \${${light.parameters?.length + 3 || 3}:5});`,
+                        light.className.includes('Directional') ? `${key}.castShadow = true;` : '',
+                        `scene.add(${key});`
+                    ].filter(line => line).join('\n'),
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    range: this.getWordRange(null, null)
+                });
+            }
+        });
+        
+        // Generate post-processing snippets
+        if (this.apiRegistry.postProcessing) {
+            Object.entries(this.apiRegistry.postProcessing).slice(0, 3).forEach(([key, effect]) => {
+                snippets.push({
+                    label: `three-${key}-effect`,
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    documentation: `Adds ${effect.name} post-processing effect`,
+                    insertText: [
+                        `// Add ${effect.name} effect`,
+                        `const ${key}Pass = new THREE.${effect.passClass || 'Pass'}();`,
+                        ...this.generateEffectPropertiesSnippet(effect),
+                        `composer.addPass(${key}Pass);`
+                    ].join('\n'),
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    range: this.getWordRange(null, null)
+                });
+            });
+        }
+        
+        return snippets;
+    }
+    
+    generateMaterialPropertiesSnippet(material) {
+        const lines = [];
+        if (material.properties) {
+            Object.entries(material.properties).slice(0, 4).forEach(([key, prop], index) => {
+                const defaultVal = this.getDefaultValueForType(prop.type);
+                lines.push(`    ${key}: \${${index + 1}:${defaultVal}},`);
+            });
+        }
+        return lines;
+    }
+    
+    generateEffectPropertiesSnippet(effect) {
+        const lines = [];
+        if (effect.properties) {
+            Object.entries(effect.properties).slice(0, 3).forEach(([key, prop], index) => {
+                const defaultVal = prop.defaultValue || this.getDefaultValueForType('number');
+                lines.push(`${key.replace(/([A-Z])/g, '_$1').toLowerCase()}Pass.${key} = \${${index + 1}:${defaultVal}};`);
+            });
+        }
+        return lines;
+    }
+    
     addThreeJsSnippets() {
-        // Register custom snippets for common Three.js patterns
+        // Register enhanced snippets including APIRegistry patterns
         monaco.languages.registerCompletionItemProvider('javascript', {
             provideCompletionItems: (model, position) => {
                 const snippets = [
+                    // Enhanced snippets using APIRegistry data
+                    ...this.generateAPIRegistrySnippets(),
                     {
                         label: 'three-basic-scene',
                         kind: monaco.languages.CompletionItemKind.Snippet,

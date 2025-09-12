@@ -818,6 +818,207 @@ body.shader-material-selected #shader-panel {
     content: '📱';
 }
 
+/* Panel Collapse/Expand Functionality */
+.panel-content.collapsed {
+    display: none !important;
+}
+
+.panel-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.panel-header:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.collapse-arrow {
+    transition: transform 0.3s ease;
+    display: inline-block;
+    font-size: 0.8rem;
+}
+
+.panel-header[aria-expanded="false"] .collapse-arrow {
+    transform: rotate(-90deg);
+}
+
+.panel-header[aria-expanded="true"] .collapse-arrow {
+    transform: rotate(0deg);
+}
+
+/* Ensure smooth transitions */
+.panel-content {
+    transition: all 0.3s ease;
+}
+
+/* Fix for any layout issues during collapse */
+.left-panel .panel-content.collapsed,
+.right-panel .panel-content.collapsed {
+    height: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+/* Scene Preview Modal Styles */
+.large-modal {
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+}
+
+.preview-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--background-lighter);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.file-info h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.file-stats {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.preview-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.status-indicator {
+    font-size: 1rem;
+}
+
+.status-indicator.success {
+    color: var(--success);
+}
+
+.status-indicator.error {
+    color: var(--error);
+}
+
+.status-indicator.warning {
+    color: var(--warning);
+}
+
+.preview-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 1rem;
+}
+
+.preview-tab {
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.preview-tab:hover {
+    color: var(--text-primary);
+    background: var(--background-lighter);
+}
+
+.preview-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.scene-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.summary-section h5 {
+    margin: 0 0 0.75rem 0;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+
+.objects-list-preview,
+.materials-list-preview,
+.lighting-info-preview {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.loading-text {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.preview-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.preview-item:last-child {
+    border-bottom: none;
+}
+
+.preview-item-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.preview-item-type {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: var(--background-darker);
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+}
+
+#preview-code-text {
+    width: 100%;
+    height: 300px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.85rem;
+    background: var(--background-darker);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+    resize: vertical;
+}
+
+#preview-code-text:focus {
+    outline: none;
+    border-color: var(--accent);
+}
 
 
 

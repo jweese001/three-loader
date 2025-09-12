@@ -279,8 +279,13 @@ ${objects.map(obj => this.generateObjectCode(obj)).join('\n\n')}
     }
     
     exportScene() {
-        const code = this.generateCode();
-        console.log('📤 Scene exported successfully');
+        // Use the same editable format as "From UI" button for consistency
+        const code = this.generateEditableCode({
+            includeComments: true,
+            includeImports: true,
+            includeAnimation: true
+        });
+        console.log('📤 Scene exported successfully (editable format)');
         return code;
     }
     

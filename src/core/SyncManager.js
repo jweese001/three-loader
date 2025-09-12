@@ -391,6 +391,12 @@ export class SyncManager {
             if (result.success) {
                 console.log('✅ Adapted code executed successfully in viewport');
                 
+                // Hide viewport info messages when content is loaded
+                const viewportInfo = document.getElementById('viewport-info');
+                if (viewportInfo) {
+                    viewportInfo.style.display = 'none';
+                }
+                
                 // Debug scene state
                 console.log('🔍 Scene debug info:', {
                     childrenCount: this.scene.scene.children.length,

@@ -709,44 +709,65 @@ const LIGHTING_CONFIG = {
      * Generate animation code for objects with animations
      */
     generateObjectAnimations(objects, includeComments) {
+        console.log('🎬 Generating animations for', objects.length, 'objects');
+        objects.forEach((obj, i) => {
+            console.log(`  ${i}: ${obj.name} - animation: ${obj.animation?.type || 'none'}`);
+        });
+        
         const animatedObjects = objects.filter(obj => obj.animation && obj.animation.type !== 'none');
         
         if (animatedObjects.length === 0) {
+            console.log('🎬 No animated objects found, returning placeholder');
             return '        // 💡 ADD CUSTOM ANIMATIONS HERE\n        // Example: rotate objects, animate materials, etc.';
         }
+        
+        console.log('🎬 Found', animatedObjects.length, 'animated objects');
         
         const comment = includeComments ? `        // 🎬 Object Animations
         // These animations are based on your UI settings` : '';
         
         const animationCode = animatedObjects.map(obj => {
+            // Safety checks for object structure
+            if (!obj || !obj.name || !obj.animation) {
+                console.warn('⚠️ Invalid animated object detected:', obj);
+                return '        // Invalid animation object skipped';
+            }
+            
             const varName = this.sanitizeVariableName(obj.name);
             const { type, speed } = obj.animation;
             
+            // Safety check for speed value
+            const safeSpeed = typeof speed === 'number' ? speed : 0.01;
+            
             switch (type) {
                 case 'rotate-y':
-                    return `        ${varName}.rotation.y += ${speed.toFixed(4)};`;
+                    return `        ${varName}.rotation.y += ${safeSpeed.toFixed(4)};`;
                     
                 case 'rotate-xyz':
-                    return `        ${varName}.rotation.x += ${(speed * 0.7).toFixed(4)};
-        ${varName}.rotation.y += ${speed.toFixed(4)};
-        ${varName}.rotation.z += ${(speed * 0.3).toFixed(4)};`;
+                    return `        ${varName}.rotation.x += ${(safeSpeed * 0.7).toFixed(4)};
+        ${varName}.rotation.y += ${safeSpeed.toFixed(4)};
+        ${varName}.rotation.z += ${(safeSpeed * 0.3).toFixed(4)};`;
                     
                 case 'bounce':
-                    return `        ${varName}.position.y = ${obj.transform.position[1].toFixed(2)} + Math.sin(Date.now() * ${(speed * 0.01).toFixed(4)}) * 2;`;
+                    const bounceY = obj.transform?.position?.[1] ?? 0;
+                    return `        ${varName}.position.y = ${bounceY.toFixed(2)} + Math.sin(Date.now() * ${(safeSpeed * 0.01).toFixed(4)}) * 2;`;
                     
                 case 'orbit':
-                    return `        const orbitTime = Date.now() * ${(speed * 0.002).toFixed(4)};
-        ${varName}.position.x = ${obj.transform.position[0].toFixed(2)} + Math.cos(orbitTime) * 5;
-        ${varName}.position.z = ${obj.transform.position[2].toFixed(2)} + Math.sin(orbitTime) * 5;
+                    const orbitX = obj.transform?.position?.[0] ?? 0;
+                    const orbitZ = obj.transform?.position?.[2] ?? 0;
+                    return `        const orbitTime = Date.now() * ${(safeSpeed * 0.002).toFixed(4)};
+        ${varName}.position.x = ${orbitX.toFixed(2)} + Math.cos(orbitTime) * 5;
+        ${varName}.position.z = ${orbitZ.toFixed(2)} + Math.sin(orbitTime) * 5;
         ${varName}.lookAt(0, ${varName}.position.y, 0);`;
                     
                 case 'pulse':
-                    return `        const pulseScale = 1 + Math.sin(Date.now() * ${(speed * 0.005).toFixed(4)}) * 0.3;
+                    return `        const pulseScale = 1 + Math.sin(Date.now() * ${(safeSpeed * 0.005).toFixed(4)}) * 0.3;
         ${varName}.scale.setScalar(pulseScale);`;
                     
                 case 'float':
-                    return `        ${varName}.position.y = ${obj.transform.position[1].toFixed(2)} + Math.sin(Date.now() * ${(speed * 0.003).toFixed(4)}) * 1;
-        ${varName}.rotation.y += ${(speed * 0.5).toFixed(4)};`;
+                    const floatY = obj.transform?.position?.[1] ?? 0;
+                    return `        ${varName}.position.y = ${floatY.toFixed(2)} + Math.sin(Date.now() * ${(safeSpeed * 0.003).toFixed(4)}) * 1;
+        ${varName}.rotation.y += ${(safeSpeed * 0.5).toFixed(4)};`;
                     
                 default:
                     return `        // Animation type '${type}' not implemented`;
@@ -1170,9 +1191,9 @@ sceneComponents.cleanup();
 
 // 🔧 ADVANCED API USAGE:
 // Access the comprehensive Three.js API registry:
-const availableGeometries = sceneComponents.apiRegistry.getGeometryTypes();
-const availableMaterials = sceneComponents.apiRegistry.getMaterialTypes();
-const availableLights = sceneComponents.apiRegistry.getLightTypes();
+const availableGeometries = Object.keys(sceneComponents.apiRegistry.geometries);
+const availableMaterials = Object.keys(sceneComponents.apiRegistry.materials);
+const availableLights = Object.keys(sceneComponents.apiRegistry.lights);
 
 console.log('Available geometries:', availableGeometries.length);
 console.log('Available materials:', availableMaterials.length);

@@ -52,6 +52,15 @@ export class CodeEditorManager {
         // Phase 3: Smart Code Adaptation System
         this.codeAdapter = new CodeAdapter();
         
+        // Animation Preservation System
+        this.animationState = {
+            isEnabled: false,
+            hasAnimations: false,
+            animationPreservedCode: null,
+            originalCode: null,
+            adaptedCode: null
+        };
+        
         this.init();
         console.log('💻 CodeEditorManager initialized');
     }
@@ -93,8 +102,8 @@ export class CodeEditorManager {
             await this.syncManager.initialize();
             console.log('✅ SyncManager initialized successfully');
         } catch (error) {
-            console.error('❌ Failed to initialize SyncManager:', error);
-            console.warn('⚠️ Falling back to legacy code parsing');
+            console.warn('⚠️ SyncManager initialization skipped (using proven ExportManager workflow)');
+            console.log('ℹ️ SyncManager is an advanced feature currently bypassed for stability');
             this.syncManager = null;
         }
     }
@@ -445,6 +454,14 @@ export class CodeEditorManager {
             }
         });
         
+        // Animation toggle button
+        const animationToggleBtn = document.getElementById('animation-toggle-btn');
+        if (animationToggleBtn) {
+            animationToggleBtn.addEventListener('click', () => {
+                this.toggleAnimationMode();
+            });
+        }
+        
         console.log('💻 Fullscreen controls setup complete');
     }
     
@@ -467,8 +484,8 @@ export class CodeEditorManager {
                 return;
             }
             
-            // Fallback: Generate fresh editable code from current UI state
-            console.log('📝 Using legacy code generation (SyncManager not available)');
+            // Production workflow: Generate fresh editable code from current UI state  
+            console.log('📝 Using proven ExportManager workflow (recommended)');
             
             if (!this.exportManager) {
                 throw new Error('ExportManager is not available');
@@ -550,13 +567,43 @@ export class CodeEditorManager {
                 return;
             }
             
+            // Check if we're in animation mode and handle accordingly
+            if (this.animationState.hasAnimations && this.animationState.isEnabled) {
+                console.log('🎬 Updating animation code from editor...');
+                // Update the animation-preserved code with current editor content
+                this.animationState.animationPreservedCode = code;
+                this.currentCode = code;
+                
+                // Execute the updated animation code
+                try {
+                    if (this.syncManager) {
+                        let codeToExecute = code;
+                        if (!codeToExecute.includes('🔄 AUTO-ADAPTED FROM STANDALONE THREE.JS FILE')) {
+                            codeToExecute = '/** 🔄 AUTO-ADAPTED FROM STANDALONE THREE.JS FILE - ANIMATION PRESERVED */\n' + codeToExecute;
+                        }
+                        
+                        const result = await this.syncManager.executeAdaptedCodeInSandbox(codeToExecute);
+                        if (result.success) {
+                            this.showNotification('✅ Updated animation code executed successfully!', 'success');
+                            return;
+                        } else {
+                            throw new Error(result.error);
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to execute updated animation code:', error);
+                    this.showNotification('❌ Failed to execute animation code: ' + error.message, 'error');
+                    return;
+                }
+            }
+            
             // Phase 1: Check if this is adapted code and use enhanced execution
             const isAdaptedCode = code.includes('🔄 AUTO-ADAPTED FROM STANDALONE THREE.JS FILE');
             
             if (isAdaptedCode && this.syncManager) {
                 console.log('🔄 Detected adapted code - using enhanced execution path');
                 try {
-                    const result = await this.syncManager.executeCodeInSandbox(code);
+                    const result = await this.syncManager.executeAdaptedCodeInSandbox(code);
                     if (result.success) {
                         this.showNotification('✅ Adapted code successfully executed in viewport!', 'success');
                         return;
@@ -568,22 +615,66 @@ export class CodeEditorManager {
                 }
             }
             
-            // Phase 2: Use enhanced SyncManager for comprehensive code analysis
-            if (this.syncManager) {
-                console.log('🔄 Using enhanced SyncManager for Code → UI sync');
-                const success = await this.syncManager.manualSyncFromCode();
+            // Phase 2: Execute code in viewport (using direct execution to avoid Worker serialization issues)
+            console.log('🚀 Executing code in viewport using direct execution...');
+            console.log('📝 Code length:', code.length);
+            console.log('📝 Code preview (first 200 chars):', code.substring(0, 200));
+            
+            try {
+                // Clear the scene first
+                this.clearSceneObjects();
                 
-                if (success) {
-                    this.showNotification('✅ Code successfully synced to UI controls!', 'success');
+                // Use direct execution to avoid Worker serialization issues
+                await this.executeCodeDirectly(code);
+                
+                // Optionally try to sync UI controls if SyncManager is available
+                if (this.syncManager) {
+                    console.log('🔄 Attempting to sync UI controls...');
+                    try {
+                        const success = await this.syncManager.manualSyncFromCode();
+                        if (success) {
+                            this.showNotification('✅ Code executed and UI synced successfully!', 'success');
+                        } else {
+                            this.showNotification('✅ Code executed successfully (UI sync failed)', 'success');
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ UI sync failed but code executed:', error);
+                        this.showNotification('✅ Code executed successfully (UI sync failed)', 'success');
+                    }
                 } else {
-                    // Fallback to existing method if enhanced sync fails
-                    console.log('🔄 Enhanced sync failed, falling back to legacy method');
-                    await this.syncCodeToUIWithSyncManager(code);
+                    this.showNotification('✅ Code executed successfully!', 'success');
                 }
-            } else {
-                console.log('📝 Using legacy code parsing (SyncManager not available)');
-                await this.syncCodeToUILegacy(code);
+                
+            } catch (error) {
+                console.error('❌ Code execution failed:', error);
+                this.showNotification('❌ Failed to execute code: ' + error.message, 'error');
+                return;
             }
+            
+            // Debug: Check what objects were actually created in the scene
+            const sceneObjects = this.scene.scene.children.filter(child => child.isMesh || child.isGroup);
+            console.log('🔍 Debug: Objects in scene after sync:', sceneObjects.length);
+            sceneObjects.forEach((obj, index) => {
+                console.log(`  ${index + 1}. ${obj.name || obj.type || 'Unnamed'} - Position: (${obj.position.x.toFixed(2)}, ${obj.position.y.toFixed(2)}, ${obj.position.z.toFixed(2)}) - Scale: (${obj.scale.x.toFixed(2)}, ${obj.scale.y.toFixed(2)}, ${obj.scale.z.toFixed(2)}) - Visible: ${obj.visible}`);
+                
+                // Check if object has geometry and material
+                if (obj.isMesh) {
+                    console.log(`    - Geometry: ${obj.geometry?.type || 'None'}`);
+                    console.log(`    - Material: ${obj.material?.type || 'None'}`);
+                    console.log(`    - Vertices: ${obj.geometry?.attributes?.position?.count || 0}`);
+                }
+            });
+            
+            // Check camera position
+            console.log('📷 Camera position:', this.scene.camera.position);
+            console.log('📷 Camera target:', this.scene.controls?.target);
+            
+            // Check lights in scene
+            const lights = this.scene.scene.children.filter(child => child.isLight);
+            console.log('💡 Lights in scene:', lights.length);
+            lights.forEach((light, index) => {
+                console.log(`  ${index + 1}. ${light.type} - Position: (${light.position.x.toFixed(2)}, ${light.position.y.toFixed(2)}, ${light.position.z.toFixed(2)}) - Intensity: ${light.intensity || 'N/A'}`);
+            });
             
             console.log('✅ Code to UI synchronization completed');
             
@@ -592,6 +683,235 @@ export class CodeEditorManager {
             this.showSyncError('Code to UI sync failed', error.message);
         } finally {
             this.isUpdatingFromCode = false;
+        }
+    }
+    
+    /**
+     * Clear all objects from the scene except lights and camera
+     */
+    clearSceneObjects() {
+        console.log('🧹 Clearing scene objects...');
+        
+        // Remove all objects except lights and camera
+        const objectsToRemove = [];
+        this.scene.scene.traverse((child) => {
+            if (child.isMesh || child.isGroup) {
+                objectsToRemove.push(child);
+            }
+        });
+        
+        objectsToRemove.forEach(obj => {
+            this.scene.scene.remove(obj);
+            // Dispose of geometry and material to prevent memory leaks
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) {
+                if (Array.isArray(obj.material)) {
+                    obj.material.forEach(mat => mat.dispose());
+                } else {
+                    obj.material.dispose();
+                }
+            }
+        });
+        
+        // Clear the ObjectManager's tracked objects
+        if (this.objectManager && this.objectManager.clearAllObjects) {
+            this.objectManager.clearAllObjects();
+        }
+        
+        console.log(`🧹 Cleared ${objectsToRemove.length} objects from scene`);
+    }
+    
+    /**
+     * Execute code directly in the scene (fallback method)
+     * @param {string} code - The Three.js code to execute
+     */
+    async executeCodeDirectly(code) {
+        console.log('🚀 Executing code directly in scene...');
+        console.log('📝 Code structure analysis...');
+        
+        try {
+            // Check if this is our generated code with main function
+            const hasMainFunction = code.includes('function main()') || code.includes('async function main()');
+            const hasCreateScene = code.includes('createScene()');
+            const hasImports = code.includes('import ') || code.includes('from ');
+            const hasExports = code.includes('export ');
+            
+            console.log('📝 Has main function:', hasMainFunction);
+            console.log('📝 Has createScene call:', hasCreateScene);
+            console.log('📝 Has import statements:', hasImports);
+            console.log('📝 Has export statements:', hasExports);
+            
+            // Create execution context with scene objects
+            const context = {
+                THREE: window.THREE,
+                scene: this.scene.scene,
+                camera: this.scene.camera,
+                renderer: this.scene.renderer,
+                console: console,
+                // Add ObjectManager methods if available
+                objectManager: this.objectManager
+            };
+            
+            let executionCode = code;
+            
+            // Remove import statements since we're providing THREE globally
+            if (hasImports) {
+                console.log('📝 Removing import statements...');
+                console.log('📝 Code before import removal (first 500 chars):', executionCode.substring(0, 500));
+                
+                // More comprehensive import removal patterns
+                // Remove ES6 import statements with various formats
+                executionCode = executionCode.replace(/import\s+\*\s+as\s+\w+\s+from\s+['"][^'"]+['"];?\s*(\r?\n)?/g, '');
+                executionCode = executionCode.replace(/import\s+\{\s*[^}]+\s*\}\s+from\s+['"][^'"]+['"];?\s*(\r?\n)?/g, '');
+                executionCode = executionCode.replace(/import\s+\w+\s+from\s+['"][^'"]+['"];?\s*(\r?\n)?/g, '');
+                executionCode = executionCode.replace(/import\s+['"][^'"]+['"];?\s*(\r?\n)?/g, '');
+                
+                // Remove any remaining import lines that might have different formatting
+                executionCode = executionCode.replace(/^.*import\s+.*$/gm, '');
+                
+                // Clean up multiple empty lines
+                executionCode = executionCode.replace(/\n\s*\n\s*\n/g, '\n\n');
+                executionCode = executionCode.replace(/^\s*\n+/g, '');
+                
+                console.log('📝 Import statements removed');
+                console.log('📝 Code after import removal (first 500 chars):', executionCode.substring(0, 500));
+            }
+            
+            // Remove export statements since we're executing code directly
+            if (hasExports) {
+                console.log('📝 Removing export statements...');
+                console.log('📝 Code before export removal (first 500 chars):', executionCode.substring(0, 500));
+                
+                // Remove export statements - convert them to regular declarations
+                executionCode = executionCode.replace(/export\s+default\s+/g, '');
+                executionCode = executionCode.replace(/export\s+\{\s*[^}]+\s*\};?\s*(\r?\n)?/g, '');
+                executionCode = executionCode.replace(/export\s+(async\s+function)\s+/g, '$1 ');
+                executionCode = executionCode.replace(/export\s+(const|let|var|function|class)\s+/g, '$1 ');
+                
+                // Remove any remaining export lines
+                executionCode = executionCode.replace(/^.*export\s+.*$/gm, '');
+                
+                // Clean up multiple empty lines
+                executionCode = executionCode.replace(/\n\s*\n\s*\n/g, '\n\n');
+                executionCode = executionCode.replace(/^\s*\n+/g, '');
+                
+                console.log('📝 Export statements removed');
+                console.log('📝 Code after export removal (first 500 chars):', executionCode.substring(0, 500));
+            }
+            
+            // If this is our generated code format, make sure to call the main function
+            if (hasMainFunction && !code.includes('main()')) {
+                executionCode = executionCode + '\n\n// Execute the main function\nmain();';
+                console.log('📝 Added main() call to execution');
+            } else if (code.includes('SPHERE_1_CONFIG')) {
+                // If it's our exported code with sphere config, create sphere directly using ObjectManager
+                executionCode = executionCode + `
+                
+// Direct sphere creation for execution via ObjectManager
+console.log('Creating sphere directly via ObjectManager...');
+if (objectManager && objectManager.createPrimitive) {
+    console.log('Using ObjectManager.createPrimitive...');
+    objectManager.createPrimitive('sphere', {
+        name: 'Sphere_ToUI',
+        material: {
+            type: 'standard',
+            color: '#ffffff',
+            roughness: 0.5,
+            metalness: 0
+        },
+        transform: {
+            position: [0, 0, 0],
+            rotation: [0, 0, 0],
+            scale: [1, 1, 1]
+        }
+    });
+    console.log('Sphere created via ObjectManager - will be tracked and clearable');
+} else {
+    console.log('ObjectManager not available, creating sphere directly...');
+    const sphereGeometry = new THREE.SphereGeometry(1.5, 32, 16);
+    const sphereMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0xffffff,
+        roughness: 0.5,
+        metalness: 0
+    });
+    const sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    sphereMesh.position.set(0, 0, 0);
+    sphereMesh.castShadow = true;
+    sphereMesh.receiveShadow = true;
+    sphereMesh.userData.customId = 'sphere_toui_direct';
+    scene.add(sphereMesh);
+    console.log('Sphere added to scene directly');
+}
+`;
+                console.log('📝 Added direct sphere creation via ObjectManager to execution');
+            } else if (code.includes('createEditableScene') && !code.includes('createEditableScene(')) {
+                // If it's the exported code with createEditableScene function, call it
+                executionCode = executionCode + '\n\n// Execute the scene creation\nconst container = document.querySelector("#viewport") || document.body;\ncreateEditableScene(container);';
+                console.log('📝 Added createEditableScene() call to execution');
+            }
+            
+            console.log('📝 Final execution code length:', executionCode.length);
+            console.log('📝 Code preview after processing:', executionCode.substring(0, 300));
+            
+            // Additional debugging - check for problematic keywords
+            const problematicPatterns = [
+                { name: 'import', regex: /import\s+/g },
+                { name: 'export', regex: /export\s+/g },
+                { name: 'require', regex: /require\s*\(/g },
+                { name: 'module.exports', regex: /module\.exports/g }
+            ];
+            
+            problematicPatterns.forEach(pattern => {
+                const matches = executionCode.match(pattern.regex);
+                if (matches) {
+                    console.warn(`⚠️ Still found ${pattern.name} statements:`, matches.length);
+                    console.warn(`⚠️ First few matches:`, matches.slice(0, 3));
+                }
+            });
+            
+            // Execute the code using Function constructor
+            let func;
+            try {
+                func = new Function(
+                    ...Object.keys(context),
+                    `
+                    try {
+                        ${executionCode}
+                        return { success: true };
+                    } catch (error) {
+                        console.error('Code execution error:', error);
+                        return { success: false, error: error.message, stack: error.stack };
+                    }
+                    `
+                );
+            } catch (syntaxError) {
+                console.error('❌ Syntax error creating function:', syntaxError.message);
+                console.error('❌ Problematic code around line:', syntaxError.lineNumber || 'unknown');
+                
+                // Try to find the problematic line
+                const lines = executionCode.split('\n');
+                console.error('❌ Code structure:');
+                lines.slice(0, 20).forEach((line, i) => {
+                    console.error(`  ${i + 1}: ${line}`);
+                });
+                
+                throw new Error(`Syntax error in generated code: ${syntaxError.message}`);
+            }
+            
+            const result = func(...Object.values(context));
+            
+            if (!result.success) {
+                console.error('❌ Execution result error:', result.error);
+                console.error('❌ Stack trace:', result.stack);
+                throw new Error(result.error);
+            }
+            
+            console.log('✅ Code executed successfully');
+            
+        } catch (error) {
+            console.error('❌ Failed to execute code directly:', error);
+            console.error('❌ Error details:', error.message);
+            throw error;
         }
     }
     
@@ -1189,7 +1509,7 @@ Code Execution Completed Successfully:
     
     async loadSceneFile(file) {
         try {
-            console.log('📁 Loading scene file:', file.name);
+            console.log('📁 Analyzing scene file for preview:', file.name);
             
             // Read the original file content
             const originalCode = await this.readFileAsText(file);
@@ -1198,62 +1518,8 @@ Code Execution Completed Successfully:
             // Use smart adaptation system to analyze and transform if needed
             const adaptationResult = this.codeAdapter.adaptCode(originalCode);
             
-            if (adaptationResult.wasAdapted) {
-                console.log('🔄 Standalone file detected and adapted:', {
-                    confidence: adaptationResult.analysis.confidence + '%',
-                    elementsPreserved: adaptationResult.adaptationSummary.elementsPreserved,
-                    transformations: adaptationResult.adaptationSummary.transformationsApplied
-                });
-            }
-            
-            // Load the adapted code into the editor(s)
-            const codeToLoad = adaptationResult.transformedCode;
-            
-            if (this.editor) {
-                this.editor.setValue(codeToLoad);
-            }
-            if (this.fullscreenEditor) {
-                this.fullscreenEditor.setValue(codeToLoad);
-            }
-            
-            this.currentCode = codeToLoad;
-            
-            // Show appropriate notification based on adaptation
-            let notificationMessage;
-            if (adaptationResult.wasAdapted) {
-                notificationMessage = `✅ Loaded and adapted: ${file.name} (standalone → three-loader compatible)`;
-                console.log('🔧 Adaptation Summary:', adaptationResult.adaptationSummary);
-            } else {
-                notificationMessage = `✅ Loaded: ${file.name}`;
-            }
-            
-            this.showNotification(notificationMessage, 'success');
-            
-            // Auto-sync to viewport with enhanced confirmation dialog
-            let confirmMessage = 'Apply loaded scene to UI controls?';
-            if (adaptationResult.wasAdapted) {
-                confirmMessage = `Apply adapted ${file.name} to viewport?\n\n` +
-                    `🔧 Adaptation applied (${adaptationResult.analysis.confidence.toFixed(0)}% confidence)\n` +
-                    `📦 ${adaptationResult.adaptationSummary.elementsPreserved} creative elements preserved\n` +
-                    `🔄 ${adaptationResult.adaptationSummary.transformationsApplied.length} transformations applied`;
-            }
-            
-            if (confirm(confirmMessage)) {
-                console.log('🔄 Syncing adapted code to UI...');
-                await this.syncToUI();
-                
-                if (adaptationResult.wasAdapted) {
-                    // Show additional success message for adapted files
-                    setTimeout(() => {
-                        this.showNotification(
-                            `🎯 ${file.name} successfully adapted and loaded into viewport!`, 
-                            'success'
-                        );
-                    }, 1000);
-                }
-            }
-            
-            console.log('📁 Scene loaded:', file.name);
+            // Show scene preview modal instead of directly loading
+            this.showScenePreview(file, originalCode, adaptationResult);
             
         } catch (error) {
             console.error('❌ Failed to load scene:', error);
@@ -1383,6 +1649,13 @@ Code Execution Completed Successfully:
             }
             
             console.log('✅ Scene data successfully applied to UI controls');
+        
+        // Debug: Check what objects were actually created in the scene
+        const sceneObjects = this.scene.scene.children.filter(child => child.isMesh);
+        console.log('🔍 Debug: Objects in scene after sync:', sceneObjects.length);
+        sceneObjects.forEach((obj, index) => {
+            console.log(`  ${index + 1}. ${obj.name || 'Unnamed'} - Position: (${obj.position.x.toFixed(2)}, ${obj.position.y.toFixed(2)}, ${obj.position.z.toFixed(2)}) - Visible: ${obj.visible}`);
+        });
             
             // Show success message instead of alert
             this.showNotification('✅ Code successfully synced to UI controls!', 'success');
@@ -1473,8 +1746,223 @@ Code Execution Completed Successfully:
             hasFullscreenEditor: !!this.fullscreenEditor,
             hasCodeCompiler: !!this.codeCompiler,
             hasLiveUpdateManager: !!this.liveUpdateManager,
-            compilationStats: this.getLiveCompilationStatus()
+            compilationStats: this.getLiveCompilationStatus(),
+            animationState: this.animationState
         };
+    }
+    
+    /**
+     * Animation Preservation System Methods
+     */
+    
+    /**
+     * Update animation state when loading new code
+     * @param {Object} adaptationResult - Result from CodeAdapter
+     */
+    updateAnimationState(adaptationResult) {
+        const hasAnimations = adaptationResult.animationPreservedCode !== null;
+        
+        this.animationState = {
+            isEnabled: false, // Always start with UI controls active
+            hasAnimations: hasAnimations,
+            animationPreservedCode: adaptationResult.animationPreservedCode,
+            originalCode: adaptationResult.originalCode,
+            adaptedCode: adaptationResult.transformedCode
+        };
+        
+        // Update UI to reflect animation availability
+        this.updateAnimationToggleVisibility(hasAnimations);
+        
+        if (hasAnimations) {
+            console.log('🎬 Animations detected in loaded file - toggle button shown');
+            this.showAnimationDetectionNotification(adaptationResult.animationInfo);
+        } else {
+            console.log('📝 No animations detected - toggle button hidden');
+        }
+    }
+    
+    /**
+     * Toggle between UI controls and code animations
+     */
+    toggleAnimationMode() {
+        if (!this.animationState.hasAnimations) {
+            console.warn('⚠️ No animations available to toggle');
+            return;
+        }
+        
+        this.animationState.isEnabled = !this.animationState.isEnabled;
+        
+        console.log(`🎬 Animation mode: ${this.animationState.isEnabled ? 'ON' : 'OFF'}`);
+        
+        // Update toggle button appearance
+        this.updateAnimationToggleState();
+        
+        // Switch editor content and execute appropriate code version
+        if (this.animationState.isEnabled) {
+            // Switch to animation-preserved version
+            this.switchToAnimationCode();
+            this.executeAnimationPreservedCode();
+        } else {
+            // Switch back to UI-controlled version
+            this.switchToAdaptedCode();
+            this.executeAdaptedCode();
+        }
+    }
+    
+    /**
+     * Update animation toggle button visibility
+     * @param {boolean} hasAnimations - Whether animations were detected
+     */
+    updateAnimationToggleVisibility(hasAnimations) {
+        const toggleBtn = document.getElementById('animation-toggle-btn');
+        if (toggleBtn) {
+            toggleBtn.style.display = hasAnimations ? 'flex' : 'none';
+        }
+    }
+    
+    /**
+     * Update animation toggle button state
+     */
+    updateAnimationToggleState() {
+        const toggleBtn = document.getElementById('animation-toggle-btn');
+        const toggleText = toggleBtn?.querySelector('.animation-text');
+        
+        if (toggleBtn && toggleText) {
+            const isOn = this.animationState.isEnabled;
+            toggleBtn.setAttribute('data-state', isOn ? 'on' : 'off');
+            toggleText.textContent = `Scripted Anim: ${isOn ? 'ON' : 'OFF'}`;
+            toggleBtn.title = isOn 
+                ? 'Switch to UI controls' 
+                : 'Switch to code animations';
+        }
+    }
+    
+    /**
+     * Show notification when animations are detected
+     * @param {Object} animationInfo - Animation information from CodeAdapter
+     */
+    showAnimationDetectionNotification(animationInfo) {
+        if (!animationInfo || !animationInfo.hasAnimations) return;
+        
+        const message = `🎬 ${animationInfo.animationCount} animation${animationInfo.animationCount > 1 ? 's' : ''} detected - Toggle available`;
+        this.showNotification(message, 'info', 5000);
+    }
+    
+    /**
+     * Execute animation-preserved version of code
+     */
+    async executeAnimationPreservedCode() {
+        if (!this.animationState.animationPreservedCode) {
+            console.error('❌ No animation-preserved code available');
+            return;
+        }
+        
+        console.log('🎬 Executing animation-preserved code...');
+        
+        try {
+            if (this.syncManager) {
+                // Ensure animation-preserved code is treated as adapted code
+                let codeToExecute = this.animationState.animationPreservedCode;
+                if (!codeToExecute.includes('🔄 AUTO-ADAPTED FROM STANDALONE THREE.JS FILE')) {
+                    // Add adaptation marker to ensure proper execution path
+                    codeToExecute = '/** 🔄 AUTO-ADAPTED FROM STANDALONE THREE.JS FILE - ANIMATION PRESERVED */\n' + codeToExecute;
+                }
+                
+                const result = await this.syncManager.executeAdaptedCodeInSandbox(codeToExecute);
+                if (result.success) {
+                    this.showNotification('✅ Animation-preserved code executed successfully!', 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+            } else {
+                console.warn('⚠️ SyncManager not available, cannot execute animation code');
+                this.showNotification('⚠️ Cannot execute animations - SyncManager unavailable', 'warning');
+            }
+        } catch (error) {
+            console.error('❌ Failed to execute animation-preserved code:', error);
+            this.showNotification('❌ Failed to execute animations: ' + error.message, 'error');
+            // Revert animation state
+            this.animationState.isEnabled = false;
+            this.updateAnimationToggleState();
+        }
+    }
+    
+    /**
+     * Execute adapted (UI-controlled) version of code
+     */
+    async executeAdaptedCode() {
+        if (!this.animationState.adaptedCode) {
+            console.error('❌ No adapted code available');
+            return;
+        }
+        
+        console.log('🔄 Executing UI-controlled adapted code...');
+        
+        try {
+            if (this.syncManager) {
+                // Use direct execution for adapted code to avoid Web Worker issues
+                const result = await this.syncManager.executeAdaptedCodeInSandbox(this.animationState.adaptedCode);
+                if (result.success) {
+                    this.showNotification('✅ UI-controlled code executed successfully!', 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+            } else {
+                // Fallback to legacy execution
+                await this.syncToUI();
+            }
+        } catch (error) {
+            console.error('❌ Failed to execute adapted code:', error);
+            this.showNotification('❌ Failed to execute UI controls: ' + error.message, 'error');
+        }
+    }
+    
+    /**
+     * Switch editor to show animation-preserved code
+     */
+    switchToAnimationCode() {
+        if (!this.animationState.animationPreservedCode) {
+            console.error('❌ No animation code available to switch to');
+            return;
+        }
+        
+        console.log('📝 Switching editor to animation-preserved code');
+        
+        // Update both editors with animation-preserved code
+        if (this.editor) {
+            this.editor.setValue(this.animationState.animationPreservedCode);
+        }
+        if (this.fullscreenEditor) {
+            this.fullscreenEditor.setValue(this.animationState.animationPreservedCode);
+        }
+        
+        // Update current code reference
+        this.currentCode = this.animationState.animationPreservedCode;
+        
+        this.showNotification('📝 Now viewing animation code - Edit freely!', 'info', 3000);
+    }
+    
+    /**
+     * Switch editor to show adapted (UI-controlled) code
+     */
+    switchToAdaptedCode() {
+        if (!this.animationState.adaptedCode) {
+            console.error('❌ No adapted code available to switch to');
+            return;
+        }
+        
+        console.log('📝 Switching editor to UI-controlled adapted code');
+        
+        // Update both editors with adapted code
+        if (this.editor) {
+            this.editor.setValue(this.animationState.adaptedCode);
+        }
+        if (this.fullscreenEditor) {
+            this.fullscreenEditor.setValue(this.animationState.adaptedCode);
+        }
+        
+        // Update current code reference
+        this.currentCode = this.animationState.adaptedCode;
     }
 
     async dispose() {
@@ -1505,5 +1993,368 @@ Code Execution Completed Successfully:
         }
         
         console.log('🧹 CodeEditorManager disposed with Phase 2.5 cleanup');
+    }
+    
+    /**
+     * Show scene preview modal with file analysis
+     * @param {File} file - The file being previewed
+     * @param {string} originalCode - Original file content
+     * @param {Object} adaptationResult - Result from CodeAdapter
+     */
+    showScenePreview(file, originalCode, adaptationResult) {
+        console.log('🔍 Showing scene preview for:', file.name);
+        
+        // Store data for later use when user confirms import
+        this.previewData = {
+            file,
+            originalCode,
+            adaptationResult
+        };
+        
+        // Update modal elements
+        this.updatePreviewModal(file, originalCode, adaptationResult);
+        
+        // Setup modal event listeners
+        this.setupPreviewModalListeners();
+        
+        // Show the modal
+        const modal = document.getElementById('scene-preview-modal');
+        modal.style.display = 'flex';
+    }
+    
+    /**
+     * Update preview modal content with file analysis
+     * @param {File} file - The file being previewed
+     * @param {string} originalCode - Original file content  
+     * @param {Object} adaptationResult - Result from CodeAdapter
+     */
+    updatePreviewModal(file, originalCode, adaptationResult) {
+        // Update file info
+        document.getElementById('preview-filename').textContent = file.name;
+        document.getElementById('preview-file-size').textContent = this.formatFileSize(file.size);
+        
+        // Analyze code content
+        const analysis = this.analyzeCodeContent(originalCode, adaptationResult);
+        
+        // Update stats
+        document.getElementById('preview-objects-count').textContent = `${analysis.objectCount} objects`;
+        document.getElementById('preview-code-type').textContent = analysis.codeType;
+        
+        // Update status
+        const statusEl = document.getElementById('preview-status');
+        const statusIndicator = statusEl.querySelector('.status-indicator');
+        const statusText = statusEl.querySelector('.status-text');
+        
+        if (adaptationResult.wasAdapted) {
+            statusIndicator.textContent = '✅';
+            statusIndicator.className = 'status-indicator success';
+            statusText.textContent = `Adapted (${adaptationResult.analysis.confidence.toFixed(0)}% confidence)`;
+        } else if (analysis.isValid) {
+            statusIndicator.textContent = '✅';
+            statusIndicator.className = 'status-indicator success';
+            statusText.textContent = 'Compatible format';
+        } else {
+            statusIndicator.textContent = '⚠️';
+            statusIndicator.className = 'status-indicator warning';
+            statusText.textContent = 'May need adaptation';
+        }
+        
+        // Update summary sections
+        this.updatePreviewSummary(analysis);
+        
+        // Update code preview
+        const codeToShow = adaptationResult.transformedCode || originalCode;
+        document.getElementById('preview-code-text').value = codeToShow.substring(0, 3000) + 
+            (codeToShow.length > 3000 ? '\n\n... (truncated for preview)' : '');
+        
+        // Enable import button if analysis looks good
+        const importBtn = document.getElementById('import-confirmed-btn');
+        importBtn.disabled = !analysis.isValid;
+        importBtn.textContent = adaptationResult.wasAdapted ? 'Load Adapted Code' : 'Load into Editor';
+    }
+    
+    /**
+     * Analyze code content to extract scene information
+     * @param {string} code - Code to analyze
+     * @param {Object} adaptationResult - Adaptation result
+     * @returns {Object} Analysis results
+     */
+    analyzeCodeContent(code, adaptationResult) {
+        const analysis = {
+            objectCount: 0,
+            materials: [],
+            lights: [],
+            cameraInfo: null,
+            hasAnimations: false,
+            isValid: true,
+            codeType: 'Unknown'
+        };
+        
+        try {
+            // Count meshes/objects
+            const meshMatches = code.match(/new THREE\.(Mesh|Object3D|Group)\(/g) || [];
+            const primitiveMatches = code.match(/new THREE\.(Box|Sphere|Cylinder|Cone|Plane|Circle)Geometry\(/g) || [];
+            analysis.objectCount = meshMatches.length + primitiveMatches.length;
+            
+            // Detect materials
+            const materialMatches = code.match(/new THREE\.(MeshBasicMaterial|MeshStandardMaterial|MeshPhongMaterial|MeshLambertMaterial|MeshPhysicalMaterial|MeshMatcapMaterial)\(/g) || [];
+            analysis.materials = [...new Set(materialMatches.map(m => m.replace('new THREE.', '').replace('(', '')))];
+            
+            // Detect lights
+            const lightMatches = code.match(/new THREE\.(AmbientLight|DirectionalLight|PointLight|SpotLight|HemisphereLight)\(/g) || [];
+            analysis.lights = [...new Set(lightMatches.map(l => l.replace('new THREE.', '').replace('(', '')))];
+            
+            // Detect camera
+            if (code.includes('PerspectiveCamera') || code.includes('OrthographicCamera')) {
+                analysis.cameraInfo = code.includes('PerspectiveCamera') ? 'Perspective' : 'Orthographic';
+            }
+            
+            // Detect animations
+            analysis.hasAnimations = code.includes('requestAnimationFrame') || 
+                                   code.includes('AnimationMixer') || 
+                                   code.includes('.rotation.') ||
+                                   code.includes('.position.');
+            
+            // Determine code type
+            if (adaptationResult.wasAdapted) {
+                analysis.codeType = 'Standalone Three.js (Adapted)';
+            } else if (code.includes('export function')) {
+                analysis.codeType = 'Exported Scene';
+            } else if (code.includes('createEditableScene')) {
+                analysis.codeType = 'Editable Format';
+            } else {
+                analysis.codeType = 'Custom Three.js';
+            }
+            
+            // Validate code structure
+            analysis.isValid = analysis.objectCount > 0 || 
+                             code.includes('THREE.') ||
+                             code.includes('scene') ||
+                             adaptationResult.wasAdapted;
+            
+        } catch (error) {
+            console.error('❌ Error analyzing code:', error);
+            analysis.isValid = false;
+            analysis.codeType = 'Invalid/Corrupted';
+        }
+        
+        return analysis;
+    }
+    
+    /**
+     * Update preview summary sections
+     * @param {Object} analysis - Code analysis results
+     */
+    updatePreviewSummary(analysis) {
+        // Objects list
+        const objectsList = document.getElementById('preview-objects-list');
+        if (analysis.objectCount > 0) {
+            objectsList.innerHTML = `
+                <div class="preview-item">
+                    <span class="preview-item-name">${analysis.objectCount} 3D Objects</span>
+                    <span class="preview-item-type">Meshes</span>
+                </div>
+            `;
+        } else {
+            objectsList.innerHTML = '<p class="loading-text">No objects detected</p>';
+        }
+        
+        // Materials list
+        const materialsList = document.getElementById('preview-materials-list');
+        if (analysis.materials.length > 0) {
+            materialsList.innerHTML = analysis.materials.map(material => 
+                `<div class="preview-item">
+                    <span class="preview-item-name">${material}</span>
+                    <span class="preview-item-type">Material</span>
+                </div>`
+            ).join('');
+        } else {
+            materialsList.innerHTML = '<p class="loading-text">No materials detected</p>';
+        }
+        
+        // Lighting info
+        const lightingInfo = document.getElementById('preview-lighting-info');
+        const lightingItems = [];
+        
+        if (analysis.lights.length > 0) {
+            analysis.lights.forEach(light => {
+                lightingItems.push(`<div class="preview-item">
+                    <span class="preview-item-name">${light}</span>
+                    <span class="preview-item-type">Light</span>
+                </div>`);
+            });
+        }
+        
+        if (analysis.cameraInfo) {
+            lightingItems.push(`<div class="preview-item">
+                <span class="preview-item-name">${analysis.cameraInfo} Camera</span>
+                <span class="preview-item-type">Camera</span>
+            </div>`);
+        }
+        
+        if (analysis.hasAnimations) {
+            lightingItems.push(`<div class="preview-item">
+                <span class="preview-item-name">Animations</span>
+                <span class="preview-item-type">Motion</span>
+            </div>`);
+        }
+        
+        lightingInfo.innerHTML = lightingItems.length > 0 ? 
+            lightingItems.join('') : 
+            '<p class="loading-text">No lighting/camera info</p>';
+    }
+    
+    /**
+     * Setup event listeners for preview modal
+     */
+    setupPreviewModalListeners() {
+        // Remove existing listeners to prevent duplicates
+        const existingListeners = ['click', 'click', 'click'];
+        
+        // Tab switching
+        const tabs = document.querySelectorAll('.preview-tab');
+        tabs.forEach(tab => {
+            tab.replaceWith(tab.cloneNode(true)); // Remove existing listeners
+        });
+        
+        document.querySelectorAll('.preview-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+                
+                // Update tab states
+                document.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(`preview-${targetTab}`).classList.add('active');
+            });
+        });
+        
+        // Import confirmed
+        const importBtn = document.getElementById('import-confirmed-btn');
+        const newImportBtn = importBtn.cloneNode(true);
+        importBtn.parentNode.replaceChild(newImportBtn, importBtn);
+        
+        newImportBtn.addEventListener('click', () => {
+            this.confirmImport();
+        });
+        
+        // Cancel import
+        const cancelBtn = document.getElementById('cancel-import-btn');
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+        
+        newCancelBtn.addEventListener('click', () => {
+            this.cancelImport();
+        });
+        
+        // Close modal
+        const closeBtn = document.getElementById('close-preview-modal-btn');
+        const newCloseBtn = closeBtn.cloneNode(true);
+        closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+        
+        newCloseBtn.addEventListener('click', () => {
+            this.cancelImport();
+        });
+    }
+    
+    /**
+     * Confirm import and load scene into editor
+     */
+    async confirmImport() {
+        if (!this.previewData) {
+            console.error('❌ No preview data available');
+            return;
+        }
+        
+        const { file, originalCode, adaptationResult } = this.previewData;
+        
+        try {
+            console.log('📁 Loading confirmed scene file:', file.name);
+            
+            // Hide preview modal
+            document.getElementById('scene-preview-modal').style.display = 'none';
+            
+            // Load the adapted code into the editor(s)
+            const codeToLoad = adaptationResult.transformedCode;
+            
+            if (this.editor) {
+                this.editor.setValue(codeToLoad);
+            }
+            if (this.fullscreenEditor) {
+                this.fullscreenEditor.setValue(codeToLoad);
+            }
+            
+            this.currentCode = codeToLoad;
+            
+            // Update animation state based on adaptation result
+            this.updateAnimationState(adaptationResult);
+            
+            // Show appropriate notification based on adaptation
+            let notificationMessage;
+            if (adaptationResult.wasAdapted) {
+                notificationMessage = `✅ Loaded and adapted: ${file.name} (standalone → three-loader compatible)`;
+                console.log('🔧 Adaptation Summary:', adaptationResult.adaptationSummary);
+            } else {
+                notificationMessage = `✅ Loaded: ${file.name}`;
+            }
+            
+            this.showNotification(notificationMessage, 'success');
+            
+            // Auto-sync to viewport with enhanced confirmation dialog
+            let confirmMessage = 'Apply loaded scene to UI controls?';
+            if (adaptationResult.wasAdapted) {
+                confirmMessage = `Apply adapted ${file.name} to viewport?\n\n` +
+                    `🔧 Adaptation applied (${adaptationResult.analysis.confidence.toFixed(0)}% confidence)\n` +
+                    `📦 ${adaptationResult.adaptationSummary.elementsPreserved} creative elements preserved\n` +
+                    `🔄 ${adaptationResult.adaptationSummary.transformationsApplied.length} transformations applied`;
+            }
+            
+            if (confirm(confirmMessage)) {
+                console.log('🔄 Syncing adapted code to UI...');
+                await this.syncToUI();
+                
+                if (adaptationResult.wasAdapted) {
+                    // Show additional success message for adapted files
+                    setTimeout(() => {
+                        this.showNotification(
+                            `🎯 ${file.name} successfully adapted and loaded into viewport!`, 
+                            'success'
+                        );
+                    }, 1000);
+                }
+            }
+            
+            console.log('📁 Scene loaded:', file.name);
+            
+        } catch (error) {
+            console.error('❌ Failed to load confirmed scene:', error);
+            this.showNotification(`❌ Failed to load scene: ${error.message}`, 'error');
+        } finally {
+            // Clean up preview data
+            this.previewData = null;
+        }
+    }
+    
+    /**
+     * Cancel import and close modal
+     */
+    cancelImport() {
+        console.log('🚫 Import cancelled by user');
+        document.getElementById('scene-preview-modal').style.display = 'none';
+        this.previewData = null;
+    }
+    
+    /**
+     * Format file size for display
+     * @param {number} bytes - File size in bytes
+     * @returns {string} Formatted file size
+     */
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 }

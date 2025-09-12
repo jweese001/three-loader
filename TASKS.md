@@ -175,13 +175,13 @@
   - [ ] Add performance optimization patterns
   - [ ] Generate production-ready code for any browser
 
-#### **2.3 - IntelliSense & Documentation**
-- [ ] Enhance Monaco Editor with comprehensive Three.js support
-  - [ ] Add complete Three.js type definitions and autocomplete
-  - [ ] Provide inline documentation and code examples
-  - [ ] Implement smart autocomplete for methods and properties
-  - [ ] Add real-time error checking and suggestions
-  - [ ] Create contextual help system linked to Three.js docs
+#### **2.3 - IntelliSense & Documentation** ✅ **COMPLETE**
+- [x] Enhance Monaco Editor with comprehensive Three.js support
+  - [x] Add complete Three.js type definitions and autocomplete (APIRegistry integration)
+  - [x] Provide inline documentation and code examples (Enhanced hover provider)
+  - [x] Implement smart autocomplete for methods and properties (400%+ API coverage)
+  - [x] Add real-time error checking and suggestions (TypeScript validation)
+  - [x] Create contextual help system linked to Three.js docs (Rich documentation system)
 
 ---
 
@@ -338,6 +338,24 @@ This plan transforms three-loader into a **comprehensive Three.js IDE** while ma
 ## 🚀 Future Enhancements
 
 ### 📋 Planned Features
+- [ ] **Code Comment Verbosity Control System** - Add user controls for generated comment levels
+  - [ ] **Verbosity Settings**: Implement 3-level system (Minimal, Standard, Verbose)
+    - [ ] **Minimal**: Only essential comments (object names, material types)
+    - [ ] **Standard**: Current level minus decorative elements (remove ASCII art, excessive separators)
+    - [ ] **Verbose**: Current full commenting system (keep existing)
+  - [ ] **Export Filtering**: Separate controls for what comments get exported vs displayed in editor
+    - [ ] **Editor View**: Can show full verbose comments for learning/development
+    - [ ] **Export Clean**: Option to export with minimal comments for production code
+    - [ ] **Export Options**: Checkbox controls for including/excluding comment categories
+  - [ ] **UI Implementation**: Add comment control panel in export/settings area
+    - [ ] **Live Preview**: Show comment level changes in real-time in Monaco Editor
+    - [ ] **Template Categories**: Control specific comment types (headers, API docs, usage examples)
+    - [ ] **User Preference Persistence**: Save comment settings per user/project
+  - [ ] **Technical Components**:
+    - [ ] Enhance `CodeTemplateGenerator.js` with comment filtering system
+    - [ ] Add comment verbosity options to `ExportManager.js`
+    - [ ] Create `CommentController.js` for centralized comment management
+    - [ ] Update export UI with comment control checkboxes
 - [ ] **glTF Import and Export Support** - Add .gltf and .glb file support (see gemini-docs/prd-gltf-support.md)
 - [ ] **Advanced Animation Timeline** - Keyframe-based animations with visual timeline editor
 - [ ] **Multiple File Format Support** - FBX, Collada loaders (glTF prioritized)
