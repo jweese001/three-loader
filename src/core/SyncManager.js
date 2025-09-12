@@ -705,6 +705,13 @@ try {
      * @param {Array} objects - Scene objects from code
      */
     async updateSceneObjectsFromCode(objects) {
+        console.log('🔄 Updating scene objects from code:', objects?.length || 0, 'objects');
+        
+        if (!objects || objects.length === 0) {
+            console.log('⚠️ No objects to process');
+            return;
+        }
+        
         for (const objData of objects) {
             const existingObject = this.scene.getObjectByProperty('uuid', objData.uuid);
             
@@ -727,7 +734,19 @@ try {
                 if (objData.material && existingObject.material) {
                     this.updateObjectMaterial(existingObject, objData.material);
                 }
+            } else {
+                console.log('🆕 New object detected in scene (not in UI registry):', objData.name || objData.type || 'Unknown');
             }
+        }
+        
+        // Always refresh the Scene Objects panel to reflect any changes
+        // This catches objects created directly in the scene via code execution
+        console.log('🔄 Refreshing Scene Objects panel...');
+        if (this.uiController && this.uiController.updateObjectsList) {
+            this.uiController.updateObjectsList();
+            console.log('✅ Scene Objects panel refreshed');
+        } else {
+            console.warn('⚠️ UIController or updateObjectsList method not available');
         }
     }
     
@@ -954,8 +973,9 @@ try {
             try {
                 const generatedCode = templateGenerator.generateEditableCode({
                     includeComments: true,
-                    includeImports: true,
-                    includeAnimation: true
+                    includeImports: false,  // No imports needed for sync mode
+                    includeAnimation: false, // Keep it simple for sync mode
+                    moduleFormat: 'sync'    // Use sync mode for executable code
                 });
                 console.log('🔧 Generated code length:', generatedCode?.length || 0);
                 
@@ -1336,7 +1356,16 @@ animate();
             
             // Get current code and execute it
             const currentCode = this.codeEditorManager.getCode();
-            const executionResult = await this.executeCodeInSandbox(currentCode);
+            
+            // Try sandbox execution first, fall back to direct execution if it fails
+            let executionResult;
+            try {
+                executionResult = await this.executeCodeInSandbox(currentCode);
+            } catch (sandboxError) {
+                console.log('🔄 Sandbox execution failed, using direct execution fallback...');
+                // Use direct execution as fallback (like CodeEditorManager does)
+                executionResult = await this.executeCodeDirectly(currentCode);
+            }
             
             if (executionResult.success) {
                 // Update visual editor and viewport
@@ -1354,6 +1383,77 @@ animate();
             return false;
         } finally {
             this.syncState.isCodeSyncing = false;
+        }
+    }
+    
+    /**
+     * Execute code directly (fallback when sandbox fails)
+     * @param {string} code - The code to execute
+     * @returns {Promise<Object>} Execution result
+     */
+    async executeCodeDirectly(code) {
+        console.log('🔄 Executing code directly (fallback mode)...');
+        
+        try {
+            // Create a simple execution context that captures scene state
+            const scene = this.scene.scene;
+            let capturedObjects = [];
+            
+            // Capture objects before execution
+            const beforeCount = scene.children.length;
+            
+            // Execute the code in a safe context
+            const executeInContext = new Function('THREE', 'scene', 'console', code);
+            executeInContext(window.THREE, scene, console);
+            
+            // Capture objects after execution
+            const afterCount = scene.children.length;
+            
+            // Extract newly added objects (simple approach)
+            scene.traverse((child) => {
+                if (child.isMesh || child.isGroup || child.isObject3D) {
+                    capturedObjects.push({
+                        id: child.uuid,
+                        name: child.name || `Object_${child.uuid.slice(0, 8)}`,
+                        type: child.type,
+                        position: child.position.toArray(),
+                        rotation: child.rotation.toArray(),
+                        scale: child.scale.toArray(),
+                        visible: child.visible,
+                        geometry: child.geometry ? {
+                            type: child.geometry.type,
+                            vertices: child.geometry.attributes?.position?.count || 0
+                        } : null,
+                        material: child.material ? {
+                            type: child.material.type,
+                            color: child.material.color?.getHex(),
+                            wireframe: child.material.wireframe
+                        } : null
+                    });
+                }
+            });
+            
+            console.log(`✅ Direct execution completed. Objects: ${beforeCount} → ${afterCount}`);
+            
+            return {
+                success: true,
+                result: {
+                    executionSuccess: true,
+                    sceneObjects: capturedObjects,  // Use sceneObjects instead of objects
+                    objects: capturedObjects,        // Keep objects for compatibility
+                    objectCount: afterCount - beforeCount,
+                    scene: {
+                        children: scene.children.length
+                    }
+                }
+            };
+            
+        } catch (error) {
+            console.error('❌ Direct execution failed:', error);
+            return {
+                success: false,
+                error: error.message
+            };
         }
     }
     

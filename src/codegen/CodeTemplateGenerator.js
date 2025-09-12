@@ -63,6 +63,16 @@ export class CodeTemplateGenerator {
             return this.generateEmptySceneTemplate(includeComments);
         }
         
+        // Check for sync/simple mode
+        if (moduleFormat === 'sync' || moduleFormat === 'simple') {
+            return this.generateSyncModeCode({
+                objects,
+                sceneData,
+                timestamp,
+                includeComments
+            });
+        }
+        
         return this.buildEditableCode({
             objects,
             sceneData,
@@ -74,6 +84,171 @@ export class CodeTemplateGenerator {
             templateType,
             moduleFormat
         });
+    }
+    
+    /**
+     * Generate simple executable code for sync workflow (no imports/exports)
+     * @param {Object} params - Generation parameters
+     * @returns {string} Simple executable Three.js code
+     */
+    generateSyncModeCode({ objects, sceneData, timestamp, includeComments = true }) {
+        const codeLines = [];
+        
+        if (includeComments) {
+            codeLines.push(`// 🔄 Three.js Sync Code - Generated ${timestamp}`);
+            codeLines.push(`// Objects: ${objects.length}`);
+            codeLines.push(`// This code is designed for UI synchronization`);
+            codeLines.push(``);
+        }
+        
+        // Generate simple object creation code for each object
+        objects.forEach((objectData, index) => {
+            const objectCode = this.generateSimpleObjectCode(objectData, index, includeComments);
+            codeLines.push(objectCode);
+            codeLines.push(``); // Empty line between objects
+        });
+        
+        if (includeComments && objects.length === 0) {
+            codeLines.push(`// No objects to sync`);
+        }
+        
+        return codeLines.join('\n');
+    }
+    
+    /**
+     * Generate simple object creation code for sync mode
+     * @param {Object} objectData - Object data
+     * @param {number} index - Object index
+     * @param {boolean} includeComments - Include comments
+     * @returns {string} Simple object creation code
+     */
+    generateSimpleObjectCode(objectData, index, includeComments) {
+        const lines = [];
+        const varName = `object${index + 1}`;
+        const geometryVar = `geometry${index + 1}`;
+        const materialVar = `material${index + 1}`;
+        
+        if (includeComments) {
+            const objectType = objectData.isPrimitive ? 
+                `primitive ${objectData.primitiveType}` : 
+                (objectData.type || 'object');
+            lines.push(`// Create ${objectData.name || 'Object'} (${objectType})`);
+        }
+        
+        // Generate geometry creation
+        if (objectData.isPrimitive) {
+            lines.push(this.generateSimpleGeometryCode(objectData, geometryVar));
+        } else {
+            // For OBJ files, we can't load them in sync mode, so create a placeholder
+            lines.push(`// OBJ files not supported in sync mode - using placeholder box`);
+            lines.push(`const ${geometryVar} = new THREE.BoxGeometry(2, 2, 2);`);
+        }
+        
+        // Generate material creation
+        lines.push(this.generateSimpleMaterialCode(objectData.material, materialVar));
+        
+        // Generate mesh creation
+        lines.push(`const ${varName} = new THREE.Mesh(${geometryVar}, ${materialVar});`);
+        
+        // Apply transform
+        const pos = objectData.position || [0, 0, 0];
+        const rot = objectData.rotation || [0, 0, 0];
+        const scale = objectData.scale || [1, 1, 1];
+        
+        lines.push(`${varName}.position.set(${pos[0]}, ${pos[1]}, ${pos[2]});`);
+        lines.push(`${varName}.rotation.set(${rot[0]}, ${rot[1]}, ${rot[2]});`);
+        lines.push(`${varName}.scale.set(${scale[0]}, ${scale[1]}, ${scale[2]});`);
+        
+        // Set name for identification
+        lines.push(`${varName}.name = '${objectData.name || `Object${index + 1}`}';`);
+        
+        // Add to scene
+        lines.push(`scene.add(${varName});`);
+        
+        return lines.join('\n');
+    }
+    
+    /**
+     * Generate simple geometry creation code
+     * @param {Object} objectData - Object data
+     * @param {string} varName - Variable name
+     * @returns {string} Geometry creation code
+     */
+    generateSimpleGeometryCode(objectData, varName) {
+        const type = objectData.primitiveType || objectData.geometryType;
+        
+        switch (type) {
+            case 'box':
+                return `const ${varName} = new THREE.BoxGeometry(2, 2, 2);`;
+            case 'sphere':
+                return `const ${varName} = new THREE.SphereGeometry(1.5, 32, 16);`;
+            case 'cylinder':
+                return `const ${varName} = new THREE.CylinderGeometry(1, 1, 2, 32);`;
+            case 'cone':
+                return `const ${varName} = new THREE.ConeGeometry(1, 2, 32);`;
+            case 'plane':
+                return `const ${varName} = new THREE.PlaneGeometry(3, 3);`;
+            case 'circle':
+                return `const ${varName} = new THREE.CircleGeometry(1.5, 32);`;
+            case 'ring':
+                return `const ${varName} = new THREE.RingGeometry(0.5, 1.5, 32);`;
+            case 'torus':
+                return `const ${varName} = new THREE.TorusGeometry(1.2, 0.4, 16, 100);`;
+            case 'torusKnot':
+                return `const ${varName} = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);`;
+            case 'dodecahedron':
+                return `const ${varName} = new THREE.DodecahedronGeometry(1.5);`;
+            case 'icosahedron':
+                return `const ${varName} = new THREE.IcosahedronGeometry(1.5);`;
+            case 'octahedron':
+                return `const ${varName} = new THREE.OctahedronGeometry(1.5);`;
+            case 'tetrahedron':
+                return `const ${varName} = new THREE.TetrahedronGeometry(1.5);`;
+            case 'capsule':
+                return `const ${varName} = new THREE.CapsuleGeometry(0.8, 1.6, 4, 8);`;
+            case 'lathe':
+                return `const ${varName} = new THREE.LatheGeometry([/* lathe points */], 12);`;
+            case 'extrude':
+                return `const ${varName} = new THREE.ExtrudeGeometry(/* shape */, { depth: 0.5 });`;
+            default:
+                return `const ${varName} = new THREE.BoxGeometry(2, 2, 2); // Unknown type: ${type}`;
+        }
+    }
+    
+    /**
+     * Generate simple material creation code
+     * @param {Object} materialData - Material configuration
+     * @param {string} varName - Variable name
+     * @returns {string} Material creation code
+     */
+    generateSimpleMaterialCode(materialData, varName) {
+        if (!materialData) {
+            return `const ${varName} = new THREE.MeshStandardMaterial({ color: 0x00ff00 });`;
+        }
+        
+        const type = materialData.type || 'standard';
+        const color = materialData.color || '#00ff00';
+        const wireframe = materialData.wireframe || false;
+        
+        switch (type) {
+            case 'basic':
+                return `const ${varName} = new THREE.MeshBasicMaterial({ color: '${color}', wireframe: ${wireframe} });`;
+            case 'lambert':
+                return `const ${varName} = new THREE.MeshLambertMaterial({ color: '${color}', wireframe: ${wireframe} });`;
+            case 'phong':
+                return `const ${varName} = new THREE.MeshPhongMaterial({ color: '${color}', wireframe: ${wireframe} });`;
+            case 'physical':
+                const roughness = materialData.roughness || 0.5;
+                const metalness = materialData.metalness || 0.0;
+                return `const ${varName} = new THREE.MeshPhysicalMaterial({ color: '${color}', wireframe: ${wireframe}, roughness: ${roughness}, metalness: ${metalness} });`;
+            case 'matcap':
+                return `const ${varName} = new THREE.MeshMatcapMaterial({ color: '${color}' });`;
+            case 'standard':
+            default:
+                const roughnessStd = materialData.roughness || 0.5;
+                const metalnessStd = materialData.metalness || 0.0;
+                return `const ${varName} = new THREE.MeshStandardMaterial({ color: '${color}', wireframe: ${wireframe}, roughness: ${roughnessStd}, metalness: ${metalnessStd} });`;
+        }
     }
     
     /**
@@ -917,7 +1092,7 @@ function setupLighting(scene) {
  * Load all scene objects based on configuration
  */
 async function loadSceneObjects(scene) {
-    const loader = new OBJLoader();
+    const objLoader = new OBJLoader();
     const loadedObjects = [];
     
     // Get all object configurations
@@ -925,19 +1100,29 @@ async function loadSceneObjects(scene) {
         ${this.generateObjectConfigReferences()}
     ];
     
-    // Load each object
+    // Load each object based on its type
     for (const config of objectConfigs) {
         try {
-            console.log(\`🔄 Loading: \${config.fileName}\`);
+            let object;
             
-            const object = await loadOBJObject(loader, config);
+            if (config.type === 'primitive') {
+                // Create primitive geometry directly
+                console.log(\`🔄 Creating primitive: \${config.geometryType}\`);
+                object = createPrimitiveObject(config);
+                console.log(\`✅ Created primitive: \${config.geometryType}\`);
+            } else {
+                // Load OBJ file
+                console.log(\`🔄 Loading OBJ: \${config.fileName}\`);
+                object = await loadOBJObject(objLoader, config);
+                console.log(\`✅ Loaded OBJ: \${config.fileName}\`);
+            }
+            
             scene.add(object);
             loadedObjects.push(object);
             
-            console.log(\`✅ Loaded: \${config.fileName}\`);
-            
         } catch (error) {
-            console.error(\`❌ Failed to load \${config.fileName}:\`, error);
+            const identifier = config.type === 'primitive' ? config.geometryType : config.fileName;
+            console.error(\`❌ Failed to load \${identifier}:\`, error);
         }
     }
     
@@ -953,7 +1138,7 @@ function loadOBJObject(loader, config) {
             config.fileName,
             (object) => {
                 // Apply material
-                const material = this.createMaterialFromConfig(config.material);
+                const material = createMaterialFromConfig(config.material);
                 
                 object.traverse((child) => {
                     if (child.isMesh) {
@@ -974,6 +1159,124 @@ function loadOBJObject(loader, config) {
             reject
         );
     });
+}
+
+/**
+ * Create primitive object with material and transform
+ */
+function createPrimitiveObject(config) {
+    // Create geometry from configuration
+    const geometry = config.geometry;
+    
+    // Create material
+    const material = createMaterialFromConfig(config.material);
+    
+    // Create mesh
+    const mesh = new THREE.Mesh(geometry, material);
+    
+    // Enable shadows
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    
+    // Apply transform
+    mesh.position.set(...config.transform.position);
+    mesh.rotation.set(...config.transform.rotation);
+    mesh.scale.set(...config.transform.scale);
+    
+    return mesh;
+}
+
+/**
+ * Create Three.js material from configuration object
+ */
+function createMaterialFromConfig(materialConfig) {
+    const { type = 'standard', color = '#ffffff', wireframe = false, transparent = false, 
+            opacity = 1.0, roughness = 0.5, metalness = 0.0 } = materialConfig;
+    
+    switch (type) {
+        case 'basic':
+            return new THREE.MeshBasicMaterial({
+                color: new THREE.Color(color),
+                wireframe, transparent, opacity
+            });
+            
+        case 'lambert':
+            return new THREE.MeshLambertMaterial({
+                color: new THREE.Color(color),
+                wireframe, transparent, opacity
+            });
+            
+        case 'phong':
+            return new THREE.MeshPhongMaterial({
+                color: new THREE.Color(color),
+                wireframe, transparent, opacity
+            });
+            
+        case 'physical':
+            return new THREE.MeshPhysicalMaterial({
+                color: new THREE.Color(color),
+                wireframe, transparent, opacity,
+                roughness, metalness
+            });
+            
+        case 'matcap':
+            return new THREE.MeshMatcapMaterial({
+                color: new THREE.Color(color),
+                transparent, opacity
+            });
+            
+        case 'shader':
+            return new THREE.ShaderMaterial({
+                vertexShader: materialConfig.vertexShader || getDefaultVertexShader(),
+                fragmentShader: materialConfig.fragmentShader || getDefaultFragmentShader(),
+                uniforms: materialConfig.uniforms || getDefaultUniforms()
+            });
+            
+        case 'toon':
+            return new THREE.MeshToonMaterial({
+                color: new THREE.Color(color),
+                wireframe, transparent, opacity
+            });
+            
+        case 'normal':
+            return new THREE.MeshNormalMaterial({ wireframe, transparent, opacity });
+            
+        case 'depth':
+            return new THREE.MeshDepthMaterial({ wireframe, transparent, opacity });
+            
+        case 'distance':
+            return new THREE.MeshDistanceMaterial({ wireframe, transparent, opacity });
+            
+        case 'lineDashed':
+            return new THREE.LineDashedMaterial({
+                color: new THREE.Color(color), transparent, opacity,
+                dashSize: 3, gapSize: 1
+            });
+            
+        case 'lineBasic':
+            return new THREE.LineBasicMaterial({
+                color: new THREE.Color(color), transparent, opacity
+            });
+            
+        case 'points':
+            return new THREE.PointsMaterial({
+                color: new THREE.Color(color), transparent, opacity,
+                size: 2, sizeAttenuation: true
+            });
+            
+        case 'sprite':
+            return new THREE.SpriteMaterial({
+                color: new THREE.Color(color), transparent, opacity
+            });
+            
+        case 'standard':
+        default:
+            return new THREE.MeshStandardMaterial({
+                color: new THREE.Color(color),
+                wireframe, transparent, opacity,
+                roughness, metalness
+            });
+    }
 }`;
     }
     
