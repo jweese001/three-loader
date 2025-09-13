@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatCap Material Debug Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .debug-section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        h2 {
+            color: #9dd9d9;
+            margin-top: 0;
+        }
+        
+        pre {
+            background: #0f0f0f;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            overflow-x: auto;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        
+        .error {
+            color: #ff6b6b;
+        }
+        
+        .success {
+            color: #4ade80;
+        }
+        
+        .warning {
+            color: #fbbf24;
+        }
+        
+        button {
+            background: #9dd9d9;
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #7cc7c7;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 MatCap Material Debug Test</h1>
+    <p>Specific test for MatCap material preservation issues.</p>
+    
+    <div class="debug-section">
+        <h2>📋 Test Object Data</h2>
+        <pre id="object-data"></pre>
+        <button onclick="generateTestObject()">Generate Test Object</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🔧 Generated Code</h2>
+        <pre id="generated-code"></pre>
+        <button onclick="generateCode()">Generate Code</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🔍 MatCap Analysis</h2>
+        <pre id="matcap-analysis"></pre>
+    </div>
+
+    <script type="module">
+        import { CodeTemplateGenerator } from './src/codegen/CodeTemplateGenerator.js';
+        
+        // Mock scene and object manager
+        class MockScene {
+            exportSceneData() {
+                return {
+                    background: 0x0f0f0f,
+                    camera: { position: [0, 5, 10], fov: 75 },
+                    lighting: {}
+                };
+            }
+        }
+        
+        class MockObjectManager {
+            constructor() {
+                this.testObject = null;
+            }
+            
+            getAllObjects() {
+                return this.testObject ? [this.testObject] : [];
+            }
+            
+            generateMatCapTestObject() {
+                // Test object with MatCap material - specifically targeting the issue
+                this.testObject = {
+                    id: 1,
+                    name: 'MatCap_Test_Object',
+                    isPrimitive: true,
+                    primitiveType: 'sphere',
+                    material: {
+                        type: 'matcap',
+                        color: '#ffffff',
+                        wireframe: false,
+                        opacity: 1,
+                        // Test multiple possible texture property structures
+                        texture: {
+                            filename: 'MatCap-Textures/gray/gray_01.webp',
+                            file: null // Would be actual File object in real usage
+                        },
+                        matcapTexture: 'MatCap-Textures/gray/gray_01.webp',
+                        matcap: 'MatCap-Textures/gray/gray_01.webp'
+                    },
+                    transform: {
+                        position: { x: 0, y: 0, z: 0 },
+                        rotation: { x: 0, y: 0, z: 0 },
+                        scale: { x: 1, y: 1, z: 1 }
+                    },
+                    animation: {
+                        type: 'rotate-y',
+                        speed: 1
+                    }
+                };
+                
+                return this.testObject;
+            }
+        }
+        
+        // Initialize components
+        let mockScene, mockObjectManager, codeGenerator;
+        
+        try {
+            mockScene = new MockScene();
+            mockObjectManager = new MockObjectManager();
+            codeGenerator = new CodeTemplateGenerator(mockScene, mockObjectManager);
+            console.log('✅ MatCap debug test initialized successfully');
+        } catch (error) {
+            console.error('❌ Initialization error:', error);
+            document.getElementById('matcap-analysis').innerHTML = `<span class="error">Initialization failed: ${error.message}</span>`;
+        }
+        
+        // Debug functions
+        window.generateTestObject = function() {
+            try {
+                const testObj = mockObjectManager.generateMatCapTestObject();
+                document.getElementById('object-data').textContent = JSON.stringify(testObj, null, 2);
+                console.log('✅ Test MatCap object generated:', testObj);
+                
+                // Analyze the material structure
+                const material = testObj.material;
+                const analysis = [];
+                analysis.push('🔍 Material Structure Analysis:');
+                analysis.push(`Type: ${material.type}`);
+                analysis.push(`Color: ${material.color}`);
+                analysis.push(`Texture.filename: ${material.texture?.filename || 'NOT SET'}`);
+                analysis.push(`MatcapTexture: ${material.matcapTexture || 'NOT SET'}`);
+                analysis.push(`Matcap: ${material.matcap || 'NOT SET'}`);
+                
+                document.getElementById('matcap-analysis').innerHTML = analysis.join('\\n');
+                
+            } catch (error) {
+                console.error('❌ Error generating test object:', error);
+                document.getElementById('object-data').innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        };
+        
+        window.generateCode = function() {
+            try {
+                const objects = mockObjectManager.getAllObjects();
+                if (objects.length === 0) {
+                    document.getElementById('generated-code').innerHTML = '<span class="warning">No test object. Generate test object first.</span>';
+                    return;
+                }
+                
+                const sceneData = mockScene.exportSceneData();
+                
+                // Test sync mode code generation (what's actually used)
+                const code = codeGenerator.generateSyncModeCode({
+                    objects,
+                    sceneData,
+                    timestamp: new Date().toISOString(),
+                    includeComments: true
+                });
+                
+                document.getElementById('generated-code').textContent = code;
+                
+                // Analyze the generated code for MatCap handling
+                analyzeMatCapInCode(code, objects[0]);
+                
+            } catch (error) {
+                console.error('❌ Error generating code:', error);
+                document.getElementById('generated-code').innerHTML = `<span class="error">Error: ${error.message}</span>`;
+                document.getElementById('matcap-analysis').innerHTML = `<span class="error">Code generation failed: ${error.stack}</span>`;
+            }
+        };
+        
+        function analyzeMatCapInCode(code, testObj) {
+            const analysis = [];
+            
+            // Check for MatCap material creation
+            const matcapMaterialPattern = /MeshMatcapMaterial/g;
+            const matcapMatches = code.match(matcapMaterialPattern) || [];
+            
+            // Check for texture loading
+            const textureLoadPattern = /TextureLoader.*load.*MatCap-Textures/g;
+            const textureMatches = code.match(textureLoadPattern) || [];
+            
+            // Check for matcap property assignment
+            const matcapPropertyPattern = /matcap:.*texture/g;
+            const propertyMatches = code.match(matcapPropertyPattern) || [];
+            
+            analysis.push('🔍 Generated Code Analysis:');
+            analysis.push('');
+            analysis.push(`✅ MeshMatcapMaterial found: ${matcapMatches.length > 0 ? 'YES' : 'NO'}`);
+            analysis.push(`✅ MatCap texture loading found: ${textureMatches.length > 0 ? 'YES' : 'NO'}`);
+            analysis.push(`✅ MatCap property assignment found: ${propertyMatches.length > 0 ? 'YES' : 'NO'}`);
+            analysis.push('');
+            
+            if (matcapMatches.length > 0) {
+                analysis.push(`📊 MeshMatcapMaterial instances: ${matcapMatches.length}`);
+            }
+            
+            if (textureMatches.length > 0) {
+                analysis.push(`📊 Texture loads: ${textureMatches.length}`);
+                textureMatches.forEach((match, i) => {
+                    analysis.push(`  ${i + 1}: ${match}`);
+                });
+            }
+            
+            if (propertyMatches.length > 0) {
+                analysis.push(`📊 Property assignments: ${propertyMatches.length}`);
+                propertyMatches.forEach((match, i) => {
+                    analysis.push(`  ${i + 1}: ${match}`);
+                });
+            }
+            
+            // Check expected vs found
+            const expectedMatCaps = 1; // We have 1 MatCap object
+            const foundMatCaps = matcapMatches.length;
+            const foundTextures = textureMatches.length;
+            const foundProperties = propertyMatches.length;
+            
+            analysis.push('');
+            analysis.push('📋 Expected vs Found:');
+            analysis.push(`MatCap materials: expected ${expectedMatCaps}, found ${foundMatCaps}`);
+            analysis.push(`Texture loads: expected ${expectedMatCaps}, found ${foundTextures}`);
+            analysis.push(`Property assignments: expected ${expectedMatCaps}, found ${foundProperties}`);
+            
+            // Determine issues
+            const issues = [];
+            if (foundMatCaps !== expectedMatCaps) {
+                issues.push(`❌ MatCap material count mismatch`);
+            }
+            if (foundTextures < expectedMatCaps) {
+                issues.push(`❌ Missing texture loading for MatCap`);
+            }
+            if (foundProperties < expectedMatCaps) {
+                issues.push(`❌ Missing matcap property assignment`);
+            }
+            
+            if (issues.length === 0) {
+                analysis.push('');
+                analysis.push('✅ No issues found - MatCap handling looks correct!');
+            } else {
+                analysis.push('');
+                analysis.push('🚨 Issues Found:');
+                issues.forEach(issue => analysis.push(issue));
+            }
+            
+            document.getElementById('matcap-analysis').innerHTML = analysis.join('\\n');
+        }
+        
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                generateTestObject();
+                setTimeout(() => {
+                    generateCode();
+                }, 200);
+            }, 100);
+        });
+    </script>
+</body>
+</html>

@@ -601,16 +601,7 @@ try {
                         type: object.geometry.type,
                         parameters: object.geometry.parameters
                     } : null,
-                    material: object.material ? {
-                        uuid: object.material.uuid,
-                        type: object.material.type,
-                        color: object.material.color ? object.material.color.getHex() : null,
-                        opacity: object.material.opacity,
-                        transparent: object.material.transparent,
-                        wireframe: object.material.wireframe,
-                        roughness: object.material.roughness,
-                        metalness: object.material.metalness
-                    } : null
+                    material: object.material ? this.serializeMaterial(object.material) : null
                 });
             }
             
@@ -823,7 +814,39 @@ try {
             this.updateUIInput('material-metalness', materialData.metalness);
         }
         
+        // Handle MatCap material type and texture
+        if (materialData.type === 'MeshMatcapMaterial' && materialData.matcapTexture) {
+            console.log('🎨 MatCap material detected in To UI sync:', materialData);
+            
+            // Update material type in UI
+            this.updateUIInput('material-type', 'matcap');
+            
+            // If this is a MatCap material, we need to update the ObjectManager data
+            // Find the object in ObjectManager and update its material data
+            const objectInManager = this.findObjectInManager(object);
+            if (objectInManager) {
+                console.log('🔄 Updating ObjectManager material data with MatCap info');
+                objectInManager.material.type = 'matcap';
+                objectInManager.material.matcapTexture = materialData.matcapTexture;
+                if (materialData.texture) {
+                    objectInManager.material.texture = materialData.texture;
+                }
+            }
+        }
+        
         material.needsUpdate = true;
+    }
+    
+    /**
+     * Find an object in ObjectManager by matching its scene object
+     * @param {THREE.Object3D} sceneObject - The Three.js scene object
+     * @returns {Object|null} ObjectManager object data or null
+     */
+    findObjectInManager(sceneObject) {
+        if (!this.objectManager) return null;
+        
+        const allObjects = this.objectManager.getAllObjects();
+        return allObjects.find(obj => obj.sceneObject === sceneObject) || null;
     }
     
     /**
@@ -1215,7 +1238,7 @@ try {
      * @returns {Object} Serialized material
      */
     serializeMaterial(material) {
-        return {
+        const serialized = {
             type: material.type,
             color: material.color ? material.color.getHex() : null,
             opacity: material.opacity,
@@ -1224,6 +1247,20 @@ try {
             roughness: material.roughness,
             metalness: material.metalness
         };
+        
+        // Add MatCap texture information if present
+        if (material.type === 'MeshMatcapMaterial' && material.matcap) {
+            // Try to extract texture source from the matcap texture
+            if (material.matcap.source && material.matcap.source.data && material.matcap.source.data.src) {
+                const textureSrc = material.matcap.source.data.src;
+                // Extract filename from the full path/URL
+                const filename = textureSrc.split('/').pop();
+                serialized.matcapTexture = textureSrc;
+                serialized.texture = { filename };
+            }
+        }
+        
+        return serialized;
     }
     
     /**
@@ -1424,11 +1461,7 @@ animate();
                             type: child.geometry.type,
                             vertices: child.geometry.attributes?.position?.count || 0
                         } : null,
-                        material: child.material ? {
-                            type: child.material.type,
-                            color: child.material.color?.getHex(),
-                            wireframe: child.material.wireframe
-                        } : null
+                        material: child.material ? this.serializeMaterial(child.material) : null
                     });
                 }
             });

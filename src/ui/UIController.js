@@ -247,9 +247,12 @@ export class UIController {
                 this.updateObjectsList();
                 this.updateMaterialControls(null);
                 this.updateTransformControls(null);
-                // Auto-sync code editor after clearing scene
-                setTimeout(() => this.triggerCodeSync(), 100);
                 this.updateAnimationControls(null);
+                
+                // Clear code editor instead of syncing with empty scene
+                if (this.codeEditorManager) {
+                    this.codeEditorManager.setCode('// Scene cleared - ready for new code\n');
+                }
                 
                 // Update export button state
                 this.updateExportButtonState();

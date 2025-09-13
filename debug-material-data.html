@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Material Data Debug</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .debug-section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        h2 {
+            color: #9dd9d9;
+            margin-top: 0;
+        }
+        
+        pre {
+            background: #0f0f0f;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            overflow-x: auto;
+            font-size: 11px;
+            white-space: pre-wrap;
+        }
+        
+        .error {
+            color: #ff6b6b;
+        }
+        
+        .success {
+            color: #4ade80;
+        }
+        
+        .warning {
+            color: #fbbf24;
+        }
+        
+        button {
+            background: #9dd9d9;
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Real Material Data Debug</h1>
+    <p>This will connect to the real three-loader app and inspect actual material data.</p>
+    
+    <div class="debug-section">
+        <h2>📊 Current Objects from ObjectManager</h2>
+        <pre id="objects-data">Click "Get Real Data" to inspect current objects...</pre>
+        <button onclick="getRealObjectData()">Get Real Data</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🎯 MatCap Material Analysis</h2>
+        <pre id="matcap-analysis">Will analyze MatCap materials when data is loaded...</pre>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🔧 Generated Code Test</h2>
+        <pre id="generated-code">Will test code generation with real data...</pre>
+        <button onclick="testCodeGeneration()">Test Code Generation</button>
+    </div>
+
+    <script type="module">
+        // This script will access the real three-loader app's ObjectManager
+        
+        let realObjectManager = null;
+        let realScene = null;
+        
+        // Try to access the parent window's app (if this is opened from the main app)
+        function findRealApp() {
+            try {
+                // Check if we can access parent window
+                if (window.opener && window.opener.appInstance) {
+                    return window.opener.appInstance;
+                }
+                
+                // Check if there's a global app instance
+                if (window.appInstance) {
+                    return window.appInstance;
+                }
+                
+                // Try to access from main window
+                if (window.parent && window.parent !== window && window.parent.appInstance) {
+                    return window.parent.appInstance;
+                }
+                
+                return null;
+            } catch (error) {
+                console.log('Cannot access parent app:', error.message);
+                return null;
+            }
+        }
+        
+        window.getRealObjectData = function() {
+            try {
+                const app = findRealApp();
+                if (!app) {
+                    document.getElementById('objects-data').innerHTML = 
+                        '<span class="warning">⚠️ Cannot access main app. Please open this from the three-loader app or in the same browser context.</span>';
+                    return;
+                }
+                
+                realObjectManager = app.objectManager;
+                realScene = app.scene;
+                
+                if (!realObjectManager) {
+                    document.getElementById('objects-data').innerHTML = 
+                        '<span class="error">❌ ObjectManager not found in main app</span>';
+                    return;
+                }
+                
+                const objects = realObjectManager.getAllObjects();
+                document.getElementById('objects-data').textContent = JSON.stringify(objects, null, 2);
+                
+                // Analyze MatCap materials
+                analyzeMatCapMaterials(objects);
+                
+                console.log('✅ Real object data retrieved:', objects);
+                
+            } catch (error) {
+                console.error('❌ Error getting real data:', error);
+                document.getElementById('objects-data').innerHTML = 
+                    `<span class="error">Error: ${error.message}</span>`;
+            }
+        };
+        
+        function analyzeMatCapMaterials(objects) {
+            const analysis = [];
+            const matcapObjects = objects.filter(obj => obj.material && obj.material.type === 'matcap');
+            
+            analysis.push(`🔍 Total objects: ${objects.length}`);
+            analysis.push(`🎨 MatCap objects: ${matcapObjects.length}`);
+            analysis.push('');
+            
+            if (matcapObjects.length === 0) {
+                analysis.push('⚠️ No MatCap materials found. Create a MatCap object in the main app first.');
+            } else {
+                matcapObjects.forEach((obj, index) => {
+                    analysis.push(`📝 MatCap Object ${index + 1}: ${obj.name || 'Unnamed'}`);
+                    analysis.push(`   Type: ${obj.material.type}`);
+                    analysis.push(`   Color: ${obj.material.color}`);
+                    analysis.push(`   Texture structure:`);
+                    
+                    if (obj.material.texture) {
+                        analysis.push(`     texture.filename: ${obj.material.texture.filename || 'NOT SET'}`);
+                        analysis.push(`     texture.file: ${obj.material.texture.file ? 'File object present' : 'NOT SET'}`);
+                    } else {
+                        analysis.push(`     texture: NOT SET`);
+                    }
+                    
+                    analysis.push(`   matcap: ${obj.material.matcap || 'NOT SET'}`);
+                    analysis.push(`   matcapTexture: ${obj.material.matcapTexture || 'NOT SET'}`);
+                    analysis.push('');
+                });
+            }
+            
+            document.getElementById('matcap-analysis').textContent = analysis.join('\\n');
+        }
+        
+        window.testCodeGeneration = async function() {
+            try {
+                if (!realObjectManager || !realScene) {
+                    document.getElementById('generated-code').innerHTML = 
+                        '<span class="warning">⚠️ Get real data first</span>';
+                    return;
+                }
+                
+                // Import the CodeTemplateGenerator
+                const { CodeTemplateGenerator } = await import('./src/codegen/CodeTemplateGenerator.js');
+                
+                const codeGenerator = new CodeTemplateGenerator(realScene, realObjectManager);
+                const objects = realObjectManager.getAllObjects();
+                const sceneData = realScene.exportSceneData();
+                
+                // Test sync mode code generation (what "From UI" actually uses)
+                const code = codeGenerator.generateSyncModeCode({
+                    objects,
+                    sceneData,
+                    timestamp: new Date().toISOString(),
+                    includeComments: true
+                });
+                
+                document.getElementById('generated-code').textContent = code;
+                
+                // Analyze the generated code for MatCap issues
+                analyzeGeneratedCode(code, objects);
+                
+            } catch (error) {
+                console.error('❌ Error testing code generation:', error);
+                document.getElementById('generated-code').innerHTML = 
+                    `<span class="error">Error: ${error.message}\\n${error.stack}</span>`;
+            }
+        };
+        
+        function analyzeGeneratedCode(code, objects) {
+            const analysis = [];
+            const matcapObjects = objects.filter(obj => obj.material && obj.material.type === 'matcap');
+            
+            if (matcapObjects.length === 0) {
+                analysis.push('\\n🔍 No MatCap objects to analyze in generated code.');
+                document.getElementById('matcap-analysis').innerHTML += analysis.join('\\n');
+                return;
+            }
+            
+            analysis.push('\\n🔧 Generated Code Analysis:');
+            
+            // Check for MeshMatcapMaterial
+            const matcapMaterialPattern = /MeshMatcapMaterial/g;
+            const matcapMatches = code.match(matcapMaterialPattern) || [];
+            
+            // Check for texture loading
+            const textureLoadPattern = /TextureLoader.*load/g;
+            const textureMatches = code.match(textureLoadPattern) || [];
+            
+            // Check for specific texture paths
+            const matcapTexturePattern = /MatCap-Textures/g;
+            const pathMatches = code.match(matcapTexturePattern) || [];
+            
+            analysis.push(`MeshMatcapMaterial found: ${matcapMatches.length} (expected: ${matcapObjects.length})`);
+            analysis.push(`Texture loads found: ${textureMatches.length}`);
+            analysis.push(`MatCap texture paths found: ${pathMatches.length}`);
+            
+            if (matcapMatches.length !== matcapObjects.length) {
+                analysis.push('❌ ISSUE: MatCap material count mismatch!');
+            }
+            
+            if (textureMatches.length === 0 && matcapObjects.length > 0) {
+                analysis.push('❌ ISSUE: No texture loading found for MatCap materials!');
+            }
+            
+            if (pathMatches.length === 0 && textureMatches.length > 0) {
+                analysis.push('❌ ISSUE: Texture loading found but no MatCap-Textures paths!');
+            }
+            
+            document.getElementById('matcap-analysis').innerHTML += analysis.join('\\n');
+        }
+        
+        // Auto-check for real app connection
+        window.addEventListener('load', () => {
+            const app = findRealApp();
+            if (app) {
+                document.getElementById('objects-data').innerHTML = 
+                    '<span class="success">✅ Connected to main app. Click "Get Real Data" to inspect objects.</span>';
+            } else {
+                document.getElementById('objects-data').innerHTML = 
+                    '<span class="warning">⚠️ Not connected to main app. Open this from the three-loader interface.</span>';
+            }
+        });
+    </script>
+</body>
+</html>

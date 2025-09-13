@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Folder System Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f0f0f;
+            color: white;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(157, 217, 217, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        h1, h2 {
+            color: #9dd9d9;
+            margin-top: 0;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #9dd9d9, #7cc7c7);
+            color: #0f0f0f;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .log-output {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .success {
+            color: #4ade80;
+        }
+        
+        .error {
+            color: #ef4444;
+        }
+        
+        .warning {
+            color: #f59e0b;
+        }
+        
+        .info {
+            color: #3b82f6;
+        }
+        
+        .result-display {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .file-tree {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #9dd9d9, #7cc7c7);
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Export Folder System Test</h1>
+    <p>Test the new complete project folder export functionality for the 3/LOADER application.</p>
+    
+    <div class="test-section">
+        <h2>📋 Test Scene Setup</h2>
+        <p>Create a test scene with various object types to verify export functionality.</p>
+        <button id="setupScene">Setup Test Scene</button>
+        <button id="clearScene">Clear Scene</button>
+        <div id="sceneStatus" class="log-output" style="min-height: 100px;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📁 Export Folder Tests</h2>
+        <p>Test different export modes and verify file generation.</p>
+        <div style="margin: 15px 0;">
+            <button id="testMinimalExport">Test Minimal Export</button>
+            <button id="testCompleteExport">Test Complete Export</button>
+            <button id="testDevelopmentExport">Test Development Export</button>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="exportProgress"></div>
+        </div>
+        
+        <div id="exportLog" class="log-output" style="min-height: 200px;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📄 Export Results</h2>
+        <div id="exportResults" class="result-display">
+            <em>No exports generated yet. Run a test above to see results.</em>
+        </div>
+    </div>
+    
+    <script type="module">
+        // Import the export system
+        import { ProjectExporter } from './src/export/ProjectExporter.js';
+        import { AssetCollector } from './src/export/AssetCollector.js';
+        import { HTMLGenerator } from './src/export/HTMLGenerator.js';
+        import { SceneCodeGenerator } from './src/export/SceneCodeGenerator.js';
+        
+        // Mock scene and object manager for testing
+        class MockScene {
+            exportSceneData() {
+                return {
+                    background: 0x0f0f0f,
+                    camera: {
+                        position: [0, 5, 10],
+                        fov: 75
+                    },
+                    lighting: [
+                        { type: 'ambient', color: '0x404040', intensity: 0.4 },
+                        { type: 'directional', color: '0xffffff', intensity: 1, position: [20, 20, 20], castShadow: true }
+                    ],
+                    objects: []
+                };
+            }
+        }
+        
+        class MockObjectManager {
+            constructor() {
+                this.objects = [];
+            }
+            
+            getAllObjects() {
+                return this.objects;
+            }
+            
+            addTestObjects() {
+                this.objects = [
+                    {
+                        name: 'TestCube',
+                        isPrimitive: true,
+                        primitiveType: 'box',
+                        material: {
+                            type: 'standard',
+                            color: '#ff6b6b',
+                            wireframe: false,
+                            opacity: 1,
+                            roughness: 0.5,
+                            metalness: 0.2
+                        },
+                        transform: {
+                            position: { x: -2, y: 0, z: 0 },
+                            rotation: { x: 0, y: 0, z: 0 },
+                            scale: { x: 1, y: 1, z: 1 }
+                        },
+                        animation: { type: 'rotate-y', speed: 1 }
+                    },
+                    {
+                        name: 'TestSphere',
+                        isPrimitive: true,
+                        primitiveType: 'sphere',
+                        material: {
+                            type: 'matcap',
+                            color: '#4ecdc4',
+                            wireframe: false,
+                            opacity: 1
+                        },
+                        transform: {
+                            position: { x: 2, y: 0, z: 0 },
+                            rotation: { x: 0, y: 0, z: 0 },
+                            scale: { x: 1, y: 1, z: 1 }
+                        },
+                        animation: { type: 'bounce', speed: 2 }
+                    },
+                    {
+                        name: 'TestOBJ',
+                        isPrimitive: false,
+                        fileName: 'spiked.obj',
+                        material: {
+                            type: 'phong',
+                            color: '#9dd9d9',
+                            wireframe: true,
+                            opacity: 0.8
+                        },
+                        transform: {
+                            position: { x: 0, y: 2, z: 0 },
+                            rotation: { x: 0, y: 0, z: 0 },
+                            scale: { x: 1, y: 1, z: 1 }
+                        },
+                        animation: { type: 'rotate-xyz', speed: 0.5 },
+                        stats: { meshes: 1, vertices: 1542, faces: 2880 }
+                    }
+                ];
+            }
+            
+            clearObjects() {
+                this.objects = [];
+            }
+        }
+        
+        // Initialize test components
+        const mockScene = new MockScene();
+        const mockObjectManager = new MockObjectManager();
+        const projectExporter = new ProjectExporter(mockScene, mockObjectManager);
+        
+        // Logging utilities
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('exportLog');
+            const sceneLogElement = document.getElementById('sceneStatus');
+            
+            const logLine = document.createElement('div');
+            logLine.className = type;
+            logLine.textContent = `[${timestamp}] ${message}`;
+            
+            if (message.includes('Scene') || message.includes('objects')) {
+                sceneLogElement.appendChild(logLine);
+                sceneLogElement.scrollTop = sceneLogElement.scrollHeight;
+            } else {
+                logElement.appendChild(logLine);
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+        }
+        
+        function updateProgress(percent) {
+            document.getElementById('exportProgress').style.width = percent + '%';
+        }
+        
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('exportResults');
+            
+            if (!results.success) {
+                resultsDiv.innerHTML = `<div class="error">Export Failed: ${results.error}</div>`;
+                return;
+            }
+            
+            const fileList = Object.keys(results.files).map(filename => {
+                const size = results.files[filename].length;
+                return `<div>📄 ${filename} (${(size / 1024).toFixed(1)} KB)</div>`;
+            }).join('');
+            
+            resultsDiv.innerHTML = `
+                <div class="success">✅ Export Successful</div>
+                <div><strong>Project:</strong> ${results.projectName}</div>
+                <div><strong>Assets:</strong> ${results.assets.totalAssets} items</div>
+                <div><strong>Generation Time:</strong> ${results.generationTime}ms</div>
+                <div class="file-tree">
+                    <div><strong>Generated Files:</strong></div>
+                    ${fileList}
+                </div>
+            `;
+        }
+        
+        // Test functions
+        async function setupTestScene() {
+            log('Setting up test scene with multiple object types...', 'info');
+            mockObjectManager.addTestObjects();
+            
+            const objects = mockObjectManager.getAllObjects();
+            log(`Scene setup complete: ${objects.length} objects created`, 'success');
+            
+            objects.forEach((obj, i) => {
+                log(`  ${i + 1}. ${obj.name} (${obj.isPrimitive ? obj.primitiveType : 'OBJ file'})`, 'info');
+            });
+        }
+        
+        function clearTestScene() {
+            log('Clearing test scene...', 'info');
+            mockObjectManager.clearObjects();
+            log('Scene cleared', 'success');
+            
+            // Clear results
+            document.getElementById('exportResults').innerHTML = '<em>No exports generated yet. Run a test above to see results.</em>';
+        }
+        
+        async function testExport(exportType) {
+            const startTime = Date.now();
+            updateProgress(0);
+            
+            try {
+                const objects = mockObjectManager.getAllObjects();
+                if (objects.length === 0) {
+                    log('No objects in scene. Setting up test scene first...', 'warning');
+                    await setupTestScene();
+                }
+                
+                log(`Starting ${exportType} export...`, 'info');
+                updateProgress(20);
+                
+                const options = getExportOptions(exportType);
+                log(`Export options: ${JSON.stringify(options, null, 2)}`, 'info');
+                updateProgress(40);
+                
+                const result = await projectExporter.exportProject(options);
+                updateProgress(80);
+                
+                const endTime = Date.now();
+                result.generationTime = endTime - startTime;
+                
+                log(`Export completed in ${result.generationTime}ms`, 'success');
+                updateProgress(100);
+                
+                displayResults(result);
+                
+            } catch (error) {
+                log(`Export failed: ${error.message}`, 'error');
+                console.error('Export error:', error);
+                updateProgress(0);
+                
+                displayResults({
+                    success: false,
+                    error: error.message
+                });
+            }
+        }
+        
+        function getExportOptions(type) {
+            const baseOptions = {
+                projectName: `ThreeJS_Test_${type}_${Date.now()}`,
+                includeComments: true,
+                includeAnimations: true
+            };
+            
+            switch (type) {
+                case 'minimal':
+                    return {
+                        ...baseOptions,
+                        useLocalLibraries: false,
+                        minified: true,
+                        includeStats: false
+                    };
+                    
+                case 'development':
+                    return {
+                        ...baseOptions,
+                        useLocalLibraries: true,
+                        includeStats: true,
+                        developmentMode: true
+                    };
+                    
+                case 'complete':
+                default:
+                    return {
+                        ...baseOptions,
+                        useLocalLibraries: false,
+                        includeStats: false
+                    };
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('setupScene').addEventListener('click', setupTestScene);
+        document.getElementById('clearScene').addEventListener('click', clearTestScene);
+        
+        document.getElementById('testMinimalExport').addEventListener('click', () => {
+            testExport('minimal');
+        });
+        
+        document.getElementById('testCompleteExport').addEventListener('click', () => {
+            testExport('complete');
+        });
+        
+        document.getElementById('testDevelopmentExport').addEventListener('click', () => {
+            testExport('development');
+        });
+        
+        // Initialize
+        log('Export Folder System Test initialized', 'success');
+        log('Click "Setup Test Scene" to begin testing', 'info');
+    </script>
+</body>
+</html>

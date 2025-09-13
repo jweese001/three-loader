@@ -3,34 +3,95 @@
 ## 📝 Project Overview
 This is the **3/LOADER** project (v0.0.7) - a Three.js OBJ loader and editor with advanced editing capabilities and primitive geometry support.
 
-## 🎯 Current Status (September 9, 2025)
-- **Application Name**: 3/LOADER v0.0.8 (Phase 2.3 Complete + Critical Bug Fixes)
-- **Branch**: main (comprehensive Three.js development environment)
-- **Phase 2**: ✅ **FULLY COMPLETE** - Extended Three.js API Coverage with comprehensive IntelliSense
-- **From UI Button**: ✅ **FIXED** - Critical synchronization functionality restored
-- **Live Code Generation**: ✅ FULLY IMPLEMENTED with comprehensive API support
-- **Monaco Editor IntelliSense**: ✅ **NEW** - Complete Three.js API with 400%+ coverage expansion
+## 🎯 Current Status (September 13, 2025)
+- **Application Name**: 3/LOADER v0.0.8 (From UI → To UI Workflow Issues)  
+- **Branch**: animation-preservation (partial fixes applied)
+- **From UI → To UI Workflow**: ⚠️ **PARTIALLY WORKING** - Multiple issues identified and partially resolved
+- **Sync Mode**: ✅ Code generation working, ⚠️ "To UI" parsing has remaining issues
+- **Next Phase**: **Editable ThreeJS Code View** and **Standalone Export System**
+- **Monaco Editor IntelliSense**: ✅ Complete Three.js API with 400%+ coverage expansion
 - **UI**: ✅ Modern interface with professional layout and responsive design
-- **MatCap System**: ✅ FULLY IMPLEMENTED with MeshMatcapMaterial
+- **MatCap System**: ⚠️ Code generation fixed, "To UI" persistence still has issues
+- **Animation System**: ⚠️ Orbit/Bounce/XYZ rotation partially fixed, some issues remain
 - **Primitive Geometry System**: ✅ FULLY IMPLEMENTED with 20+ geometry types
 - **Advanced Lighting**: ✅ FULLY IMPLEMENTED with 10+ light types and shadows
 - **Post-Processing**: ✅ FULLY IMPLEMENTED with 15+ visual effects
-- **Bug Fixes**: ✅ All critical issues resolved - production ready
 
-## ✅ Recently Completed Features (September 9, 2025)
+## ⚠️ Recently Worked Issues (September 13, 2025)
 
-### **LATEST: Critical Bug Fixes Session (September 12, 2025)**
-- **From UI Button Restoration**: Fixed critical "Failed to sync UI Controls" error preventing bidirectional sync
-- **APIRegistry Method Fixes**: Corrected invalid method calls in CodeTemplateGenerator
-  - Fixed `sceneComponents.apiRegistry.getGeometryTypes()` → `Object.keys(sceneComponents.apiRegistry.geometries)`
-  - Fixed `sceneComponents.apiRegistry.getMaterialTypes()` → `Object.keys(sceneComponents.apiRegistry.materials)`
-  - Fixed `sceneComponents.apiRegistry.getLightTypes()` → `Object.keys(sceneComponents.apiRegistry.lights)`
-- **Error Resolution**: Eliminated "Cannot read properties of undefined" errors from API method calls
-- **SyncManager Error Handling**: Enhanced error messaging to clarify expected behavior
-  - Changed error messages to informational warnings explaining ExportManager is the stable workflow
-  - Removed misleading "Failed to initialize SyncManager" errors that suggested system malfunction
-- **Code Generation**: From UI button now successfully generates editable Three.js code from visual state
-- **Console Cleanup**: Resolved error messages that appeared during normal operation
+### **LATEST: From UI → To UI Workflow Issues (September 13, 2025)**
+**🔧 PARTIAL FIXES APPLIED**: Multiple issues identified and partially resolved in the bidirectional sync workflow.
+
+#### **⚠️ Issues Identified and Partially Fixed**:
+1. **Bounce Animation Persistence**: ✅ FIXED - Now preserves original Y position for bouncing from correct base height
+2. **MatCap Material Code Generation**: ✅ FIXED - Enhanced path reconstruction for incomplete texture paths ('07.webp' → 'MatCap-Textures/gray/gray_07.webp')
+3. **XYZ Rotation Animation**: ✅ FIXED - Updated speed multipliers to match UI behavior (0.7x, 1x, 0.3x instead of uniform speeds)
+4. **Orbit Animation Missing**: ✅ FIXED - Added missing orbit animation case in sync mode code generation
+5. **MatCap Material "To UI" Persistence**: ⚠️ **STILL HAS ISSUES** - Code generation works but SyncManager material parsing needs enhancement
+
+#### **⚠️ Remaining Issues**:
+- **Code View "From UI → To UI" Workflow**: Still has unresolved issues with material and animation persistence
+- **MatCap Texture Data**: "To UI" direction not properly capturing MatCap texture information from executed code
+- **Material Serialization**: SyncManager needs enhanced material parsing for complex material types
+
+#### **📝 Technical Fixes Applied**:
+- **CodeTemplateGenerator**: Fixed bounce animation to preserve original Y position instead of overwriting
+- **CodeTemplateGenerator**: Enhanced MatCap texture path reconstruction for incomplete paths
+- **CodeTemplateGenerator**: Updated XYZ rotation speeds to match UI behavior (varied instead of uniform)
+- **CodeTemplateGenerator**: Added missing orbit animation case in sync mode generation
+- **SyncManager**: Enhanced material serialization for MatCap texture capture (partial)
+
+#### **⚠️ Current Status**:
+- **From UI Direction**: Code generation mostly working with partial fixes applied
+- **To UI Direction**: Still has issues with complex material types and animation persistence
+- **MatCap Materials**: Code generation fixed but "To UI" parsing needs more work
+- **Debug Tools Created**: Material debugging tools created for future troubleshooting
+
+## 🎯 **NEXT PHASE: Editable ThreeJS Code View & Standalone Export**
+
+### **🔄 Transition from Sync Mode Fixes to Advanced Features**:
+
+#### **📋 Planned Future Development Focus**:
+1. **🔧 Editable ThreeJS Code View**: Transform code editor into full Three.js development environment
+   - **Real-time Code Execution**: Live editing with immediate viewport updates
+   - **Advanced API Support**: Complete Three.js ecosystem integration
+   - **Safe Code Sandboxing**: Secure execution environment for user code
+   - **Enhanced Debugging**: Comprehensive error handling and debugging tools
+
+2. **📦 Standalone ThreeJS Export**: Complete project export system
+   - **Full Project Folders**: Generate self-contained web applications
+   - **Asset Bundling**: Include all textures, models, and dependencies
+   - **Production-Ready Output**: Optimized HTML/JS for deployment
+   - **Cross-Platform Compatibility**: Works in any modern web browser
+
+## 🚀 **NEW PHASE: Button Purpose Clarification & Export Folder System**
+
+### **📋 Button Purpose Definitions (September 12, 2025)**:
+
+#### **Code Editor Workflow Buttons**:
+1. **"From UI" Button**: Generate **editable Three.js code** from Studio UI state (development workflow)
+2. **"To UI" Button**: Execute **editable Three.js code** and sync back to Studio UI viewport  
+3. **"Save" Button**: Save **editable Three.js code** to file (code persistence)
+4. **"Load" Button**: Load **editable Three.js code** from file (code restoration)
+
+#### **Deployment Workflow Button**:
+5. **"Export" Button**: Generate **complete project folder** containing:
+   - **HTML file** (main scene file)
+   - **JavaScript files** (scene logic and dependencies)  
+   - **Supporting textures** (MatCap textures, normal maps, etc.)
+   - **OBJ files** (3D model assets)
+   - **Any other imports** needed for standalone web deployment
+
+### **🎯 Key Distinction**:
+- **Development Workflow**: Code Editor buttons work with **editable code snippets**
+- **Deployment Workflow**: Export button creates **complete standalone project folders**
+
+### **📋 Next Implementation Tasks**:
+1. **Investigate Current Export Implementation**: Analyze existing Export button functionality
+2. **Design Export Folder Structure**: Plan complete project folder organization  
+3. **Implement Asset Collection**: Copy textures, OBJ files, and dependencies
+4. **Generate Standalone HTML/JS**: Create self-contained web application
+5. **Test Standalone Deployment**: Verify exported projects work in any browser
 
 ### **PREVIOUS: Phase 2.3 - Monaco Editor Three.js IntelliSense (COMPLETE)**
 - **Comprehensive API Integration**: Full integration with APIRegistry for 20+ geometries, 15+ materials, 10+ lights
@@ -229,20 +290,36 @@ This is the **3/LOADER** project (v0.0.7) - a Three.js OBJ loader and editor wit
 ### **🎯 Next Priority Identified**: 
 **Comment Verbosity Control System** - User requested task added to TASKS.md for controlling generated comment levels and export filtering
 
-## 🎯 **NEXT SESSION FOCUS: Code Editor to Viewport Functionality**
-**Status**: Ready to begin Phase 3 implementation (previous priority maintained)
-**Goal**: Enable real-time code execution from Monaco Editor to update the Three.js viewport
-**Key Components to Work On**:
-1. **Code Execution Pipeline**: Implement safe code execution from editor to scene
-2. **Real-time Updates**: Connect code changes to immediate viewport updates
-3. **Error Handling**: Robust error reporting and recovery for invalid code
-4. **State Synchronization**: Ensure code changes properly update UI controls
-5. **Performance Optimization**: Efficient code compilation and scene updates
+## 🎯 **FUTURE SESSION FOCUS: Editable ThreeJS Code View & Standalone Export**
+**Status**: ⚠️ **Transition Phase** - From UI → To UI workflow partially fixed
+**Next Goal**: Continue work on comprehensive Three.js development environment
 
-**Current Working State**: 
-- ✅ From UI Button: Generates code from visual state (working)
-- 🔄 **NEXT**: Reverse direction - Execute code changes in viewport
-- ✅ SyncManager: Temporarily bypassed, working with ExportManager
-- ✅ Monaco Editor: Full Three.js IntelliSense and autocomplete working
-- ✅ APIRegistry: Complete Three.js API coverage available
-- ✅ **NEW**: Scene loading issues resolved, CodeAdapter enhanced for exported files
+### **📝 Remaining Code View Issues Documented**:
+
+#### **⚠️ Known Issues Still Present**:
+1. **MatCap Material "To UI" Persistence**: 
+   - **Issue**: SyncManager material parsing doesn't properly capture MatCap texture data
+   - **Status**: Code generation works correctly, but reverse parsing from executed code fails
+   - **Location**: `SyncManager.js` material serialization methods
+   - **Debug Tools**: `debug-material-data.html` and `test-matcap-debug.html` created for investigation
+
+2. **Complex Material Type Handling**:
+   - **Issue**: "To UI" direction has trouble with advanced material properties
+   - **Impact**: Materials may not restore properly when importing code back to UI
+   - **Requires**: Enhanced material property extraction from Three.js objects
+
+3. **Animation State Persistence**:
+   - **Issue**: Some animation states may not fully persist through the workflow
+   - **Status**: Major fixes applied but edge cases may remain
+   - **Areas**: Bounce, orbit, XYZ rotation animations
+
+#### **🔧 Technical Debt & Enhancement Opportunities**:
+- **SyncManager Enhancement**: Material parsing system needs comprehensive overhaul
+- **Error Handling**: More robust error reporting for workflow failures
+- **Performance**: Optimization opportunities in bidirectional sync process
+- **Testing**: Automated testing framework for workflow validation
+
+### **🚀 Next Phase Implementation**:
+**Priority 1**: **Editable ThreeJS Code View** - Transform code editor into full development environment
+**Priority 2**: **Standalone Export System** - Complete project folder generation with asset bundling
+**Priority 3**: **Code View Workflow Completion** - Resolve remaining "To UI" issues

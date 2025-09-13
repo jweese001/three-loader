@@ -491,11 +491,15 @@ export class CodeEditorManager {
                 throw new Error('ExportManager is not available');
             }
             
-            console.log('🔄 Calling exportManager.generateEditableCode()...');
-            const code = this.exportManager.generateEditableCode({
-                includeComments: true,
-                includeImports: true,
-                includeAnimation: true
+            console.log('🔄 Using sync mode for reliable From UI workflow...');
+            const objects = this.objectManager.getAllObjects();
+            const sceneData = this.scene.exportSceneData();
+            
+            const code = this.exportManager.codeTemplateGenerator.generateSyncModeCode({
+                objects,
+                sceneData,
+                timestamp: new Date().toISOString(),
+                includeComments: true
             });
             this.currentCode = code;
             

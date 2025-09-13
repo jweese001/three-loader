@@ -1,4 +1,5 @@
 import { CodeTemplateGenerator } from '../codegen/CodeTemplateGenerator.js';
+import { ProjectExporter } from './ProjectExporter.js';
 
 export class ExportManager {
     constructor(scene, objectManager) {
@@ -8,7 +9,10 @@ export class ExportManager {
         // Initialize code template generator for live code generation
         this.codeTemplateGenerator = new CodeTemplateGenerator(scene, objectManager);
         
-        console.log('📤 ExportManager initialized with live code generation support');
+        // Initialize project exporter for complete folder export
+        this.projectExporter = new ProjectExporter(scene, objectManager);
+        
+        console.log('📤 ExportManager initialized with live code generation and project export support');
     }
     
     generateCode() {
@@ -290,6 +294,29 @@ ${objects.map(obj => this.generateObjectCode(obj)).join('\n\n')}
     }
     
     /**
+     * Export complete project folder for standalone deployment
+     * @param {Object} options - Export options
+     * @returns {Promise<Object>} Export result with files and metadata
+     */
+    async exportProjectFolder(options = {}) {
+        try {
+            console.log('📁 Starting project folder export...');
+            
+            const exportResult = await this.projectExporter.exportProject(options);
+            
+            console.log(`✅ Project folder export complete: ${exportResult.projectName}`);
+            console.log(`📄 Files generated: ${Object.keys(exportResult.files).length}`);
+            console.log(`📦 Assets collected: ${exportResult.assets.totalAssets}`);
+            
+            return exportResult;
+            
+        } catch (error) {
+            console.error('❌ Project folder export failed:', error);
+            throw new Error(`Export failed: ${error.message}`);
+        }
+    }
+    
+    /**
      * Generate editable Three.js code for live editing
      * @param {Object} options - Generation options
      * @returns {string} Editable Three.js code
@@ -306,38 +333,72 @@ ${objects.map(obj => this.generateObjectCode(obj)).join('\n\n')}
      */
     getExportOptions() {
         return {
-            // Standard export (existing functionality)
-            standard: {
-                name: 'Standard Export',
-                description: 'Production-ready Three.js scene code',
-                generate: () => this.generateCode()
-            },
-            
-            // Live editable export (new functionality)
+            // Development workflow exports (code only)
             editable: {
-                name: 'Live Editable Export',
+                name: 'Editable Code Export',
                 description: 'Structured code for real-time editing and learning',
+                type: 'code',
                 generate: (options) => this.generateEditableCode(options)
             },
             
-            // Compact export
+            standard: {
+                name: 'Standard Code Export',
+                description: 'Production-ready Three.js scene code',
+                type: 'code',
+                generate: () => this.generateCode()
+            },
+            
             compact: {
-                name: 'Compact Export', 
+                name: 'Compact Code Export', 
                 description: 'Minified code with minimal comments',
+                type: 'code',
                 generate: () => this.generateEditableCode({
                     includeComments: false,
                     includeAnimation: false
                 })
             },
             
-            // Educational export
             educational: {
-                name: 'Educational Export',
+                name: 'Educational Code Export',
                 description: 'Heavily commented code for learning Three.js',
+                type: 'code',
                 generate: () => this.generateEditableCode({
                     includeComments: true,
                     includeImports: true,
                     includeAnimation: true
+                })
+            },
+            
+            // Deployment workflow exports (complete project folders)
+            projectFolder: {
+                name: 'Complete Project Export',
+                description: 'Standalone web application with HTML, JS, and all assets',
+                type: 'folder',
+                generate: (options) => this.exportProjectFolder(options)
+            },
+            
+            minimalProject: {
+                name: 'Minimal Project Export',
+                description: 'Lightweight standalone project with CDN libraries',
+                type: 'folder',
+                generate: (options) => this.exportProjectFolder({
+                    ...options,
+                    useLocalLibraries: false,
+                    minified: true,
+                    includeStats: false
+                })
+            },
+            
+            developmentProject: {
+                name: 'Development Project Export',
+                description: 'Full-featured project with debugging tools and local libraries',
+                type: 'folder',
+                generate: (options) => this.exportProjectFolder({
+                    ...options,
+                    useLocalLibraries: true,
+                    includeStats: true,
+                    includeComments: true,
+                    developmentMode: true
                 })
             }
         };

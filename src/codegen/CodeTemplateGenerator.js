@@ -101,6 +101,16 @@ export class CodeTemplateGenerator {
             codeLines.push(``);
         }
         
+        // Check if we need OBJ loader for any objects
+        const hasOBJFiles = objects.some(obj => !obj.isPrimitive && obj.fileName);
+        if (hasOBJFiles) {
+            codeLines.push(`// Import OBJ loader for file loading`);
+            codeLines.push(`if (typeof THREE.OBJLoader === 'undefined') {`);
+            codeLines.push(`    console.warn('⚠️ OBJLoader not available. Please ensure THREE.OBJLoader is loaded.');`);
+            codeLines.push(`}`);
+            codeLines.push(``);
+        }
+        
         // Generate simple object creation code for each object
         objects.forEach((objectData, index) => {
             const objectCode = this.generateSimpleObjectCode(objectData, index, includeComments);
@@ -108,11 +118,195 @@ export class CodeTemplateGenerator {
             codeLines.push(``); // Empty line between objects
         });
         
+        // Generate lighting code if scene has lighting data
+        if (sceneData && sceneData.lighting) {
+            codeLines.push(this.generateSyncModeLightingCode(sceneData.lighting, includeComments));
+            codeLines.push(``);
+        }
+        
+        // Generate animation code if any objects have animations
+        const animatedObjects = objects.filter(obj => obj.animation && obj.animation.type !== 'none');
+        if (animatedObjects.length > 0) {
+            codeLines.push(this.generateSyncModeAnimationCode(animatedObjects, includeComments));
+        }
+        
         if (includeComments && objects.length === 0) {
             codeLines.push(`// No objects to sync`);
         }
         
         return codeLines.join('\n');
+    }
+    
+    /**
+     * Generate lighting code for sync mode
+     * @param {Object} lightingData - Scene lighting configuration
+     * @param {boolean} includeComments - Include comments
+     * @returns {string} Lighting setup code
+     */
+    generateSyncModeLightingCode(lightingData, includeComments) {
+        const lines = [];
+        
+        if (includeComments) {
+            lines.push(`// 💡 Scene Lighting Setup`);
+            lines.push(`// Configure ambient, directional, and additional lights`);
+        }
+        
+        // Ambient light
+        if (lightingData.ambientLight) {
+            const { color, intensity } = lightingData.ambientLight;
+            lines.push(`const ambientLight = new THREE.AmbientLight(${color || 0x404040}, ${intensity || 0.4});`);
+            lines.push(`scene.add(ambientLight);`);
+        }
+        
+        // Directional light (main light)
+        if (lightingData.directionalLight) {
+            const { color, intensity, position, castShadow } = lightingData.directionalLight;
+            lines.push(`const directionalLight = new THREE.DirectionalLight(${color || 0xffffff}, ${intensity || 1.2});`);
+            if (position) {
+                lines.push(`directionalLight.position.set(${position[0] || 20}, ${position[1] || 20}, ${position[2] || 20});`);
+            }
+            if (castShadow) {
+                lines.push(`directionalLight.castShadow = true;`);
+                lines.push(`directionalLight.shadow.mapSize.width = 2048;`);
+                lines.push(`directionalLight.shadow.mapSize.height = 2048;`);
+            }
+            lines.push(`scene.add(directionalLight);`);
+        }
+        
+        // Point lights
+        if (lightingData.pointLights && Array.isArray(lightingData.pointLights)) {
+            lightingData.pointLights.forEach((light, index) => {
+                const { color, intensity, position, distance } = light;
+                const lightVar = `pointLight${index + 1}`;
+                lines.push(`const ${lightVar} = new THREE.PointLight(${color || 0xffffff}, ${intensity || 0.8}, ${distance || 50});`);
+                if (position) {
+                    lines.push(`${lightVar}.position.set(${position[0] || 10}, ${position[1] || 10}, ${position[2] || 10});`);
+                }
+                lines.push(`scene.add(${lightVar});`);
+            });
+        }
+        
+        // Spotlights
+        if (lightingData.spotLights && Array.isArray(lightingData.spotLights)) {
+            lightingData.spotLights.forEach((light, index) => {
+                const { color, intensity, position, angle, penumbra, castShadow } = light;
+                const lightVar = `spotLight${index + 1}`;
+                lines.push(`const ${lightVar} = new THREE.SpotLight(${color || 0xffffff}, ${intensity || 1.5});`);
+                if (position) {
+                    lines.push(`${lightVar}.position.set(${position[0] || 15}, ${position[1] || 15}, ${position[2] || 15});`);
+                }
+                if (angle) {
+                    lines.push(`${lightVar}.angle = ${angle};`);
+                }
+                if (penumbra) {
+                    lines.push(`${lightVar}.penumbra = ${penumbra};`);
+                }
+                if (castShadow) {
+                    lines.push(`${lightVar}.castShadow = true;`);
+                }
+                lines.push(`scene.add(${lightVar});`);
+            });
+        }
+        
+        // Hemisphere light
+        if (lightingData.hemisphereLight) {
+            const { skyColor, groundColor, intensity, position } = lightingData.hemisphereLight;
+            lines.push(`const hemisphereLight = new THREE.HemisphereLight(${skyColor || 0x87ceeb}, ${groundColor || 0x8b4513}, ${intensity || 0.6});`);
+            if (position) {
+                lines.push(`hemisphereLight.position.set(${position[0] || 0}, ${position[1] || 50}, ${position[2] || 0});`);
+            }
+            lines.push(`scene.add(hemisphereLight);`);
+        }
+        
+        if (includeComments) {
+            lines.push(`// Enable shadows on renderer if lights cast shadows`);
+            lines.push(`// renderer.shadowMap.enabled = true;`);
+            lines.push(`// renderer.shadowMap.type = THREE.PCFSoftShadowMap;`);
+        }
+        
+        return lines.join('\n');
+    }
+    
+    /**
+     * Generate animation code for sync mode
+     * @param {Array} animatedObjects - Objects with animations
+     * @param {boolean} includeComments - Include comments
+     * @returns {string} Animation loop code
+     */
+    generateSyncModeAnimationCode(animatedObjects, includeComments) {
+        const lines = [];
+        
+        if (includeComments) {
+            lines.push(`// 🎬 Animation Loop`);
+            lines.push(`// Animate ${animatedObjects.length} objects with different animation types`);
+        }
+        
+        lines.push(`function animate() {`);
+        lines.push(`    requestAnimationFrame(animate);`);
+        lines.push(``);
+        
+        // Generate animation code for each object
+        animatedObjects.forEach((obj, index) => {
+            const objectVar = `object${index + 1}`;
+            const { type, speed } = obj.animation;
+            const safeSpeed = typeof speed === 'number' ? speed : 0.01;
+            
+            if (includeComments) {
+                lines.push(`    // Animate ${obj.name || objectVar} (${type})`);
+            }
+            
+            // Find the object in scene by name
+            lines.push(`    const ${objectVar}Ref = scene.getObjectByName('${obj.name || objectVar}');`);
+            lines.push(`    if (${objectVar}Ref) {`);
+            
+            switch (type) {
+                case 'rotate-x':
+                    lines.push(`        ${objectVar}Ref.rotation.x += ${safeSpeed};`);
+                    break;
+                case 'rotate-y':
+                    lines.push(`        ${objectVar}Ref.rotation.y += ${safeSpeed};`);
+                    break;
+                case 'rotate-z':
+                    lines.push(`        ${objectVar}Ref.rotation.z += ${safeSpeed};`);
+                    break;
+                case 'rotate-xyz':
+                    lines.push(`        ${objectVar}Ref.rotation.x += ${safeSpeed * 0.7};`);
+                    lines.push(`        ${objectVar}Ref.rotation.y += ${safeSpeed};`);
+                    lines.push(`        ${objectVar}Ref.rotation.z += ${safeSpeed * 0.3};`);
+                    break;
+                case 'scale':
+                    lines.push(`        const scaleValue = 1 + Math.sin(Date.now() * ${safeSpeed * 0.001}) * 0.2;`);
+                    lines.push(`        ${objectVar}Ref.scale.set(scaleValue, scaleValue, scaleValue);`);
+                    break;
+                case 'bounce':
+                    lines.push(`        const originalY_${objectVar} = ${objectVar}Ref.userData.originalY || ${objectVar}Ref.position.y;`);
+                    lines.push(`        ${objectVar}Ref.position.y = originalY_${objectVar} + Math.sin(Date.now() * ${safeSpeed * 0.001}) * 2;`);
+                    break;
+                case 'float':
+                    lines.push(`        ${objectVar}Ref.position.y += Math.sin(Date.now() * ${safeSpeed * 0.001}) * 0.01;`);
+                    lines.push(`        ${objectVar}Ref.rotation.y += ${safeSpeed * 0.5};`);
+                    break;
+                case 'orbit':
+                    lines.push(`        const orbitTime = Date.now() * ${safeSpeed * 0.002};`);
+                    lines.push(`        ${objectVar}Ref.position.x = Math.cos(orbitTime) * 5;`);
+                    lines.push(`        ${objectVar}Ref.position.z = Math.sin(orbitTime) * 5;`);
+                    lines.push(`        ${objectVar}Ref.lookAt(0, ${objectVar}Ref.position.y, 0);`);
+                    break;
+                default:
+                    lines.push(`        // Animation type '${type}' not implemented in sync mode`);
+            }
+            
+            lines.push(`    }`);
+            lines.push(``);
+        });
+        
+        lines.push(`    // Note: Add renderer.render(scene, camera) to see animations`);
+        lines.push(`}`);
+        lines.push(``);
+        lines.push(`// Start animation loop`);
+        lines.push(`animate();`);
+        
+        return lines.join('\n');
     }
     
     /**
@@ -138,9 +332,13 @@ export class CodeTemplateGenerator {
         // Generate geometry creation
         if (objectData.isPrimitive) {
             lines.push(this.generateSimpleGeometryCode(objectData, geometryVar));
+        } else if (objectData.fileName) {
+            // Generate OBJ loader code for sync mode
+            lines.push(this.generateOBJLoaderCode(objectData, geometryVar, varName));
+            return lines.join('\n'); // Return early for OBJ files (they handle their own mesh creation)
         } else {
-            // For OBJ files, we can't load them in sync mode, so create a placeholder
-            lines.push(`// OBJ files not supported in sync mode - using placeholder box`);
+            // Fallback for unknown object types
+            lines.push(`// Unknown object type - using placeholder box`);
             lines.push(`const ${geometryVar} = new THREE.BoxGeometry(2, 2, 2);`);
         }
         
@@ -151,9 +349,13 @@ export class CodeTemplateGenerator {
         lines.push(`const ${varName} = new THREE.Mesh(${geometryVar}, ${materialVar});`);
         
         // Apply transform
-        const pos = objectData.position || [0, 0, 0];
-        const rot = objectData.rotation || [0, 0, 0];
-        const scale = objectData.scale || [1, 1, 1];
+        const transform = objectData.transform || {};
+        const pos = transform.position ? [transform.position.x || 0, transform.position.y || 0, transform.position.z || 0] : 
+                   objectData.position || [0, 0, 0];
+        const rot = transform.rotation ? [transform.rotation.x || 0, transform.rotation.y || 0, transform.rotation.z || 0] : 
+                   objectData.rotation || [0, 0, 0];
+        const scale = transform.scale ? [transform.scale.x || 1, transform.scale.y || 1, transform.scale.z || 1] : 
+                     objectData.scale || [1, 1, 1];
         
         lines.push(`${varName}.position.set(${pos[0]}, ${pos[1]}, ${pos[2]});`);
         lines.push(`${varName}.rotation.set(${rot[0]}, ${rot[1]}, ${rot[2]});`);
@@ -161,6 +363,14 @@ export class CodeTemplateGenerator {
         
         // Set name for identification
         lines.push(`${varName}.name = '${objectData.name || `Object${index + 1}`}';`);
+        
+        // Store animation data if present
+        if (objectData.animation && objectData.animation.type !== 'none') {
+            lines.push(`${varName}.userData.animation = {`);
+            lines.push(`    type: '${objectData.animation.type}',`);
+            lines.push(`    speed: ${objectData.animation.speed || 1}`);
+            lines.push(`};`);
+        }
         
         // Add to scene
         lines.push(`scene.add(${varName});`);
@@ -216,6 +426,73 @@ export class CodeTemplateGenerator {
     }
     
     /**
+     * Generate OBJ loader code for sync mode
+     * @param {Object} objectData - Object data
+     * @param {string} geometryVar - Geometry variable name
+     * @param {string} objectVar - Object variable name
+     * @returns {string} OBJ loader code
+     */
+    generateOBJLoaderCode(objectData, geometryVar, objectVar) {
+        const lines = [];
+        const loaderVar = `objLoader${objectVar.slice(-1)}`;
+        const materialVar = `material${objectVar.slice(-1)}`;
+        const fileName = objectData.fileName || objectData.originalFileName || 'unknown.obj';
+        
+        // Create OBJ loader
+        lines.push(`const ${loaderVar} = new THREE.OBJLoader();`);
+        
+        // Generate material for OBJ
+        lines.push(this.generateSimpleMaterialCode(objectData.material, materialVar));
+        
+        // Load OBJ file asynchronously
+        lines.push(`${loaderVar}.load('${fileName}',`);
+        lines.push(`    (loadedObject) => {`);
+        lines.push(`        // Apply material to all meshes`);
+        lines.push(`        loadedObject.traverse((child) => {`);
+        lines.push(`            if (child.isMesh) {`);
+        lines.push(`                child.material = ${materialVar};`);
+        lines.push(`                child.castShadow = true;`);
+        lines.push(`                child.receiveShadow = true;`);
+        lines.push(`            }`);
+        lines.push(`        });`);
+        
+        // Apply transform
+        const transform = objectData.transform || {};
+        const pos = transform.position ? [transform.position.x || 0, transform.position.y || 0, transform.position.z || 0] : 
+                   objectData.position || [0, 0, 0];
+        const rot = transform.rotation ? [transform.rotation.x || 0, transform.rotation.y || 0, transform.rotation.z || 0] : 
+                   objectData.rotation || [0, 0, 0];
+        const scale = transform.scale ? [transform.scale.x || 1, transform.scale.y || 1, transform.scale.z || 1] : 
+                     objectData.scale || [1, 1, 1];
+        
+        lines.push(`        loadedObject.position.set(${pos[0]}, ${pos[1]}, ${pos[2]});`);
+        lines.push(`        loadedObject.rotation.set(${rot[0]}, ${rot[1]}, ${rot[2]});`);
+        lines.push(`        loadedObject.scale.set(${scale[0]}, ${scale[1]}, ${scale[2]});`);
+        lines.push(`        loadedObject.name = '${objectData.name || `Object${objectVar.slice(-1)}`}';`);
+        
+        // Store animation data if present
+        if (objectData.animation && objectData.animation.type !== 'none') {
+            lines.push(`        loadedObject.userData.animation = {`);
+            lines.push(`            type: '${objectData.animation.type}',`);
+            lines.push(`            speed: ${objectData.animation.speed || 1}`);
+            lines.push(`        };`);
+        }
+        
+        lines.push(`        scene.add(loadedObject);`);
+        lines.push(`        console.log('✅ OBJ loaded:', '${fileName}');`);
+        lines.push(`    },`);
+        lines.push(`    (progress) => {`);
+        lines.push(`        console.log('🔄 Loading OBJ:', '${fileName}', progress);`);
+        lines.push(`    },`);
+        lines.push(`    (error) => {`);
+        lines.push(`        console.error('❌ Failed to load OBJ:', '${fileName}', error);`);
+        lines.push(`    }`);
+        lines.push(`);`);
+        
+        return lines.join('\n');
+    }
+    
+    /**
      * Generate simple material creation code
      * @param {Object} materialData - Material configuration
      * @param {string} varName - Variable name
@@ -229,26 +506,104 @@ export class CodeTemplateGenerator {
         const type = materialData.type || 'standard';
         const color = materialData.color || '#00ff00';
         const wireframe = materialData.wireframe || false;
+        const opacity = materialData.opacity || 1.0;
+        const transparent = materialData.transparent || opacity < 1.0;
+        
+        // Handle texture loading
+        const textureCode = this.generateTextureLoadingCode(materialData, varName);
         
         switch (type) {
             case 'basic':
-                return `const ${varName} = new THREE.MeshBasicMaterial({ color: '${color}', wireframe: ${wireframe} });`;
+                return textureCode + `const ${varName} = new THREE.MeshBasicMaterial({ color: '${color}', wireframe: ${wireframe}, opacity: ${opacity}, transparent: ${transparent}${this.getTextureMapCode(materialData)} });`;
             case 'lambert':
-                return `const ${varName} = new THREE.MeshLambertMaterial({ color: '${color}', wireframe: ${wireframe} });`;
+                return textureCode + `const ${varName} = new THREE.MeshLambertMaterial({ color: '${color}', wireframe: ${wireframe}, opacity: ${opacity}, transparent: ${transparent}${this.getTextureMapCode(materialData)} });`;
             case 'phong':
-                return `const ${varName} = new THREE.MeshPhongMaterial({ color: '${color}', wireframe: ${wireframe} });`;
+                return textureCode + `const ${varName} = new THREE.MeshPhongMaterial({ color: '${color}', wireframe: ${wireframe}, opacity: ${opacity}, transparent: ${transparent}${this.getTextureMapCode(materialData)} });`;
             case 'physical':
                 const roughness = materialData.roughness || 0.5;
                 const metalness = materialData.metalness || 0.0;
-                return `const ${varName} = new THREE.MeshPhysicalMaterial({ color: '${color}', wireframe: ${wireframe}, roughness: ${roughness}, metalness: ${metalness} });`;
+                return textureCode + `const ${varName} = new THREE.MeshPhysicalMaterial({ color: '${color}', wireframe: ${wireframe}, opacity: ${opacity}, transparent: ${transparent}, roughness: ${roughness}, metalness: ${metalness}${this.getTextureMapCode(materialData)} });`;
             case 'matcap':
-                return `const ${varName} = new THREE.MeshMatcapMaterial({ color: '${color}' });`;
+                // Check for matcap texture from different possible sources
+                let matcapTexture = materialData.matcap || materialData.matcapTexture || materialData.texture?.filename;
+                
+                // Fix incomplete texture paths for MatCap textures
+                if (matcapTexture && !matcapTexture.startsWith('MatCap-Textures/') && !matcapTexture.startsWith('http')) {
+                    // If it's just a filename, try to construct the full path
+                    if (matcapTexture.includes('.webp') || matcapTexture.includes('.jpg') || matcapTexture.includes('.png')) {
+                        // For common MatCap naming patterns, assume it's in the gray folder
+                        matcapTexture = `MatCap-Textures/gray/${matcapTexture}`;
+                    }
+                }
+                
+                const matcapMap = matcapTexture ? `, matcap: texture_${varName}_matcap` : '';
+                const matcapTextureCode = matcapTexture ? `const texture_${varName}_matcap = new THREE.TextureLoader().load('${matcapTexture}');\n` : '';
+                return matcapTextureCode + `const ${varName} = new THREE.MeshMatcapMaterial({ color: '${color}', opacity: ${opacity}, transparent: ${transparent}${matcapMap} });`;
             case 'standard':
             default:
                 const roughnessStd = materialData.roughness || 0.5;
                 const metalnessStd = materialData.metalness || 0.0;
-                return `const ${varName} = new THREE.MeshStandardMaterial({ color: '${color}', wireframe: ${wireframe}, roughness: ${roughnessStd}, metalness: ${metalnessStd} });`;
+                return textureCode + `const ${varName} = new THREE.MeshStandardMaterial({ color: '${color}', wireframe: ${wireframe}, opacity: ${opacity}, transparent: ${transparent}, roughness: ${roughnessStd}, metalness: ${metalnessStd}${this.getTextureMapCode(materialData)} });`;
         }
+    }
+    
+    /**
+     * Generate texture loading code
+     * @param {Object} materialData - Material configuration
+     * @param {string} varName - Variable name
+     * @returns {string} Texture loading code
+     */
+    generateTextureLoadingCode(materialData, varName) {
+        const lines = [];
+        const textureLoader = `textureLoader_${varName}`;
+        
+        // Check if any textures are used
+        const hasTextures = materialData.map || materialData.normalMap || materialData.roughnessMap || 
+                          materialData.metalnessMap || materialData.aoMap || materialData.matcap;
+        
+        if (hasTextures) {
+            lines.push(`const ${textureLoader} = new THREE.TextureLoader();`);
+            
+            if (materialData.map) {
+                lines.push(`const texture_${varName}_map = ${textureLoader}.load('${materialData.map}');`);
+            }
+            if (materialData.normalMap) {
+                lines.push(`const texture_${varName}_normal = ${textureLoader}.load('${materialData.normalMap}');`);
+            }
+            if (materialData.roughnessMap) {
+                lines.push(`const texture_${varName}_roughness = ${textureLoader}.load('${materialData.roughnessMap}');`);
+            }
+            if (materialData.metalnessMap) {
+                lines.push(`const texture_${varName}_metalness = ${textureLoader}.load('${materialData.metalnessMap}');`);
+            }
+            if (materialData.aoMap) {
+                lines.push(`const texture_${varName}_ao = ${textureLoader}.load('${materialData.aoMap}');`);
+            }
+            if (materialData.matcap) {
+                lines.push(`const texture_${varName}_matcap = ${textureLoader}.load('${materialData.matcap}');`);
+            }
+            
+            return lines.join('\n') + '\n';
+        }
+        
+        return '';
+    }
+    
+    /**
+     * Generate texture map assignments for material
+     * @param {Object} materialData - Material configuration
+     * @returns {string} Texture map assignments
+     */
+    getTextureMapCode(materialData) {
+        const maps = [];
+        
+        if (materialData.map) maps.push(`map: texture_${materialData.varName || 'material'}_map`);
+        if (materialData.normalMap) maps.push(`normalMap: texture_${materialData.varName || 'material'}_normal`);
+        if (materialData.roughnessMap) maps.push(`roughnessMap: texture_${materialData.varName || 'material'}_roughness`);
+        if (materialData.metalnessMap) maps.push(`metalnessMap: texture_${materialData.varName || 'material'}_metalness`);
+        if (materialData.aoMap) maps.push(`aoMap: texture_${materialData.varName || 'material'}_ao`);
+        
+        return maps.length > 0 ? `, ${maps.join(', ')}` : '';
     }
     
     /**

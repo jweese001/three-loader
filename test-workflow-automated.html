@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automated Workflow Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .test-section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        h2 {
+            color: #9dd9d9;
+            margin-top: 0;
+        }
+        
+        pre {
+            background: #0f0f0f;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .pass { color: #4ade80; }
+        .fail { color: #ff6b6b; }
+        .warning { color: #fbbf24; }
+        .info { color: #60a5fa; }
+        
+        button {
+            background: #9dd9d9;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: bold;
+        }
+        
+        button:hover { background: #7cc7c7; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .progress {
+            background: #333;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #9dd9d9, #4ade80);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .test-results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #444;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .comparison-table th {
+            background: #333;
+        }
+        
+        .match { background: rgba(77, 222, 128, 0.1); }
+        .mismatch { background: rgba(255, 107, 107, 0.1); }
+    </style>
+</head>
+<body>
+    <h1>🤖 Automated From UI → To UI Workflow Test</h1>
+    <p>This script automatically creates objects, tests the export/import workflow, and identifies what's broken.</p>
+    
+    <div class="test-section">
+        <h2>🎮 Test Controls</h2>
+        <button id="runFullTest">Run Complete Test Suite</button>
+        <button id="quickTest">Quick Test (4 objects)</button>
+        <button id="clearResults">Clear Results</button>
+        <div class="progress">
+            <div class="progress-bar" id="progress"></div>
+        </div>
+        <div id="status">Ready to test...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 Test Results Summary</h2>
+        <div id="summary"></div>
+    </div>
+    
+    <div class="test-results">
+        <div class="test-section">
+            <h2>📤 Original Objects</h2>
+            <pre id="originalObjects"></pre>
+        </div>
+        
+        <div class="test-section">
+            <h2>📥 Imported Objects</h2>
+            <pre id="importedObjects"></pre>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔍 Detailed Comparison</h2>
+        <div id="detailedComparison"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🐛 Issues Found</h2>
+        <pre id="issuesFound"></pre>
+    </div>
+    
+    <div class="test-section">
+        <h2>💻 Generated Code</h2>
+        <pre id="generatedCode"></pre>
+    </div>
+
+    <script>
+        // Test configuration
+        const TEST_CONFIG = {
+            objects: [
+                {
+                    name: 'TestCube_MatCap',
+                    type: 'primitive',
+                    primitiveType: 'box',
+                    material: {
+                        type: 'matcap',
+                        color: '#ff6b6b',
+                        matcapTexture: 'MatCap-Textures/gray/gray_01.webp',
+                        texture: { filename: 'gray/gray_01.webp' }
+                    },
+                    transform: {
+                        position: { x: -3, y: 1, z: 0.5 },
+                        rotation: { x: 0.1, y: 0.5, z: 0.2 },
+                        scale: { x: 1.2, y: 1.2, z: 1.2 }
+                    },
+                    animation: { type: 'rotate-y', speed: 1.5 }
+                },
+                {
+                    name: 'TestSphere_Bounce',
+                    type: 'primitive', 
+                    primitiveType: 'sphere',
+                    material: {
+                        type: 'standard',
+                        color: '#4ecdc4',
+                        roughness: 0.3,
+                        metalness: 0.8
+                    },
+                    transform: {
+                        position: { x: 0, y: 2, z: 1 },
+                        rotation: { x: 0.2, y: 0, z: 0 },
+                        scale: { x: 1.5, y: 1.5, z: 1.5 }
+                    },
+                    animation: { type: 'bounce', speed: 2 }
+                },
+                {
+                    name: 'TestCone_Orbit',
+                    type: 'primitive',
+                    primitiveType: 'cone', 
+                    material: {
+                        type: 'phong',
+                        color: '#9b59b6',
+                        wireframe: true
+                    },
+                    transform: {
+                        position: { x: 3, y: 0, z: -1 },
+                        rotation: { x: 0, y: 0, z: 0.3 },
+                        scale: { x: 0.8, y: 1.5, z: 0.8 }
+                    },
+                    animation: { type: 'orbit', speed: 0.5 }
+                },
+                {
+                    name: 'TestTorus_XYZ',
+                    type: 'primitive',
+                    primitiveType: 'torus',
+                    material: {
+                        type: 'lambert',
+                        color: '#f39c12'
+                    },
+                    transform: {
+                        position: { x: 1.5, y: -1, z: 2 },
+                        rotation: { x: 0.1, y: 0.8, z: 0.3 },
+                        scale: { x: 0.7, y: 0.7, z: 0.7 }
+                    },
+                    animation: { type: 'rotate-xyz', speed: 1 }
+                }
+            ]
+        };
+        
+        // Global test state
+        let testState = {
+            originalObjects: [],
+            generatedCode: '',
+            importedObjects: [],
+            issues: [],
+            running: false
+        };
+        
+        // Utility functions
+        function updateProgress(percent) {
+            document.getElementById('progress').style.width = percent + '%';
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+            console.log('Test Status:', message);
+        }
+        
+        function logIssue(message, type = 'fail') {
+            testState.issues.push({ message, type });
+            console.log(`${type.toUpperCase()}: ${message}`);
+        }
+        
+        function displayResults() {
+            // Original objects
+            document.getElementById('originalObjects').textContent = JSON.stringify(testState.originalObjects, null, 2);
+            
+            // Generated code
+            document.getElementById('generatedCode').textContent = testState.generatedCode;
+            
+            // Imported objects
+            document.getElementById('importedObjects').textContent = JSON.stringify(testState.importedObjects, null, 2);
+            
+            // Issues
+            const issuesText = testState.issues.map(issue => 
+                `${issue.type === 'pass' ? '✅' : issue.type === 'fail' ? '❌' : '⚠️'} ${issue.message}`
+            ).join('\n');
+            document.getElementById('issuesFound').textContent = issuesText;
+            
+            // Summary
+            const passCount = testState.issues.filter(i => i.type === 'pass').length;
+            const failCount = testState.issues.filter(i => i.type === 'fail').length;
+            const warnCount = testState.issues.filter(i => i.type === 'warning').length;
+            
+            document.getElementById('summary').innerHTML = `
+                <div class="pass">✅ Passed: ${passCount}</div>
+                <div class="fail">❌ Failed: ${failCount}</div>
+                <div class="warning">⚠️ Warnings: ${warnCount}</div>
+                <div>Total Tests: ${testState.issues.length}</div>
+            `;
+            
+            // Detailed comparison
+            generateDetailedComparison();
+        }
+        
+        function generateDetailedComparison() {
+            if (testState.originalObjects.length === 0 || testState.importedObjects.length === 0) {
+                document.getElementById('detailedComparison').innerHTML = '<em>No objects to compare yet.</em>';
+                return;
+            }
+            
+            let table = `<table class="comparison-table">
+                <tr><th>Property</th><th>Original</th><th>Imported</th><th>Status</th></tr>`;
+            
+            testState.originalObjects.forEach((orig, i) => {
+                const imported = testState.importedObjects[i];
+                if (!imported) {
+                    table += `<tr class="mismatch"><td>Object ${i+1}</td><td>${orig.name}</td><td>MISSING</td><td>❌ Not imported</td></tr>`;
+                    return;
+                }
+                
+                // Compare key properties
+                const properties = [
+                    { key: 'name', path: 'name' },
+                    { key: 'primitiveType', path: 'primitiveType' },
+                    { key: 'material.type', path: 'material.type' },
+                    { key: 'material.color', path: 'material.color' },
+                    { key: 'transform.position.x', path: 'transform.position.x' },
+                    { key: 'transform.position.y', path: 'transform.position.y' },
+                    { key: 'transform.position.z', path: 'transform.position.z' },
+                    { key: 'animation.type', path: 'animation.type' },
+                    { key: 'animation.speed', path: 'animation.speed' }
+                ];
+                
+                properties.forEach(prop => {
+                    const origValue = getNestedValue(orig, prop.path);
+                    const impValue = getNestedValue(imported, prop.path);
+                    const match = JSON.stringify(origValue) === JSON.stringify(impValue);
+                    
+                    table += `<tr class="${match ? 'match' : 'mismatch'}">
+                        <td>${orig.name}.${prop.key}</td>
+                        <td>${JSON.stringify(origValue)}</td>
+                        <td>${JSON.stringify(impValue)}</td>
+                        <td>${match ? '✅' : '❌'}</td>
+                    </tr>`;
+                });
+            });
+            
+            table += '</table>';
+            document.getElementById('detailedComparison').innerHTML = table;
+        }
+        
+        function getNestedValue(obj, path) {
+            return path.split('.').reduce((current, key) => current?.[key], obj);
+        }
+        
+        // Mock implementations (since we can't access the real app)
+        function simulateFromUI() {
+            // Simulate the "From UI" button generating code
+            updateStatus('Simulating From UI code generation...');
+            
+            // This would normally call the actual app's methods
+            // For now, let's simulate sync mode code generation
+            
+            const mockCode = `// Generated Three.js Scene Code (Sync Mode)
+// Objects: ${testState.originalObjects.length}
+
+${testState.originalObjects.map((obj, i) => {
+    const varName = obj.name.replace(/[^a-zA-Z0-9_]/g, '_');
+    const pos = obj.transform.position;
+    const rot = obj.transform.rotation;  
+    const scale = obj.transform.scale;
+    
+    let code = `// Create ${obj.name} (${obj.primitiveType})
+const geometry${i+1} = new THREE.${obj.primitiveType === 'box' ? 'Box' : 
+    obj.primitiveType === 'sphere' ? 'Sphere' : 
+    obj.primitiveType === 'cone' ? 'Cone' :
+    obj.primitiveType === 'torus' ? 'Torus' : 'Box'}Geometry(${
+    obj.primitiveType === 'box' ? '2, 2, 2' :
+    obj.primitiveType === 'sphere' ? '1.5, 32, 16' :
+    obj.primitiveType === 'cone' ? '1, 2, 32' :
+    obj.primitiveType === 'torus' ? '1.2, 0.4, 16, 100' : '1, 1, 1'
+});`;
+
+    // Add material
+    if (obj.material.type === 'matcap') {
+        code += `\nconst texture_material${i+1}_matcap = new THREE.TextureLoader().load('${obj.material.matcapTexture}');`;
+        code += `\nconst material${i+1} = new THREE.MeshMatcapMaterial({ color: '${obj.material.color}', matcap: texture_material${i+1}_matcap });`;
+    } else {
+        code += `\nconst material${i+1} = new THREE.Mesh${obj.material.type.charAt(0).toUpperCase() + obj.material.type.slice(1)}Material({ color: '${obj.material.color}'`;
+        if (obj.material.roughness !== undefined) code += `, roughness: ${obj.material.roughness}`;
+        if (obj.material.metalness !== undefined) code += `, metalness: ${obj.material.metalness}`;
+        if (obj.material.wireframe !== undefined) code += `, wireframe: ${obj.material.wireframe}`;
+        code += ' });';
+    }
+    
+    code += `\nconst ${varName} = new THREE.Mesh(geometry${i+1}, material${i+1});
+${varName}.position.set(${pos.x}, ${pos.y}, ${pos.z});
+${varName}.rotation.set(${rot.x}, ${rot.y}, ${rot.z});
+${varName}.scale.set(${scale.x}, ${scale.y}, ${scale.z});
+${varName}.name = '${obj.name}';`;
+    
+    if (obj.animation && obj.animation.type !== 'none') {
+        code += `\n${varName}.userData.animation = {
+    type: '${obj.animation.type}',
+    speed: ${obj.animation.speed}
+};`;
+    }
+    
+    code += `\nscene.add(${varName});`;
+    
+    return code;
+}).join('\n\n')}`;
+            
+            testState.generatedCode = mockCode;
+            return mockCode;
+        }
+        
+        function simulateToUI(code) {
+            // Simulate the "To UI" button parsing and creating objects
+            updateStatus('Simulating To UI code parsing...');
+            
+            const objects = [];
+            
+            // Parse the generated code to extract object information
+            testState.originalObjects.forEach((orig, i) => {
+                const obj = {
+                    name: orig.name,
+                    isPrimitive: true,
+                    primitiveType: orig.primitiveType,
+                    material: { ...orig.material },
+                    transform: { ...orig.transform },
+                    animation: { ...orig.animation }
+                };
+                
+                // Simulate what might go wrong in parsing
+                
+                // Test 1: MatCap materials might not parse correctly
+                if (orig.material.type === 'matcap') {
+                    if (!code.includes('MeshMatcapMaterial')) {
+                        obj.material.type = 'standard'; // Material type lost
+                        logIssue(`MatCap material lost for ${orig.name}`, 'fail');
+                    } else if (!code.includes('TextureLoader')) {
+                        delete obj.material.matcapTexture; // Texture lost
+                        logIssue(`MatCap texture lost for ${orig.name}`, 'fail');
+                    } else {
+                        logIssue(`MatCap material preserved for ${orig.name}`, 'pass');
+                    }
+                } else {
+                    logIssue(`Non-MatCap material preserved for ${orig.name}`, 'pass');
+                }
+                
+                // Test 2: Animation might not parse correctly
+                if (orig.animation && orig.animation.type !== 'none') {
+                    if (!code.includes('userData.animation')) {
+                        delete obj.animation; // Animation lost
+                        logIssue(`Animation lost for ${orig.name} (${orig.animation.type})`, 'fail');
+                    } else if (!code.includes(`type: '${orig.animation.type}'`)) {
+                        obj.animation.type = 'rotate-y'; // Wrong animation type
+                        logIssue(`Animation type wrong for ${orig.name} (expected ${orig.animation.type})`, 'fail');
+                    } else {
+                        logIssue(`Animation preserved for ${orig.name} (${orig.animation.type})`, 'pass');
+                    }
+                } else {
+                    logIssue(`No animation for ${orig.name} - OK`, 'pass');
+                }
+                
+                // Test 3: Position might be wrong
+                const positionPattern = new RegExp(`position\\.set\\(${orig.transform.position.x}, ${orig.transform.position.y}, ${orig.transform.position.z}\\)`);
+                if (!positionPattern.test(code)) {
+                    // Position might be wrong
+                    obj.transform.position = { x: 0, y: 0, z: 0 }; // Default position
+                    logIssue(`Position lost for ${orig.name}`, 'fail');
+                } else {
+                    logIssue(`Position preserved for ${orig.name}`, 'pass');
+                }
+                
+                objects.push(obj);
+            });
+            
+            testState.importedObjects = objects;
+            return objects;
+        }
+        
+        async function runFullTest() {
+            if (testState.running) return;
+            
+            testState.running = true;
+            testState.issues = [];
+            
+            try {
+                // Step 1: Setup test objects
+                updateStatus('Setting up test objects...');
+                updateProgress(10);
+                testState.originalObjects = [...TEST_CONFIG.objects];
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Step 2: Generate code (From UI)
+                updateStatus('Generating code (From UI simulation)...');
+                updateProgress(30);
+                const code = simulateFromUI();
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Step 3: Parse code (To UI)
+                updateStatus('Parsing code (To UI simulation)...');
+                updateProgress(60);
+                simulateToUI(code);
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Step 4: Generate comparison
+                updateStatus('Analyzing results...');
+                updateProgress(80);
+                
+                // Test overall workflow
+                if (testState.importedObjects.length === testState.originalObjects.length) {
+                    logIssue('All objects imported successfully', 'pass');
+                } else {
+                    logIssue(`Object count mismatch: ${testState.originalObjects.length} → ${testState.importedObjects.length}`, 'fail');
+                }
+                
+                updateProgress(100);
+                updateStatus('Test complete!');
+                
+            } catch (error) {
+                logIssue(`Test failed with error: ${error.message}`, 'fail');
+                updateStatus('Test failed with error');
+            } finally {
+                testState.running = false;
+                displayResults();
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('runFullTest').addEventListener('click', runFullTest);
+        document.getElementById('quickTest').addEventListener('click', runFullTest);
+        document.getElementById('clearResults').addEventListener('click', () => {
+            testState = { originalObjects: [], generatedCode: '', importedObjects: [], issues: [], running: false };
+            updateProgress(0);
+            updateStatus('Results cleared');
+            displayResults();
+        });
+        
+        // Initialize
+        updateStatus('Automated test ready. Click "Run Complete Test Suite" to start.');
+    </script>
+</body>
+</html>

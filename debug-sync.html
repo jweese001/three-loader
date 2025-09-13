@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Sync Workflow</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .debug-section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        h2 {
+            color: #9dd9d9;
+            margin-top: 0;
+        }
+        
+        pre {
+            background: #0f0f0f;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        
+        .error {
+            color: #ff6b6b;
+        }
+        
+        .success {
+            color: #4ade80;
+        }
+        
+        .warning {
+            color: #fbbf24;
+        }
+        
+        button {
+            background: #9dd9d9;
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #7cc7c7;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Sync Workflow Debug</h1>
+    <p>Debug the From UI → To UI workflow to identify remaining issues.</p>
+    
+    <div class="debug-section">
+        <h2>📋 Mock Object Data</h2>
+        <pre id="mock-data"></pre>
+        <button onclick="generateMockObjects()">Generate Mock Objects</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🔧 Generated Code (From UI)</h2>
+        <pre id="generated-code"></pre>
+        <button onclick="generateCode()">Generate Code</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🎯 Code Analysis</h2>
+        <pre id="code-analysis"></pre>
+    </div>
+    
+    <div class="debug-section">
+        <h2>⚡ Issues Found</h2>
+        <pre id="issues-found"></pre>
+    </div>
+
+    <script type="module">
+        import { CodeTemplateGenerator } from './src/codegen/CodeTemplateGenerator.js';
+        
+        // Mock scene and object manager
+        class MockScene {
+            exportSceneData() {
+                return {
+                    background: 0x0f0f0f,
+                    camera: { position: [0, 5, 10], fov: 75 },
+                    lighting: {}
+                };
+            }
+        }
+        
+        class MockObjectManager {
+            constructor() {
+                this.objects = [];
+            }
+            
+            getAllObjects() {
+                return this.objects;
+            }
+            
+            generateTestObjects() {
+                // Generate 4 test objects with different issues to debug
+                this.objects = [
+                    // Primitive with MatCap material
+                    {
+                        id: 1,
+                        name: 'TestCube_MatCap',
+                        isPrimitive: true,
+                        primitiveType: 'box',
+                        material: {
+                            type: 'matcap',
+                            color: '#ff6b6b',
+                            wireframe: false,
+                            opacity: 1,
+                            texture: {
+                                filename: 'gray/gray_01.webp'
+                            },
+                            matcapTexture: 'MatCap-Textures/gray/gray_01.webp'
+                        },
+                        transform: {
+                            position: { x: -3, y: 1, z: 0 },
+                            rotation: { x: 0, y: 0.5, z: 0 },
+                            scale: { x: 1, y: 1, z: 1 }
+                        },
+                        animation: {
+                            type: 'rotate-y',
+                            speed: 1.5
+                        }
+                    },
+                    
+                    // Primitive with Standard material 
+                    {
+                        id: 2,
+                        name: 'TestSphere_Standard',
+                        isPrimitive: true,
+                        primitiveType: 'sphere',
+                        material: {
+                            type: 'standard',
+                            color: '#4ecdc4',
+                            wireframe: false,
+                            opacity: 1,
+                            roughness: 0.3,
+                            metalness: 0.8
+                        },
+                        transform: {
+                            position: { x: 0, y: 2, z: 1 },
+                            rotation: { x: 0.2, y: 0, z: 0 },
+                            scale: { x: 1.2, y: 1.2, z: 1.2 }
+                        },
+                        animation: {
+                            type: 'bounce',
+                            speed: 2
+                        }
+                    },
+                    
+                    // Primitive with Phong material
+                    {
+                        id: 3,
+                        name: 'TestCone_Phong',
+                        isPrimitive: true,
+                        primitiveType: 'cone',
+                        material: {
+                            type: 'phong',
+                            color: '#9b59b6',
+                            wireframe: true,
+                            opacity: 0.8
+                        },
+                        transform: {
+                            position: { x: 3, y: 0, z: -1 },
+                            rotation: { x: 0, y: 0, z: 0.3 },
+                            scale: { x: 0.8, y: 1.5, z: 0.8 }
+                        },
+                        animation: {
+                            type: 'rotate-xyz',
+                            speed: 0.5
+                        }
+                    },
+                    
+                    // OBJ file (if available)
+                    {
+                        id: 4,
+                        name: 'TestOBJ_Basic',
+                        isPrimitive: false,
+                        fileName: 'spiked.obj',
+                        material: {
+                            type: 'basic',
+                            color: '#f39c12',
+                            wireframe: false,
+                            opacity: 1
+                        },
+                        transform: {
+                            position: { x: 1.5, y: -1, z: 2 },
+                            rotation: { x: 0.1, y: 0.8, z: 0 },
+                            scale: { x: 0.5, y: 0.5, z: 0.5 }
+                        },
+                        animation: {
+                            type: 'float',
+                            speed: 1
+                        },
+                        stats: { meshes: 1, vertices: 1542, faces: 2880 }
+                    }
+                ];
+                
+                return this.objects;
+            }
+        }
+        
+        // Initialize components
+        let mockScene, mockObjectManager, codeGenerator;
+        
+        try {
+            console.log('Initializing components...');
+            mockScene = new MockScene();
+            console.log('MockScene created');
+            mockObjectManager = new MockObjectManager();
+            console.log('MockObjectManager created');
+            codeGenerator = new CodeTemplateGenerator(mockScene, mockObjectManager);
+            console.log('CodeTemplateGenerator created');
+            document.getElementById('issues-found').innerHTML = '<span class="success">✅ All components initialized successfully</span>';
+        } catch (error) {
+            console.error('Error initializing components:', error);
+            document.getElementById('issues-found').innerHTML = `<span class="error">❌ Initialization error: ${error.message}<br>Stack: ${error.stack}</span>`;
+        }
+        
+        // Debug functions
+        window.generateMockObjects = function() {
+            try {
+                console.log('Generating mock objects...');
+                const objects = mockObjectManager.generateTestObjects();
+                console.log('Mock objects generated:', objects);
+                document.getElementById('mock-data').textContent = JSON.stringify(objects, null, 2);
+                document.getElementById('issues-found').innerHTML = '<span class="success">✅ Mock objects generated successfully</span>';
+            } catch (error) {
+                console.error('Error generating mock objects:', error);
+                document.getElementById('mock-data').innerHTML = `<span class="error">Error: ${error.message}</span>`;
+                document.getElementById('issues-found').innerHTML = `<span class="error">❌ Error generating mock objects: ${error.message}</span>`;
+            }
+        };
+        
+        window.generateCode = function() {
+            try {
+                const objects = mockObjectManager.getAllObjects();
+                if (objects.length === 0) {
+                    document.getElementById('generated-code').innerHTML = '<span class="warning">No objects found. Generate mock objects first.</span>';
+                    return;
+                }
+                
+                const sceneData = mockScene.exportSceneData();
+                
+                // Generate code using the same method as the real app
+                const code = codeGenerator.generateEditableCode({
+                    includeComments: true,
+                    includeImports: true,
+                    includeAnimation: true
+                });
+                
+                document.getElementById('generated-code').textContent = code;
+                
+                // Analyze the generated code
+                analyzeCode(code, objects);
+                
+            } catch (error) {
+                document.getElementById('generated-code').innerHTML = `<span class="error">Error generating code: ${error.message}</span>`;
+                document.getElementById('code-analysis').innerHTML = `<span class="error">Code analysis failed: ${error.stack}</span>`;
+            }
+        };
+        
+        function analyzeCode(code, objects) {
+            const analysis = [];
+            const issues = [];
+            
+            // Check for position handling
+            const positionMatches = code.match(/position\.set\([^)]+\)/g) || [];
+            analysis.push(`Position calls found: ${positionMatches.length}`);
+            positionMatches.forEach((match, i) => {
+                analysis.push(`  ${i + 1}: ${match}`);
+            });
+            
+            // Check for MatCap materials
+            const matcapMatches = code.match(/MeshMatcapMaterial/g) || [];
+            analysis.push(`MatCap materials found: ${matcapMatches.length}`);
+            
+            // Check for texture loading
+            const textureMatches = code.match(/TextureLoader\(\)\.load/g) || [];
+            analysis.push(`Texture loads found: ${textureMatches.length}`);
+            
+            // Check for animation userData
+            const animationMatches = code.match(/userData\.animation/g) || [];
+            analysis.push(`Animation userData found: ${animationMatches.length}`);
+            
+            // Check for expected vs actual
+            const expectedObjects = objects.length;
+            const expectedPositions = objects.length;
+            const expectedMatCaps = objects.filter(obj => obj.material.type === 'matcap').length;
+            const expectedAnimations = objects.filter(obj => obj.animation && obj.animation.type !== 'none').length;
+            
+            analysis.push(`\nExpected vs Found:`);
+            analysis.push(`Objects: ${expectedObjects} expected`);
+            analysis.push(`Positions: ${expectedPositions} expected, ${positionMatches.length} found`);
+            analysis.push(`MatCaps: ${expectedMatCaps} expected, ${matcapMatches.length} found`);
+            analysis.push(`Animations: ${expectedAnimations} expected, ${animationMatches.length} found`);
+            
+            // Find issues
+            if (positionMatches.length !== expectedPositions) {
+                issues.push(`❌ Position mismatch: expected ${expectedPositions}, found ${positionMatches.length}`);
+            }
+            
+            if (matcapMatches.length !== expectedMatCaps) {
+                issues.push(`❌ MatCap mismatch: expected ${expectedMatCaps}, found ${matcapMatches.length}`);
+            }
+            
+            if (animationMatches.length !== expectedAnimations) {
+                issues.push(`❌ Animation mismatch: expected ${expectedAnimations}, found ${animationMatches.length}`);
+            }
+            
+            if (textureMatches.length < expectedMatCaps) {
+                issues.push(`❌ Texture loading missing: expected at least ${expectedMatCaps}, found ${textureMatches.length}`);
+            }
+            
+            // Check for specific transform values
+            objects.forEach((obj, i) => {
+                if (obj.transform && obj.transform.position) {
+                    const expectedPos = `${obj.transform.position.x}, ${obj.transform.position.y}, ${obj.transform.position.z}`;
+                    if (!code.includes(expectedPos)) {
+                        issues.push(`❌ Object ${obj.name}: position ${expectedPos} not found in generated code`);
+                    }
+                }
+            });
+            
+            if (issues.length === 0) {
+                issues.push('✅ No issues found - code generation looks correct!');
+            }
+            
+            document.getElementById('code-analysis').textContent = analysis.join('\n');
+            document.getElementById('issues-found').innerHTML = issues.map(issue => 
+                issue.startsWith('✅') ? `<span class="success">${issue}</span>` : 
+                issue.startsWith('❌') ? `<span class="error">${issue}</span>` :
+                issue
+            ).join('\n');
+        }
+        
+        // Auto-generate on load with error handling
+        window.addEventListener('load', () => {
+            try {
+                console.log('Debug page loading...');
+                generateMockObjects();
+                setTimeout(() => {
+                    try {
+                        generateCode();
+                    } catch (error) {
+                        console.error('Error in generateCode:', error);
+                        document.getElementById('issues-found').innerHTML = `<span class="error">Error in generateCode: ${error.message}</span>`;
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('Error in page load:', error);
+                document.getElementById('issues-found').innerHTML = `<span class="error">Error in page load: ${error.message}</span>`;
+            }
+        });
+    </script>
+</body>
+</html>
