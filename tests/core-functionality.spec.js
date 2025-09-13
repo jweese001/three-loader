@@ -26,4 +26,21 @@ test.describe('Phase 2: Core Functionality', () => {
     // Assert that the new object appears in the scene list, with a longer timeout for file processing
     await expect(sceneObjectsPanel.getByText('Spiked_1')).toBeVisible({ timeout: 10000 });
   });
+
+  test('creates a primitive and verifies it in the scene list', async ({ page }) => {
+    // Navigate to the app
+    await page.goto('/');
+
+    // Select 'Box Geometry' from the primitive dropdown.
+    await page.getByLabel('Select Geometry').selectOption('Box Geometry');
+
+    // Click the button to add the primitive to the scene
+    await page.getByRole('button', { name: 'Add to Scene' }).click();
+
+    // Get the panel that contains the scene objects
+    const sceneObjectsPanel = page.locator('div:has(h3:has-text("Scene Objects"))');
+
+    // Assert that the new 'Box' object appears in the scene list
+    await expect(sceneObjectsPanel.getByText('Box_1')).toBeVisible();
+  });
 });
