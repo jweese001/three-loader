@@ -93,21 +93,23 @@ export class CodeTemplateGenerator {
      */
     generateSyncModeCode({ objects, sceneData, timestamp, includeComments = true }) {
         const codeLines = [];
-        
+
+        // Always add proper ES6 imports at the top
+        codeLines.push(`import * as THREE from 'three';`);
+        codeLines.push(`import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';`);
+
+        // Check if we need OBJ loader for any objects
+        const hasOBJFiles = objects.some(obj => !obj.isPrimitive && obj.fileName);
+        if (hasOBJFiles) {
+            codeLines.push(`import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';`);
+        }
+
+        codeLines.push(``); // Empty line after imports
+
         if (includeComments) {
             codeLines.push(`// 🔄 Three.js Sync Code - Generated ${timestamp}`);
             codeLines.push(`// Objects: ${objects.length}`);
             codeLines.push(`// This code is designed for UI synchronization`);
-            codeLines.push(``);
-        }
-        
-        // Check if we need OBJ loader for any objects
-        const hasOBJFiles = objects.some(obj => !obj.isPrimitive && obj.fileName);
-        if (hasOBJFiles) {
-            codeLines.push(`// Import OBJ loader for file loading`);
-            codeLines.push(`if (typeof THREE.OBJLoader === 'undefined') {`);
-            codeLines.push(`    console.warn('⚠️ OBJLoader not available. Please ensure THREE.OBJLoader is loaded.');`);
-            codeLines.push(`}`);
             codeLines.push(``);
         }
         
@@ -438,10 +440,17 @@ export class CodeTemplateGenerator {
         const materialVar = `material${objectVar.slice(-1)}`;
 
         // Use project-relative path if available, fallback to original filename
-        const fileName = objectData.projectAssetInfo?.storedPath ||
-                         objectData.fileName ||
-                         objectData.originalFileName ||
-                         'unknown.obj';
+        console.log('🔍 Debug objectData for code generation:', {
+            hasProjectAssetInfo: !!objectData.projectAssetInfo,
+            projectAssetInfo: objectData.projectAssetInfo,
+            fileName: objectData.fileName,
+            originalFileName: objectData.originalFileName
+        });
+
+        // Get file path from project asset management
+        const fileName = objectData.projectAssetInfo?.storedPath || objectData.fileName || 'unknown.obj';
+
+        console.log('📁 Using file path for code generation:', fileName);
 
         // Calculate transform values
         const transform = objectData.transform || {};
@@ -455,18 +464,13 @@ export class CodeTemplateGenerator {
         // Generate material for OBJ (outside conditional so it's always available)
         lines.push(this.generateSimpleMaterialCode(objectData.material, materialVar));
 
-        // Create OBJ loader with error handling - try multiple approaches
-        lines.push(`// Try to access OBJLoader from multiple locations`);
-        lines.push(`const OBJLoaderClass = THREE.OBJLoader || window.OBJLoader || window.THREEClasses?.OBJLoader;`);
-        lines.push(`if (typeof OBJLoaderClass !== 'function') {`);
-        lines.push(`    console.error('❌ OBJLoader is not available. Cannot load OBJ file.');`);
-        lines.push(`    console.warn('⚠️ Skipping OBJ loading for ${fileName}');`);
-        lines.push(`} else {`);
-        lines.push(`const ${loaderVar} = new OBJLoaderClass();`);
-        
-        // Load OBJ file asynchronously
-        lines.push(`${loaderVar}.load('${fileName}',`);
-        lines.push(`    (loadedObject) => {`);
+        // Create OBJ loader using proper ES6 import
+        lines.push(`// Load OBJ file from project assets`);
+        lines.push(`const ${loaderVar} = new OBJLoader();`);
+        lines.push(`    `);
+        lines.push(`    // Load OBJ file asynchronously`);
+        lines.push(`    ${loaderVar}.load('${fileName}',`);
+        lines.push(`        (loadedObject) => {`);
         lines.push(`        // Apply material to all meshes`);
         lines.push(`        loadedObject.traverse((child) => {`);
         lines.push(`            if (child.isMesh) {`);
@@ -492,15 +496,14 @@ export class CodeTemplateGenerator {
         
         lines.push(`        scene.add(loadedObject);`);
         lines.push(`        console.log('✅ OBJ loaded:', '${fileName}');`);
-        lines.push(`    },`);
-        lines.push(`    (progress) => {`);
-        lines.push(`        console.log('🔄 Loading OBJ:', '${fileName}', progress);`);
-        lines.push(`    },`);
-        lines.push(`    (error) => {`);
-        lines.push(`        console.error('❌ Failed to load OBJ:', '${fileName}', error);`);
-        lines.push(`    }`);
-        lines.push(`);`);
-        lines.push(`}  // End OBJLoader availability check`);
+        lines.push(`        },`);
+        lines.push(`        (progress) => {`);
+        lines.push(`            console.log('🔄 Loading OBJ:', '${fileName}', progress);`);
+        lines.push(`        },`);
+        lines.push(`        (error) => {`);
+        lines.push(`            console.error('❌ Failed to load OBJ:', '${fileName}', error);`);
+        lines.push(`        }`);
+        lines.push(`    );`);
 
         return lines.join('\n');
     }
@@ -951,11 +954,8 @@ ${objectDefinitions}`;
         const varName = this.sanitizeVariableName(name);
         const materialRef = `MATERIAL_${index + 1}`;
 
-        // Use project-relative path if available, fallback to original filename
-        const fileName = objectData.projectAssetInfo?.storedPath ||
-                         objectData.fileName ||
-                         objectData.originalFileName ||
-                         'unknown.obj';
+        // Get file path from project asset management
+        const fileName = objectData.projectAssetInfo?.storedPath || objectData.fileName || 'unknown.obj';
 
         // Provide defaults if transform is null or missing properties
         const safeTransform = transform || {};

@@ -81,7 +81,12 @@ class ThreeLoaderApp {
             
             this.isInitialized = true;
             console.log('✅ App initialized successfully');
-            
+
+            // Close all UI panels for clean startup view
+            if (this.uiController) {
+                this.uiController.closeAllPanels();
+            }
+
             // Hide viewport info
             const viewportInfo = document.getElementById('viewport-info');
             if (viewportInfo) {

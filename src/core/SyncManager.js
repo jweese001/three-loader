@@ -311,28 +311,16 @@ export class SyncManager {
         try {
             // Check if this is adapted standalone code
             const isAdaptedCode = code.includes('🔄 AUTO-ADAPTED FROM STANDALONE THREE.JS FILE');
-            
+
             if (isAdaptedCode) {
                 console.log('🔧 Executing adapted standalone Three.js code with enhanced context...');
                 return await this.executeAdaptedCodeInSandbox(code);
             }
-            
-            // Standard execution for three-loader generated code
-            const wrappedCode = this.wrapCodeForStateExtraction(code);
-            
-            // Execute in sandbox
-            const result = await this.codeSandbox.executeCode(wrappedCode, {
-                // Provide current scene objects as context
-                currentScene: this.serializeCurrentScene()
-            });
 
-            // Ensure we always return a proper result object
-            return result || {
-                success: false,
-                error: 'Code execution returned undefined result',
-                type: 'undefined_result'
-            };
-            
+            // For three-loader generated code, use main thread execution with full context
+            console.log('🔧 Executing three-loader generated code in main thread for full Three.js access...');
+            return await this.executeCodeDirectly(code);
+
         } catch (error) {
             return {
                 success: false,
@@ -586,8 +574,13 @@ try {
         return `
 // User code execution with state extraction
 try {
+    // Create scene context from provided context
+    const scene = currentScene && currentScene.scene ? currentScene.scene : (new THREE.Scene());
+    const camera = currentScene && currentScene.camera ? currentScene.camera : (new THREE.PerspectiveCamera(75, 800/600, 0.1, 1000));
+    const renderer = currentScene && currentScene.renderer ? currentScene.renderer : (new THREE.WebGLRenderer());
+
     ${userCode}
-    
+
     // Extract scene state after user code execution
     if (typeof scene !== 'undefined' && scene) {
         __results.sceneObjects = [];
@@ -1000,7 +993,9 @@ try {
         }
         
         for (const objData of objects) {
-            const existingObject = this.scene.getObjectByProperty('uuid', objData.uuid);
+            // Get actual Three.js scene from wrapper
+            const actualScene = this.scene.scene || this.scene;
+            const existingObject = actualScene.getObjectByProperty('uuid', objData.uuid);
             
             if (existingObject) {
                 // Update existing object transform
@@ -1534,7 +1529,10 @@ try {
             objects: [],
             lights: [],
             camera: null,
-            background: null
+            background: null,
+            // Add actual Three.js objects for context
+            scene: null,
+            renderer: null
         };
         
         if (this.scene) {
@@ -1568,12 +1566,23 @@ try {
                 // Check scene background
                 const sceneBackground = actualScene.background;
                 if (sceneBackground) {
-                    serialized.background = sceneBackground.getHex ? 
+                    serialized.background = sceneBackground.getHex ?
                         sceneBackground.getHex() : sceneBackground;
                 }
+
+                // Add the actual scene object reference for execution context
+                serialized.scene = actualScene;
+            }
+
+            // Add camera and renderer references
+            if (this.scene.camera) {
+                serialized.camera = this.scene.camera;
+            }
+            if (this.scene.renderer) {
+                serialized.renderer = this.scene.renderer;
             }
         }
-        
+
         return serialized;
     }
     
@@ -1872,67 +1881,55 @@ animate();
      * @returns {Promise<Object>} Execution result
      */
     async executeCodeDirectly(code) {
-        console.log('🔄 Executing code directly (fallback mode)...');
-        
+        console.log('🔄 Executing three-loader generated code with full context...');
+
         try {
-            // Create a simple execution context that captures scene state
+            // Wrap code for proper state extraction
+            const wrappedCode = this.wrapCodeForStateExtraction(code);
+
+            // Create execution context with current scene objects
             const scene = this.scene.scene;
-            let capturedObjects = [];
-            
-            // Capture objects before execution
-            const beforeCount = scene.children.length;
-            
-            // Execute the code in a safe context
-            const executeInContext = new Function('THREE', 'scene', 'console', code);
-            executeInContext(window.THREE, scene, console);
-            
-            // Capture objects after execution
-            const afterCount = scene.children.length;
-            
-            // Extract newly added objects (simple approach)
-            scene.traverse((child) => {
-                if (child.isMesh || child.isGroup || child.isObject3D) {
-                    capturedObjects.push({
-                        id: child.uuid,
-                        name: child.name || `Object_${child.uuid.slice(0, 8)}`,
-                        type: child.type,
-                        position: child.position.toArray(),
-                        rotation: child.rotation.toArray(),
-                        scale: child.scale.toArray(),
-                        visible: child.visible,
-                        geometry: child.geometry ? {
-                            type: child.geometry.type,
-                            vertices: child.geometry.attributes?.position?.count || 0
-                        } : null,
-                        material: child.material ? this.serializeMaterial(child.material) : null
-                    });
-                }
-            });
-            
-            console.log(`✅ Direct execution completed. Objects: ${beforeCount} → ${afterCount}`);
-            
+            const camera = this.scene.camera;
+            const renderer = this.scene.renderer;
+            const currentScene = this.serializeCurrentScene();
+
+            // Create results container
+            const __results = {};
+
+            // Execute wrapped code with full Three.js context
+            const executeInContext = new Function(
+                'THREE', 'scene', 'camera', 'renderer', 'console', 'currentScene', '__results',
+                wrappedCode
+            );
+
+            executeInContext(
+                window.THREE,
+                scene,
+                camera,
+                renderer,
+                console,
+                currentScene,
+                __results
+            );
+
+            // Return execution results
             return {
                 success: true,
-                result: {
-                    executionSuccess: true,
-                    sceneObjects: capturedObjects,  // Use sceneObjects instead of objects
-                    objects: capturedObjects,        // Keep objects for compatibility
-                    objectCount: afterCount - beforeCount,
-                    scene: {
-                        children: scene.children.length
-                    }
-                }
+                result: __results,
+                executionTime: 0,
+                memoryUsage: 0
             };
-            
+
         } catch (error) {
-            console.error('❌ Direct execution failed:', error);
+            console.error('❌ Direct code execution failed:', error);
             return {
                 success: false,
-                error: error.message
+                error: error.message,
+                type: 'execution_error'
             };
         }
     }
-    
+
     /**
      * Enhanced sync status for debugging
      * @returns {Object} Comprehensive sync status

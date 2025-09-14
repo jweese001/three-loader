@@ -52,10 +52,7 @@ export class ProjectDialog {
                 <div class="project-dialog-footer">
                     <div class="project-status" id="project-status">
                         <span class="status-icon">⏳</span>
-                        <span class="status-text">Ready to set up project...</span>
-                    </div>
-                    <div class="project-actions">
-                        <button id="skip-project-btn" class="skip-button">Skip (Not Recommended)</button>
+                        <span class="status-text">Project setup is required for proper asset management</span>
                     </div>
                 </div>
             </div>
@@ -263,10 +260,6 @@ export class ProjectDialog {
             this.handleOpenProject();
         });
 
-        // Skip project setup
-        this.overlay.querySelector('#skip-project-btn').addEventListener('click', () => {
-            this.handleSkipProject();
-        });
 
         // Click on option areas to trigger buttons
         this.overlay.querySelector('#new-project-option').addEventListener('click', (e) => {
@@ -287,7 +280,7 @@ export class ProjectDialog {
         try {
             this.updateStatus('loading', 'Creating project structure...');
 
-            const success = await this.projectManager.initializeProjectStructure();
+            const success = await this.projectManager.createNewProject();
 
             if (success) {
                 this.updateStatus('success', 'Project created successfully!');
@@ -310,7 +303,7 @@ export class ProjectDialog {
         try {
             this.updateStatus('loading', 'Opening project folder...');
 
-            const success = await this.projectManager.initializeProjectStructure();
+            const success = await this.projectManager.openExistingProject();
 
             if (success) {
                 this.updateStatus('success', 'Project opened successfully!');
@@ -326,14 +319,6 @@ export class ProjectDialog {
         }
     }
 
-    /**
-     * Handle skip project setup
-     */
-    handleSkipProject() {
-        console.warn('⚠️ User skipped project setup - file paths may be inconsistent');
-        this.updateStatus('error', 'Skipped project setup - file paths may be inconsistent');
-        setTimeout(() => this.complete(false), 500);
-    }
 
     /**
      * Update status display

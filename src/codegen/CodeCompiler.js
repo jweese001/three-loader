@@ -312,9 +312,13 @@ export class CodeCompiler {
             camera: null,
             background: null
         };
-        
+
         if (this.scene) {
-            this.scene.traverse((object) => {
+            // Get actual Three.js scene from wrapper
+            const actualScene = this.scene.scene || this.scene;
+
+            if (actualScene && typeof actualScene.traverse === 'function') {
+                actualScene.traverse((object) => {
                 if (object.isMesh || object.isGroup) {
                     serialized.objects.push({
                         uuid: object.uuid,
@@ -343,11 +347,12 @@ export class CodeCompiler {
                         castShadow: object.castShadow
                     });
                 }
-            });
-            
-            if (this.scene.background) {
-                serialized.background = this.scene.background.getHex ? 
-                    this.scene.background.getHex() : this.scene.background;
+                });
+
+                if (actualScene.background) {
+                    serialized.background = actualScene.background.getHex ?
+                        actualScene.background.getHex() : actualScene.background;
+                }
             }
         }
         

@@ -371,7 +371,20 @@ export class ObjectManager {
     getObject(objectId) {
         return this.loadedObjects.get(objectId);
     }
-    
+
+    // Update object data (useful for adding ProjectManager asset info after loading)
+    updateObjectData(objectId, updateData) {
+        const objectData = this.loadedObjects.get(objectId);
+        if (objectData) {
+            Object.assign(objectData, updateData);
+            this.loadedObjects.set(objectId, objectData);
+            console.log(`📝 Object data updated: ${objectData.name}`, Object.keys(updateData));
+            return true;
+        }
+        console.warn(`⚠️ Cannot update object: ID ${objectId} not found`);
+        return false;
+    }
+
     // Clear all objects
     clearAll() {
         const objectIds = Array.from(this.loadedObjects.keys());

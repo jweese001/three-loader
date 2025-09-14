@@ -40,43 +40,131 @@ export class ProjectManager {
     }
 
     /**
-     * Initialize project folder structure
+     * Create a new project folder structure (for "Create New Project")
      */
-    async initializeProjectStructure() {
+    async createNewProject() {
         try {
             if (!this.isFileSystemAccessSupported()) {
                 throw new Error('File System Access API not supported in this browser');
             }
 
-            console.log('📁 Initializing 3Loader project structure...');
+            console.log('📁 Creating new 3Loader project...');
 
-            // Request access to Documents folder or let user choose location
+            // Request access to a location where user wants to create the project
             const options = {
                 mode: 'readwrite',
                 startIn: 'documents'
             };
 
             try {
-                // Try to get existing project folder
+                // Let user select where to create the project folder
                 this.projectRootHandle = await window.showDirectoryPicker(options);
 
-                // Verify this is the correct folder or create structure
+                // Create or verify project structure
                 await this.setupProjectFolders();
 
             } catch (error) {
                 if (error.name === 'AbortError') {
-                    console.log('👤 User cancelled folder selection');
+                    console.log('👤 User cancelled project creation');
                     return false;
                 }
                 throw error;
             }
 
-            console.log('✅ Project structure initialized successfully');
+            console.log('✅ New project created successfully');
             return true;
 
         } catch (error) {
-            console.error('❌ Failed to initialize project structure:', error);
+            console.error('❌ Failed to create new project:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Open an existing project folder (for "Open Existing Project")
+     */
+    async openExistingProject() {
+        try {
+            if (!this.isFileSystemAccessSupported()) {
+                throw new Error('File System Access API not supported in this browser');
+            }
+
+            console.log('📂 Opening existing 3Loader project...');
+
+            // Request access to existing project folder
+            const options = {
+                mode: 'readwrite',
+                startIn: 'documents'
+            };
+
+            try {
+                // Let user select an existing project folder
+                this.projectRootHandle = await window.showDirectoryPicker(options);
+
+                // Verify this is a valid 3Loader project folder
+                await this.validateProjectStructure();
+
+                // Set up folder handles for existing structure
+                await this.setupProjectFolders();
+
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.log('👤 User cancelled project opening');
+                    return false;
+                }
+                throw error;
+            }
+
+            console.log('✅ Existing project opened successfully');
+            return true;
+
+        } catch (error) {
+            console.error('❌ Failed to open existing project:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Initialize project folder structure (legacy method for backward compatibility)
+     */
+    async initializeProjectStructure() {
+        // Default to creating new project for backward compatibility
+        return await this.createNewProject();
+    }
+
+    /**
+     * Validate that a folder is a valid 3Loader project
+     */
+    async validateProjectStructure() {
+        try {
+            console.log('🔍 Validating project structure...');
+
+            // Check if this folder has the expected 3Loader structure
+            const requiredFolders = ['textures', 'models', 'projects'];
+            const missingFolders = [];
+
+            for (const folderName of requiredFolders) {
+                try {
+                    await this.projectRootHandle.getDirectoryHandle(folderName);
+                    console.log(`✅ Found folder: ${folderName}`);
+                } catch (error) {
+                    missingFolders.push(folderName);
+                    console.log(`❌ Missing folder: ${folderName}`);
+                }
+            }
+
+            // If some folders are missing, ask user if they want to create them
+            if (missingFolders.length > 0) {
+                console.log(`⚠️ This folder appears to be missing some 3Loader project folders: ${missingFolders.join(', ')}`);
+                console.log('📁 Will create missing folders to complete project structure...');
+                // We'll let setupProjectFolders() create the missing ones
+            }
+
+            return true;
+
+        } catch (error) {
+            console.error('❌ Failed to validate project structure:', error);
+            throw new Error('Failed to validate project folder structure');
         }
     }
 
@@ -139,10 +227,11 @@ export class ProjectManager {
             const folderHandle = this.getFolderHandleForAssetType(assetType);
             const folderName = this.getFolderNameForAssetType(assetType);
 
-            // Generate UUID for the asset
-            const assetId = this.generateUUID();
+            // Generate short ID for the asset
+            const assetId = this.generateShortId();
             const fileExtension = this.getFileExtension(file.name);
-            const newFileName = `${assetId}-${this.sanitizeFilename(file.name)}`;
+            const cleanName = this.sanitizeFilename(file.name);
+            const newFileName = `${assetId}-${cleanName}`;
 
             console.log(`📋 Copying ${assetType} to project:`, {
                 originalName: file.name,
@@ -164,7 +253,9 @@ export class ProjectManager {
                 id: assetId,
                 originalName: file.name,
                 storedName: newFileName,
-                storedPath: `./${folderName}/${newFileName}`,
+                storedPath: `./${folderName}/${newFileName}`,        // Relative path for exports
+                absolutePath: `models/${newFileName}`,              // Simplified absolute path
+                folderName: folderName,
                 type: assetType,
                 size: file.size,
                 lastModified: file.lastModified,
@@ -310,6 +401,19 @@ export class ProjectManager {
     }
 
     /**
+     * Generate short ID for asset naming (much more readable)
+     */
+    generateShortId() {
+        // Generate a 6-character alphanumeric ID (like a1b2c3)
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    /**
      * Get file extension from filename
      */
     getFileExtension(filename) {
@@ -328,6 +432,24 @@ export class ProjectManager {
      */
     isInitialized() {
         return this.projectRootHandle !== null && this.texturesHandle !== null;
+    }
+
+    /**
+     * Try to restore previous project without user interaction
+     * Only works if we have stored project information - currently returns false
+     */
+    async tryRestorePreviousProject() {
+        try {
+            // For now, we don't have persistent project storage
+            // This would require implementing IndexedDB or localStorage for project handles
+            // Auto-restoration without user gesture is not possible with File System Access API
+            console.log('📁 Auto-restoration requires user gesture - skipping');
+            return false;
+
+        } catch (error) {
+            console.error('❌ Failed to restore previous project:', error);
+            return false;
+        }
     }
 
     /**

@@ -51,16 +51,31 @@ export class UIController {
         const fileSelectBtn = document.getElementById('file-select-btn');
         const loadingIndicator = document.getElementById('loading-indicator');
         
-        // File select button
+        // File select button - protect against multiple simultaneous dialogs
+        let dialogOpen = false;
         fileSelectBtn.addEventListener('click', () => {
+            if (dialogOpen) {
+                console.log('⚠️ File dialog already open, ignoring click');
+                return;
+            }
+
+            dialogOpen = true;
             fileInput.click();
+
+            // Reset flag after a short delay (dialog should have opened by then)
+            setTimeout(() => {
+                dialogOpen = false;
+            }, 500);
         });
         
         // File input change
         fileInput.addEventListener('change', (event) => {
+            // Reset dialog flag when user completes file selection
+            dialogOpen = false;
+
             const files = Array.from(event.target.files);
-            
-            
+
+
             this.handleFiles(files);
         });
         
@@ -102,24 +117,49 @@ export class UIController {
                 console.log(`📁 Processing file: ${file.name}`);
 
                 // Initialize project if not already done
+                let assetInfo = null;
                 if (!this.projectManager.isInitialized()) {
                     console.log('🏗️ Project not initialized, setting up folder structure...');
                     const initSuccess = await this.projectManager.initializeProjectStructure();
                     if (!initSuccess) {
-                        throw new Error('Project folder setup was cancelled. Please set up the project folder first.');
+                        console.warn('⚠️ Project setup cancelled, loading file directly for testing...');
+                        // Fallback: Load directly without project management
+                        const objectData = await this.objectManager.loadOBJFile(file);
+                        objectData.fileName = file.name; // Store original filename for code generation
+                        objectData.originalFileName = file.name;
+                        // Continue with rest of the loading process
+                        this.updateObjectsList();
+                        this.updateExportButtonState();
+                        console.log('✅ OBJ file loaded directly (no project):', file.name);
+                        continue; // Skip project-related processing
                     }
                 }
 
-                // Copy OBJ file to project folder
-                console.log('📋 Copying OBJ file to project folder...');
-                const assetInfo = await this.projectManager.copyAssetToProject(file, 'model');
-                console.log('✅ OBJ file copied to project:', assetInfo);
+                if (this.projectManager.isInitialized()) {
+                    // Copy OBJ file to project folder
+                    console.log('📋 Copying OBJ file to project folder...');
+                    assetInfo = await this.projectManager.copyAssetToProject(file, 'model');
+                    console.log('✅ OBJ file copied to project:', assetInfo);
+                }
 
                 // Load the OBJ file
                 const objectData = await this.objectManager.loadOBJFile(file);
 
                 // Store the project path information for code generation
-                objectData.projectAssetInfo = assetInfo;
+                if (assetInfo) {
+                    objectData.projectAssetInfo = assetInfo;
+                    // Update the stored object data in ObjectManager so it persists
+                    this.objectManager.updateObjectData(objectData.id, { projectAssetInfo: assetInfo });
+                } else {
+                    // Fallback for direct loading
+                    objectData.fileName = file.name;
+                    objectData.originalFileName = file.name;
+                    // Update the stored object data in ObjectManager
+                    this.objectManager.updateObjectData(objectData.id, {
+                        fileName: file.name,
+                        originalFileName: file.name
+                    });
+                }
 
                 // Update objects list
                 this.updateObjectsList();
@@ -1723,12 +1763,40 @@ export class UIController {
                 console.log(`📋 ${nowCollapsed ? 'Collapsed' : 'Expanded'} panel: ${targetId}`);
             });
             
-            // Set initial state (all panels expanded by default)
-            newHeader.setAttribute('aria-expanded', 'true');
-            content.classList.remove('collapsed');
+            // Set initial state (all panels collapsed for cleaner startup)
+            newHeader.setAttribute('aria-expanded', 'false');
+            content.classList.add('collapsed');
+            if (newArrow) {
+                newArrow.style.transform = 'rotate(-90deg)';
+            }
         });
         
-        console.log('📋 Collapsible panels setup complete');
+        console.log('📋 Collapsible panels setup complete - all panels collapsed for clean startup');
+    }
+
+    /**
+     * Ensure all UI panels start in closed position for clean layout
+     * Called after project initialization
+     */
+    closeAllPanels() {
+        const panels = document.querySelectorAll('.collapsible-panel .panel-content');
+        const headers = document.querySelectorAll('.collapsible-panel .panel-header');
+
+        panels.forEach((panel, index) => {
+            panel.classList.add('collapsed');
+
+            // Update corresponding header
+            const header = headers[index];
+            if (header) {
+                header.setAttribute('aria-expanded', 'false');
+                const arrow = header.querySelector('.collapse-arrow');
+                if (arrow) {
+                    arrow.style.transform = 'rotate(-90deg)';
+                }
+            }
+        });
+
+        console.log('📋 All UI panels closed for clean startup view');
     }
     
     setupAdvancedAnimationControls() {
