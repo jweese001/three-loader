@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texture Path Preservation Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+        }
+        .test-container {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-step {
+            margin: 10px 0;
+            padding: 5px 0;
+        }
+        .highlight {
+            background: #333;
+            padding: 2px 4px;
+            border-radius: 2px;
+            color: #ffaa00;
+        }
+        button {
+            background: #333;
+            color: #00ff00;
+            border: 1px solid #555;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 10px 5px;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #444;
+        }
+        .expected {
+            color: #00ff00;
+        }
+        .issue {
+            color: #ff4444;
+        }
+        .fixed {
+            color: #00ff00;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Texture Path Preservation Fix Test</h1>
+
+    <div class="test-container">
+        <h3>✅ Fix Applied: Enhanced Texture Data Structure</h3>
+        <p><strong>Changes Made:</strong></p>
+        <ul>
+            <li><span class="highlight">UIController.js</span> - Enhanced texture file selection to store:</li>
+            <ul>
+                <li>file: File object</li>
+                <li>filename: file.name</li>
+                <li>relativePath: file.webkitRelativePath</li>
+                <li><strong class="fixed">fullPath: file.webkitRelativePath || file.name</strong> ← KEY FIX</li>
+            </ul>
+            <li><span class="highlight">CodeTemplateGenerator.js</span> - Added Strategy 1 to prioritize fullPath</li>
+        </ul>
+    </div>
+
+    <div class="test-container">
+        <h3>🧪 Test Protocol</h3>
+        <button onclick="openMainApp()">1. Open Three-Loader App</button>
+        <div class="test-step">2. Load a primitive object (e.g., sphere)</div>
+        <div class="test-step">3. Change material type to "MatCap"</div>
+        <div class="test-step">4. Click "Load" button for texture</div>
+        <div class="test-step">5. <strong>SELECT TEXTURE FROM MATCAP FOLDER STRUCTURE</strong></div>
+        <div class="test-step">6. Click "From UI" button</div>
+        <div class="test-step">7. Check generated code for correct path</div>
+    </div>
+
+    <div class="test-container">
+        <h3>📊 Expected Results</h3>
+        <p><span class="issue">❌ Before Fix:</span></p>
+        <pre>TextureLoader().load('07.webp');</pre>
+
+        <p><span class="expected">✅ After Fix:</span></p>
+        <pre>TextureLoader().load('MatCap-Textures/gold/07.webp');</pre>
+
+        <p><strong>Key Improvement:</strong> The texture path should now preserve the full folder structure when you select files from the MatCap-Textures directory hierarchy.</p>
+    </div>
+
+    <div class="test-container">
+        <h3>🎯 User Custom Textures</h3>
+        <p>The fix also supports users' custom texture organization:</p>
+        <ul>
+            <li>If webkitRelativePath is available: Uses complete folder structure</li>
+            <li>If not available: Falls back to filename only (for single files)</li>
+            <li>Works with any folder organization, not just MatCap collections</li>
+        </ul>
+
+        <p><span class="fixed">✅ This addresses the user's concern:</span> <em>"that might work for the matcaps but that's going to be hard to do if a user has their own file system for textures they own"</em></p>
+    </div>
+
+    <div class="test-container">
+        <h3>🔍 Debug Console Output</h3>
+        <p>Watch for these console messages during testing:</p>
+        <pre>
+🎨 Texture file selected: {
+  name: "07.webp",
+  webkitRelativePath: "MatCap-Textures/gold/07.webp",
+  fullPath: "MatCap-Textures/gold/07.webp"
+}
+
+🎨 Using stored fullPath: MatCap-Textures/gold/07.webp
+        </pre>
+    </div>
+
+    <script>
+        function openMainApp() {
+            window.open('http://localhost:5174/', '_blank');
+        }
+
+        // Auto-open app for quick testing
+        setTimeout(() => {
+            console.log('🔧 Texture path preservation fix has been applied');
+            console.log('✅ UIController: Enhanced texture data structure');
+            console.log('✅ CodeTemplateGenerator: Priority fullPath strategy');
+        }, 1000);
+    </script>
+</body>
+</html>

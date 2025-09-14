@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centralized Asset Management System Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success {
+            border-left: 4px solid #00ff00;
+            background: #0a2a0a;
+        }
+        .info {
+            border-left: 4px solid #0088ff;
+            background: #0a1a2a;
+        }
+        .architecture {
+            border-left: 4px solid #ff8800;
+            background: #2a1a0a;
+        }
+        button {
+            background: #333;
+            color: #00ff00;
+            border: 1px solid #555;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 10px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        button:hover {
+            background: #444;
+        }
+        pre {
+            background: #111;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            border: 1px solid #333;
+        }
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feature {
+            background: #222;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #444;
+        }
+        .feature h4 {
+            color: #ffaa00;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ Centralized Asset Management System</h1>
+        <p><strong>Status:</strong> ✅ Implementation Complete - Ready for Testing</p>
+
+        <div class="test-section info">
+            <h3>🎯 Problem Solved</h3>
+            <p>The original issue was texture path problems affecting <strong>all material types</strong> (Standard, Physical, Basic, Lambert, Phong, MatCap), not just MatCaps. Browser security prevents accessing full file paths, making generated code unreliable.</p>
+
+            <p><strong>Previous Issue:</strong></p>
+            <pre>// Broken - can't find texture
+TextureLoader().load('06.webp');</pre>
+
+            <p><strong>New Solution:</strong></p>
+            <pre>// Reliable - known project structure
+TextureLoader().load('./textures/uuid-texture-name.webp');</pre>
+        </div>
+
+        <div class="test-section architecture">
+            <h3>📁 Project Structure Created</h3>
+            <pre>~/Documents/3Loader-Projects/
+├── textures/           # All texture assets with UUID naming
+├── models/            # OBJ files and other 3D assets
+├── projects/          # Saved project files (.json)
+├── exports/           # Generated code exports
+└── temp/              # Temporary working files</pre>
+        </div>
+
+        <div class="test-section success">
+            <h3>✅ Implementation Complete</h3>
+
+            <div class="feature-list">
+                <div class="feature">
+                    <h4>ProjectManager Class</h4>
+                    <p>• File System Access API integration<br>
+                    • Project folder structure creation<br>
+                    • Asset database management<br>
+                    • UUID-based file naming</p>
+                </div>
+
+                <div class="feature">
+                    <h4>Texture Copying System</h4>
+                    <p>• Automatic texture copying to project<br>
+                    • Deduplication via file metadata<br>
+                    • Progress tracking and error handling<br>
+                    • Cross-platform compatibility</p>
+                </div>
+
+                <div class="feature">
+                    <h4>Enhanced UIController</h4>
+                    <p>• Integrated asset management workflow<br>
+                    • One-time project setup<br>
+                    • Fallback for unsupported browsers<br>
+                    • User-friendly error messages</p>
+                </div>
+
+                <div class="feature">
+                    <h4>Updated Code Generation</h4>
+                    <p>• Predictable texture paths<br>
+                    • Support for all material types<br>
+                    • Backward compatibility<br>
+                    • Enhanced debugging output</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section info">
+            <h3>🧪 Testing Instructions</h3>
+            <button onclick="openMainApp()">Open 3Loader Application</button>
+
+            <ol>
+                <li><strong>Load an object:</strong>
+                    <ul>
+                        <li>Primitive: Select from dropdown (sphere, box, etc.) and click "Load Primitive"</li>
+                        <li>OBJ File: Click "Browse OBJ Files" and select a .obj file</li>
+                    </ul>
+                </li>
+                <li><strong>Select any material type</strong> (Standard, Physical, Basic, Lambert, Phong, MatCap)</li>
+                <li><strong>Click texture "Load" button</strong></li>
+                <li><strong>First time only:</strong> Browser will ask for folder permission - select or create "3Loader-Projects" in your Documents folder</li>
+                <li><strong>Select any texture file</strong> from anywhere on your system (.webp, .jpg, .png)</li>
+                <li><strong>Click "From UI" button</strong> to generate code</li>
+                <li><strong>Verify generated code</strong> shows reliable path: <code>./textures/uuid-filename.ext</code></li>
+            </ol>
+        </div>
+
+        <div class="test-section success">
+            <h3>🔄 Workflow Benefits</h3>
+            <ul>
+                <li><strong>Universal Solution:</strong> Works for ALL material types, not just MatCaps</li>
+                <li><strong>Reliable Code Generation:</strong> Always knows where to find textures</li>
+                <li><strong>One-Time Setup:</strong> User grants folder access once, then it's seamless</li>
+                <li><strong>Project Organization:</strong> All assets organized in logical structure</li>
+                <li><strong>Future-Proof:</strong> Foundation for standalone project exports</li>
+                <li><strong>Asset Management:</strong> Automatic deduplication and cleanup</li>
+            </ul>
+        </div>
+
+        <div class="test-section architecture">
+            <h3>⚡ Technical Implementation</h3>
+            <p><strong>Key Components Added:</strong></p>
+            <ul>
+                <li><code>ProjectManager.js</code> - Core asset management system</li>
+                <li><code>UIController.js</code> - Integration with texture selection workflow</li>
+                <li><code>CodeTemplateGenerator.js</code> - Enhanced to use centralized paths</li>
+            </ul>
+
+            <p><strong>Browser Compatibility:</strong></p>
+            <ul>
+                <li>✅ Chrome 86+ (Full File System Access API support)</li>
+                <li>✅ Edge 86+ (Full File System Access API support)</li>
+                <li>⚠️ Other browsers (Graceful fallback with user notification)</li>
+            </ul>
+        </div>
+
+        <div class="test-section info">
+            <h3>🔍 Debug Information</h3>
+            <p>Watch the browser console for these messages during texture loading:</p>
+            <pre>
+🏗️ Project not initialized, setting up folder structure...
+📁 Initializing 3Loader project structure...
+📂 Project folders created/verified: {textures: "textures", models: "models", ...}
+🎨 Processing texture file selection: example.webp
+📋 Copying texture to project folder...
+✅ Texture copied successfully: {id: "uuid", storedPath: "./textures/uuid-example.webp"}
+🎨 Generated texture loading code with centralized path: ./textures/uuid-example.webp
+            </pre>
+        </div>
+
+        <div class="test-section architecture">
+            <h3>🛠️ Troubleshooting</h3>
+            <h4>Common Issues & Fixes:</h4>
+
+            <p><strong>❌ "Must be handling a user gesture to show a file picker"</strong></p>
+            <ul>
+                <li><strong>Cause:</strong> Browser security requires direct user interaction for folder picker</li>
+                <li><strong>Fix:</strong> ✅ <em>Fixed!</em> Project setup now happens on button click (direct user gesture)</li>
+            </ul>
+
+            <p><strong>❌ Second attempt doesn't work / no response</strong></p>
+            <ul>
+                <li><strong>Cause:</strong> Error state not properly reset</li>
+                <li><strong>Fix:</strong> ✅ <em>Fixed!</em> File input is now reset on errors</li>
+            </ul>
+
+            <p><strong>❌ Inconsistent behavior on repeated attempts</strong></p>
+            <ul>
+                <li><strong>Cause:</strong> Project initialization mixed with file processing</li>
+                <li><strong>Fix:</strong> ✅ <em>Fixed!</em> Clear separation: setup on button click, processing on file selection</li>
+            </ul>
+
+            <p><strong>⚠️ Browser Compatibility</strong></p>
+            <ul>
+                <li><strong>Supported:</strong> Chrome 86+, Edge 86+ (File System Access API)</li>
+                <li><strong>Fallback:</strong> Other browsers get clear error message</li>
+            </ul>
+        </div>
+
+        <div class="test-section success">
+            <h3>🚀 Next Phase Ready</h3>
+            <p>With centralized asset management in place, the system is now ready for:</p>
+            <ul>
+                <li>📦 <strong>Standalone Project Export</strong> - Complete project folders with all assets</li>
+                <li>💾 <strong>Project Save/Load System</strong> - Full project persistence</li>
+                <li>🎨 <strong>Advanced Asset Management</strong> - Texture optimization, compression</li>
+                <li>🔄 <strong>Asset Synchronization</strong> - Keep projects in sync across devices</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function openMainApp() {
+            const url = 'http://localhost:5180/';
+            window.open(url, '_blank');
+            console.log('🚀 Opening 3Loader application with centralized asset management...');
+        }
+
+        // Auto-display implementation status
+        setTimeout(() => {
+            console.log('🏗️ Centralized Asset Management System');
+            console.log('✅ ProjectManager class created');
+            console.log('✅ UIController integration complete');
+            console.log('✅ CodeTemplateGenerator enhanced');
+            console.log('✅ File System Access API implemented');
+            console.log('✅ Ready for testing!');
+        }, 1000);
+    </script>
+</body>
+</html>

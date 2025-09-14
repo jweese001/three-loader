@@ -10,6 +10,8 @@ import { ButtonController } from './ui/ButtonController.js';
 import { ExportManager } from './export/ExportManager.js';
 import { AnimationController } from './utils/AnimationController.js';
 import { TextureManager } from './utils/TextureManager.js';
+import { ProjectManager } from './core/ProjectManager.js';
+import { ProjectDialog } from './ui/ProjectDialog.js';
 
 // Main application class
 class ThreeLoaderApp {
@@ -22,17 +24,22 @@ class ThreeLoaderApp {
         this.exportManager = null;
         this.animationController = null;
         this.textureManager = null;
-        
+        this.projectManager = null;
+
         this.selectedObject = null;
         this.isInitialized = false;
-        
+
         this.init();
     }
     
     async init() {
         try {
             console.log('🚀 Initializing Three.js Loader App...');
-            
+
+            // Initialize project management system first
+            this.projectManager = new ProjectManager();
+            await this.initializeProject();
+
             // Initialize core scene
             this.scene = new ThreeScene('viewport');
             await this.scene.init();
@@ -41,7 +48,7 @@ class ThreeLoaderApp {
             this.animationController = new AnimationController();
             this.textureManager = new TextureManager();
             this.objectManager = new ObjectManager(this.scene, this.animationController);
-            this.exportManager = new ExportManager(this.scene, this.objectManager);
+            this.exportManager = new ExportManager(this.scene, this.objectManager, this.projectManager);
             
             // Initialize UI controller
             this.uiController = new UIController({
@@ -50,6 +57,7 @@ class ThreeLoaderApp {
                 exportManager: this.exportManager,
                 animationController: this.animationController,
                 textureManager: this.textureManager,
+                projectManager: this.projectManager,
                 onObjectSelect: this.handleObjectSelect.bind(this),
                 onObjectUpdate: this.handleObjectUpdate.bind(this)
             });
@@ -85,7 +93,45 @@ class ThreeLoaderApp {
             this.showError('Failed to initialize application: ' + error.message);
         }
     }
-    
+
+    /**
+     * Initialize project management system with optional dialog
+     */
+    async initializeProject() {
+        try {
+            // Check if we should skip the dialog (already set up recently)
+            if (ProjectDialog.shouldSkipDialog()) {
+                console.log('📁 Project already initialized recently, attempting auto-initialization...');
+
+                try {
+                    // Try to auto-initialize with previous project
+                    const success = await this.projectManager.initializeProjectStructure();
+                    if (success) {
+                        console.log('✅ Project auto-initialized successfully');
+                        return;
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Failed to auto-initialize project, showing dialog:', error.message);
+                }
+            }
+
+            // Show project dialog for setup
+            console.log('📁 Showing project setup dialog...');
+            const projectDialog = new ProjectDialog(this.projectManager);
+            const success = await projectDialog.show();
+
+            if (success) {
+                console.log('✅ Project initialized through dialog');
+            } else {
+                console.warn('⚠️ Project setup was skipped - file paths may be inconsistent');
+            }
+
+        } catch (error) {
+            console.error('❌ Failed to initialize project:', error);
+            // Don't throw - allow app to continue without project management
+        }
+    }
+
     setupEventListeners() {
         // Window resize
         window.addEventListener('resize', () => {
@@ -241,5 +287,32 @@ document.addEventListener('DOMContentLoaded', () => {
     window.threeLoaderApp = new ThreeLoaderApp();
 });
 
-// Make THREE available globally for debugging
+// Make THREE available globally for debugging and code execution
 window.THREE = THREE;
+
+// Make additional THREE.js classes available globally for sync mode code execution
+// Use try-catch to handle non-extensible THREE object
+try {
+    window.THREE.OBJLoader = OBJLoader;
+    window.THREE.OrbitControls = OrbitControls;
+    console.log('✅ THREE.js classes assigned directly to THREE object');
+} catch (error) {
+    console.warn('⚠️ THREE object is not extensible, using alternative approach:', error.message);
+    // Alternative: Make classes available on window directly
+    window.OBJLoader = OBJLoader;
+    window.OrbitControls = OrbitControls;
+    // Also create a custom namespace
+    window.THREEClasses = {
+        OBJLoader: OBJLoader,
+        OrbitControls: OrbitControls
+    };
+}
+
+// Debug: Log available THREE classes
+console.log('🔧 Global THREE setup complete. Available classes:', {
+    'THREE.OBJLoader': typeof window.THREE.OBJLoader,
+    'THREE.OrbitControls': typeof window.THREE.OrbitControls,
+    'window.OBJLoader': typeof window.OBJLoader,
+    'window.OrbitControls': typeof window.OrbitControls,
+    'THREEClasses.OBJLoader': typeof window.THREEClasses?.OBJLoader
+});

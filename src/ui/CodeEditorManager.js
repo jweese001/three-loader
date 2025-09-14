@@ -587,11 +587,11 @@ export class CodeEditorManager {
                         }
                         
                         const result = await this.syncManager.executeAdaptedCodeInSandbox(codeToExecute);
-                        if (result.success) {
+                        if (result && result.success) {
                             this.showNotification('✅ Updated animation code executed successfully!', 'success');
                             return;
                         } else {
-                            throw new Error(result.error);
+                            throw new Error(result ? result.error : 'Code execution returned undefined result');
                         }
                     }
                 } catch (error) {
@@ -608,11 +608,11 @@ export class CodeEditorManager {
                 console.log('🔄 Detected adapted code - using enhanced execution path');
                 try {
                     const result = await this.syncManager.executeAdaptedCodeInSandbox(code);
-                    if (result.success) {
+                    if (result && result.success) {
                         this.showNotification('✅ Adapted code successfully executed in viewport!', 'success');
                         return;
                     } else {
-                        console.error('Enhanced execution failed:', result.error);
+                        console.error('Enhanced execution failed:', result ? result.error : 'undefined result');
                     }
                 } catch (error) {
                     console.error('Enhanced execution error:', error);
@@ -904,10 +904,13 @@ if (objectManager && objectManager.createPrimitive) {
             
             const result = func(...Object.values(context));
             
-            if (!result.success) {
-                console.error('❌ Execution result error:', result.error);
-                console.error('❌ Stack trace:', result.stack);
-                throw new Error(result.error);
+            if (!result || !result.success) {
+                const errorMsg = result ? result.error : 'Code execution returned undefined result';
+                console.error('❌ Execution result error:', errorMsg);
+                if (result && result.stack) {
+                    console.error('❌ Stack trace:', result.stack);
+                }
+                throw new Error(errorMsg);
             }
             
             console.log('✅ Code executed successfully');
@@ -1873,10 +1876,10 @@ Code Execution Completed Successfully:
                 }
                 
                 const result = await this.syncManager.executeAdaptedCodeInSandbox(codeToExecute);
-                if (result.success) {
+                if (result && result.success) {
                     this.showNotification('✅ Animation-preserved code executed successfully!', 'success');
                 } else {
-                    throw new Error(result.error);
+                    throw new Error(result ? result.error : 'Code execution returned undefined result');
                 }
             } else {
                 console.warn('⚠️ SyncManager not available, cannot execute animation code');
@@ -1906,10 +1909,10 @@ Code Execution Completed Successfully:
             if (this.syncManager) {
                 // Use direct execution for adapted code to avoid Web Worker issues
                 const result = await this.syncManager.executeAdaptedCodeInSandbox(this.animationState.adaptedCode);
-                if (result.success) {
+                if (result && result.success) {
                     this.showNotification('✅ UI-controlled code executed successfully!', 'success');
                 } else {
-                    throw new Error(result.error);
+                    throw new Error(result ? result.error : 'Code execution returned undefined result');
                 }
             } else {
                 // Fallback to legacy execution

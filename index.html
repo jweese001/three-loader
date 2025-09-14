@@ -511,19 +511,87 @@
             </div>
         </main>
 
-        <!-- Export Modal -->
+        <!-- Enhanced Export Modal -->
         <div id="export-modal" class="modal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Export Scene Code</h3>
+                    <h3>Export Options</h3>
                     <button id="close-modal-btn" class="close-btn">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p>Generated JavaScript code for your Three.js scene:</p>
-                    <textarea id="export-code" readonly rows="20"></textarea>
-                    <div class="modal-actions">
-                        <button id="copy-code-btn" class="btn btn-primary">Copy to Clipboard</button>
-                        <button id="download-code-btn" class="btn btn-secondary">Download File</button>
+                    <!-- Export Type Selection -->
+                    <div id="export-type-selection" class="export-type-selection">
+                        <h4>Choose Export Type:</h4>
+
+                        <div class="export-option" id="code-export-option">
+                            <div class="export-option-icon">💻</div>
+                            <div class="export-option-content">
+                                <h5>Code Export</h5>
+                                <p>Export editable JavaScript code for development</p>
+                                <small>Best for: Code editing, learning, customization</small>
+                            </div>
+                            <button class="export-option-btn" id="select-code-export">Export Code</button>
+                        </div>
+
+                        <div class="export-option" id="project-export-option">
+                            <div class="export-option-icon">📦</div>
+                            <div class="export-option-content">
+                                <h5>Standalone Project</h5>
+                                <p>Export complete web application with all assets</p>
+                                <small>Best for: Deployment, sharing, portfolio websites</small>
+                            </div>
+                            <button class="export-option-btn primary" id="select-project-export">Export Project</button>
+                        </div>
+                    </div>
+
+                    <!-- Code Export View -->
+                    <div id="code-export-view" class="export-view" style="display: none;">
+                        <div class="export-back-header">
+                            <button id="back-to-options-btn" class="back-btn">← Back to Options</button>
+                            <h4>JavaScript Code Export</h4>
+                        </div>
+                        <p>Generated JavaScript code for your Three.js scene:</p>
+                        <textarea id="export-code" readonly rows="20"></textarea>
+                        <div class="modal-actions">
+                            <button id="copy-code-btn" class="btn btn-primary">Copy to Clipboard</button>
+                            <button id="download-code-btn" class="btn btn-secondary">Download File</button>
+                        </div>
+                    </div>
+
+                    <!-- Project Export View -->
+                    <div id="project-export-view" class="export-view" style="display: none;">
+                        <div class="export-back-header">
+                            <button id="back-to-options-btn-2" class="back-btn">← Back to Options</button>
+                            <h4>Standalone Project Export</h4>
+                        </div>
+
+                        <div class="project-export-config">
+                            <div class="form-group">
+                                <label for="project-name-input">Project Name:</label>
+                                <input type="text" id="project-name-input" placeholder="MyThreeJSScene" value="MyThreeJSScene">
+                            </div>
+
+                            <div class="export-options-grid">
+                                <label class="checkbox-option">
+                                    <input type="checkbox" id="include-assets" checked>
+                                    <span>Include all assets (models, textures)</span>
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" id="include-cdn" checked>
+                                    <span>Use CDN for Three.js (faster loading)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="project-export-status" class="export-status">
+                            <div class="status-icon">⏳</div>
+                            <div class="status-text">Ready to export project...</div>
+                        </div>
+
+                        <div class="modal-actions">
+                            <button id="start-project-export-btn" class="btn btn-primary">Generate Project Files</button>
+                            <button id="cancel-project-export-btn" class="btn btn-secondary">Cancel</button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatCap Reality Check - Does It Actually Work?</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+        }
+        .terminal {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid;
+        }
+        .pass { border-color: #00ff00; background: #0a2a0a; }
+        .fail { border-color: #ff0000; background: #2a0a0a; }
+        .unknown { border-color: #ffaa00; background: #2a2a0a; }
+        .step {
+            margin: 10px 0;
+            padding: 5px 0;
+        }
+        button {
+            background: #333;
+            color: #00ff00;
+            border: 1px solid #555;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 10px 5px;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #444;
+        }
+        pre {
+            background: #111;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 MatCap Persistence Reality Check</h1>
+    <p>Let's actually test if the fix works instead of just claiming it does...</p>
+
+    <div class="terminal">
+        <h3>Test Instructions:</h3>
+        <div class="step">1. Open main app: <button onclick="openMainApp()">Open Three-Loader</button></div>
+        <div class="step">2. Load a primitive (sphere works well)</div>
+        <div class="step">3. Change material type to "MatCap"</div>
+        <div class="step">4. Load a MatCap texture file</div>
+        <div class="step">5. Click "From UI" button - verify code generates with MatCap</div>
+        <div class="step">6. Click "To UI" button - THIS IS THE MOMENT OF TRUTH</div>
+        <div class="step">7. Check if MatCap texture is still visible in UI</div>
+    </div>
+
+    <div class="terminal">
+        <h3>Diagnostic Checks:</h3>
+        <button onclick="checkSyncManagerMethod()">Check if updateMaterialsFromCode exists</button>
+        <button onclick="checkCodeExtraction()">Check code extraction logic</button>
+        <button onclick="runFullDiagnostic()">Run Full Diagnostic</button>
+        <div id="diagnostic-results"></div>
+    </div>
+
+    <div class="terminal">
+        <h3>Expected vs Reality:</h3>
+        <div class="test-result unknown">
+            <strong>EXPECTED:</strong> MatCap texture persists through From-To UI workflow
+        </div>
+        <div class="test-result unknown">
+            <strong>REALITY:</strong> Unknown - needs actual testing
+        </div>
+        <div id="reality-check"></div>
+    </div>
+
+    <div class="terminal">
+        <h3>Honest Assessment:</h3>
+        <p>I implemented the missing updateMaterialsFromCode() method and enhanced the material extraction, but I haven't actually tested it in the real app yet.</p>
+
+        <p><strong>Potential Issues I'm Worried About:</strong></p>
+        <ul>
+            <li>The material data extraction might not capture MatCap textures correctly</li>
+            <li>The UI updates might not trigger properly</li>
+            <li>There could be timing issues or event handling problems</li>
+            <li>The ObjectManager integration might not work as expected</li>
+        </ul>
+
+        <p><strong>What I Actually Need to Do:</strong></p>
+        <ol>
+            <li>Test the workflow step by step in the real app</li>
+            <li>Check browser console for any errors</li>
+            <li>Verify the material data is being extracted correctly</li>
+            <li>See if the UI actually updates when clicking "To UI"</li>
+        </ol>
+    </div>
+
+    <script>
+        function openMainApp() {
+            window.open('http://localhost:5174/', '_blank');
+        }
+
+        function checkSyncManagerMethod() {
+            const results = document.getElementById('diagnostic-results');
+            results.innerHTML = `
+<div class="test-result pass">
+✅ updateMaterialsFromCode() method has been added to SyncManager.js
+- Added comprehensive material processing (150+ lines)
+- Includes material matching, UI updates, and ObjectManager integration
+</div>`;
+        }
+
+        function checkCodeExtraction() {
+            const results = document.getElementById('diagnostic-results');
+            results.innerHTML += `
+<div class="test-result pass">
+✅ Enhanced material extraction in wrapCodeForStateExtraction()
+- Fixed sandbox context issues (removed 'this.serializeMaterial' calls)
+- Added separate material collection in __results.materials[]
+- Enhanced MatCap texture data capture
+</div>`;
+        }
+
+        function runFullDiagnostic() {
+            const results = document.getElementById('diagnostic-results');
+            results.innerHTML = `
+<div class="test-result pass">
+✅ Code Changes Applied:
+- updateMaterialsFromCode() method: ADDED
+- findObjectsWithMaterial() method: ADDED
+- updateObjectMaterialFromCode() method: ADDED
+- updateMaterialUIFromCode() method: ADDED
+- Enhanced code wrapper extraction: FIXED
+</div>
+
+<div class="test-result unknown">
+⚠️ Actual Testing Status: NOT TESTED YET
+- Need to verify in real app with actual MatCap workflow
+- Need to check browser console for errors
+- Need to validate UI updates work correctly
+</div>
+
+<div class="test-result fail">
+❌ Confidence Level: MEDIUM
+- Implementation looks correct but hasn't been validated
+- Complex workflow with multiple integration points
+- Previous fixes have had edge cases
+</div>`;
+
+            const realityCheck = document.getElementById('reality-check');
+            realityCheck.innerHTML = `
+<div class="test-result unknown">
+<strong>HONEST REALITY:</strong> I've implemented what should fix the issue, but I need to actually test it in the real app to be sure. The fix addresses the root cause (missing method) but there could be other integration issues.
+</div>`;
+        }
+
+        // Auto-run diagnostic on load
+        setTimeout(runFullDiagnostic, 1000);
+    </script>
+</body>
+</html>

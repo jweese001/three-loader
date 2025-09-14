@@ -5,11 +5,15 @@
  */
 
 export class ProjectExporter {
-    constructor(scene, objectManager) {
+    constructor(scene, objectManager, projectManager = null) {
         this.scene = scene;
         this.objectManager = objectManager;
-        
+        this.projectManager = projectManager;
+
         console.log('📁 ProjectExporter initialized for standalone project creation');
+        if (this.projectManager) {
+            console.log('✅ ProjectManager integration available for asset management');
+        }
     }
 
     /**
@@ -115,25 +119,35 @@ export class ProjectExporter {
 
         // Scan objects for asset references
         objects.forEach(obj => {
-            // OBJ model files
-            if (!obj.isPrimitive && obj.fileName) {
-                assets.models.add(obj.fileName);
+            // OBJ model files - use centralized asset management paths
+            if (!obj.isPrimitive && (obj.fileName || obj.projectAssetInfo)) {
+                const assetPath = obj.projectAssetInfo?.storedPath || obj.fileName;
+                const fileName = this.getFileNameFromPath(assetPath);
+
+                assets.models.add(assetPath);
                 assets.paths.models.push({
-                    original: obj.fileName,
-                    relative: `assets/models/${this.getFileNameFromPath(obj.fileName)}`,
+                    original: obj.fileName || assetPath,
+                    storedPath: obj.projectAssetInfo?.storedPath,
+                    relative: `assets/models/${fileName}`,
                     objectId: obj.id,
                     objectName: obj.name
                 });
             }
 
-            // Material textures
+            // Material textures - use centralized asset management paths
             if (obj.material) {
-                if (obj.material.matcapTexture) {
-                    assets.textures.add(obj.material.matcapTexture);
+                // Check for stored texture path from centralized system
+                const textureAssetPath = obj.material.texture?.storedPath || obj.material.matcapTexture;
+                if (textureAssetPath) {
+                    const fileName = this.getFileNameFromPath(textureAssetPath);
+                    const textureType = obj.material.texture?.storedPath ? 'centralized' : 'matcap';
+
+                    assets.textures.add(textureAssetPath);
                     assets.paths.textures.push({
-                        original: obj.material.matcapTexture,
-                        relative: `assets/textures/matcaps/${this.getFileNameFromPath(obj.material.matcapTexture)}`,
-                        type: 'matcap',
+                        original: obj.material.matcapTexture || obj.material.texture?.filename,
+                        storedPath: obj.material.texture?.storedPath,
+                        relative: `assets/textures/${textureType}/${fileName}`,
+                        type: textureType,
                         objectId: obj.id
                     });
                 }

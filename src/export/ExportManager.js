@@ -2,17 +2,246 @@ import { CodeTemplateGenerator } from '../codegen/CodeTemplateGenerator.js';
 import { ProjectExporter } from './ProjectExporter.js';
 
 export class ExportManager {
-    constructor(scene, objectManager) {
+    constructor(scene, objectManager, projectManager = null) {
         this.scene = scene;
         this.objectManager = objectManager;
-        
+        this.projectManager = projectManager;
+
         // Initialize code template generator for live code generation
         this.codeTemplateGenerator = new CodeTemplateGenerator(scene, objectManager);
-        
+
         // Initialize project exporter for complete folder export
-        this.projectExporter = new ProjectExporter(scene, objectManager);
-        
+        this.projectExporter = new ProjectExporter(scene, objectManager, projectManager);
+
         console.log('📤 ExportManager initialized with live code generation and project export support');
+        if (this.projectManager) {
+            console.log('✅ ProjectManager integration available for asset bundling');
+        }
+    }
+
+    /**
+     * Export complete standalone project folder
+     * @param {Object} options - Export configuration options
+     * @returns {Promise<Object>} Export result with download information
+     */
+    async exportCompleteProject(options = {}) {
+        console.log('📁 Starting complete project export via ExportManager...');
+
+        try {
+            // Use ProjectExporter to create standalone project
+            const exportResult = await this.projectExporter.exportProject({
+                projectName: options.projectName || 'ThreeJS_Scene',
+                includeCDN: options.includeCDN !== false,
+                includeAssets: options.includeAssets !== false,
+                includePackageJson: options.includePackageJson || false,
+                minified: options.minified || false,
+                ...options
+            });
+
+            if (exportResult.success) {
+                console.log('✅ Complete project export successful:', exportResult.projectName);
+
+                // Trigger browser downloads for each file
+                this.triggerProjectDownloads(exportResult);
+
+                return exportResult;
+            } else {
+                throw new Error(exportResult.error || 'Project export failed');
+            }
+
+        } catch (error) {
+            console.error('❌ Complete project export failed:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Trigger browser downloads for all project files
+     * @param {Object} exportResult - Export result from ProjectExporter
+     */
+    triggerProjectDownloads(exportResult) {
+        console.log('📥 Triggering downloads for project files...');
+
+        // Small delay between downloads to avoid browser blocking
+        let downloadDelay = 0;
+
+        exportResult.files.forEach((file, index) => {
+            setTimeout(() => {
+                this.downloadFile(file.content, file.path, file.type);
+                console.log(`📥 Downloaded: ${file.path}`);
+            }, downloadDelay);
+
+            downloadDelay += 200; // 200ms between downloads
+        });
+
+        // Show completion message
+        setTimeout(() => {
+            this.showProjectExportComplete(exportResult);
+        }, downloadDelay + 500);
+    }
+
+    /**
+     * Download a single file to browser
+     * @param {String} content - File content
+     * @param {String} filename - File name/path
+     * @param {String} type - File type
+     */
+    downloadFile(content, filename, type) {
+        let mimeType = 'text/plain';
+
+        switch (type) {
+            case 'html':
+                mimeType = 'text/html';
+                break;
+            case 'javascript':
+                mimeType = 'application/javascript';
+                break;
+            case 'json':
+                mimeType = 'application/json';
+                break;
+            case 'markdown':
+                mimeType = 'text/markdown';
+                break;
+        }
+
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename.replace('/', '_'); // Replace directory separators
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Clean up object URL after download
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    /**
+     * Show project export completion message
+     * @param {Object} exportResult - Export result data
+     */
+    showProjectExportComplete(exportResult) {
+        console.log('🎉 Project export completed:', exportResult.projectName);
+
+        // Create and show completion modal/notification
+        const notification = document.createElement('div');
+        notification.className = 'export-completion-notification';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <div class="notification-header">
+                    <span class="notification-icon">🎉</span>
+                    <span class="notification-title">Project Export Complete!</span>
+                </div>
+                <div class="notification-body">
+                    <p><strong>${exportResult.projectName}</strong> has been exported successfully.</p>
+                    <div class="export-stats">
+                        <span>📦 ${exportResult.stats.fileCount} files</span>
+                        <span>🗿 ${exportResult.stats.objects} objects</span>
+                        <span>📎 ${exportResult.stats.assets} assets</span>
+                    </div>
+                    <p class="notification-instructions">
+                        Check your downloads folder for the project files.
+                        Open <code>index.html</code> in a web browser to view your scene.
+                    </p>
+                </div>
+                <button class="notification-close" onclick="this.parentElement.parentElement.remove()">Got it!</button>
+            </div>
+        `;
+
+        // Add styles
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 400px;
+            animation: slideInRight 0.3s ease-out;
+        `;
+
+        // Add keyframe animation
+        if (!document.getElementById('export-notification-styles')) {
+            const style = document.createElement('style');
+            style.id = 'export-notification-styles';
+            style.textContent = `
+                @keyframes slideInRight {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                .notification-content {
+                    padding: 20px;
+                }
+                .notification-header {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 15px;
+                }
+                .notification-icon {
+                    font-size: 24px;
+                    margin-right: 10px;
+                }
+                .notification-title {
+                    font-size: 18px;
+                    font-weight: 600;
+                }
+                .notification-body p {
+                    margin: 10px 0;
+                    line-height: 1.4;
+                }
+                .export-stats {
+                    display: flex;
+                    gap: 15px;
+                    margin: 15px 0;
+                    padding: 10px;
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 8px;
+                    font-size: 14px;
+                }
+                .notification-instructions {
+                    font-size: 14px;
+                    opacity: 0.9;
+                }
+                .notification-instructions code {
+                    background: rgba(255,255,255,0.2);
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    font-family: monospace;
+                }
+                .notification-close {
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    margin-top: 15px;
+                    transition: background 0.2s;
+                }
+                .notification-close:hover {
+                    background: rgba(255,255,255,0.3);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(notification);
+
+        // Auto-remove after 15 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 15000);
     }
     
     generateCode() {

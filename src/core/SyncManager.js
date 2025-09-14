@@ -276,8 +276,9 @@ export class SyncManager {
             
             // Execute code in sandbox to extract scene state
             const executionResult = await this.executeCodeInSandbox(currentCode);
-            
-            if (executionResult.success) {
+
+            // Add safety check for undefined result
+            if (executionResult && executionResult.success) {
                 // Update visual editor based on extracted state
                 await this.updateVisualFromCode(executionResult.result);
                 
@@ -286,8 +287,11 @@ export class SyncManager {
                 
                 console.log('✅ Code changes synced to visual successfully');
             } else {
-                console.error('❌ Code execution failed:', executionResult.error);
-                this.showCodeError(executionResult);
+                const errorMessage = executionResult
+                    ? `Code execution failed: ${executionResult.error}`
+                    : 'Code execution returned undefined result';
+                console.error('❌', errorMessage);
+                this.showCodeError({ error: errorMessage });
             }
             
         } catch (error) {
@@ -321,8 +325,13 @@ export class SyncManager {
                 // Provide current scene objects as context
                 currentScene: this.serializeCurrentScene()
             });
-            
-            return result;
+
+            // Ensure we always return a proper result object
+            return result || {
+                success: false,
+                error: 'Code execution returned undefined result',
+                type: 'undefined_result'
+            };
             
         } catch (error) {
             return {
@@ -586,6 +595,29 @@ try {
         __results.lights = [];
         __results.camera = null;
         
+        // Extract materials first (unique materials)
+        const processedMaterials = new Set();
+        scene.traverse((object) => {
+            if (object.material && !processedMaterials.has(object.material.uuid)) {
+                processedMaterials.add(object.material.uuid);
+                __results.materials.push({
+                    uuid: object.material.uuid,
+                    type: object.material.constructor.name,
+                    color: object.material.color ? object.material.color.getHex() : null,
+                    opacity: object.material.opacity,
+                    transparent: object.material.transparent,
+                    wireframe: object.material.wireframe,
+                    roughness: object.material.roughness,
+                    metalness: object.material.metalness,
+                    matcap: object.material.matcap || null,
+                    matcapTexture: object.material.matcap ? (
+                        object.material.matcap.image?.src ||
+                        object.material.matcap.source?.data?.src
+                    ) : null
+                });
+            }
+        });
+
         // Extract objects and their properties
         scene.traverse((object) => {
             if (object.type === 'Mesh' || object.type === 'Group') {
@@ -601,7 +633,21 @@ try {
                         type: object.geometry.type,
                         parameters: object.geometry.parameters
                     } : null,
-                    material: object.material ? this.serializeMaterial(object.material) : null
+                    material: object.material ? {
+                        uuid: object.material.uuid,
+                        type: object.material.constructor.name,
+                        color: object.material.color ? object.material.color.getHex() : null,
+                        opacity: object.material.opacity,
+                        transparent: object.material.transparent,
+                        wireframe: object.material.wireframe,
+                        roughness: object.material.roughness,
+                        metalness: object.material.metalness,
+                        matcap: object.material.matcap || null,
+                        matcapTexture: object.material.matcap ? (
+                            object.material.matcap.image?.src ||
+                            object.material.matcap.source?.data?.src
+                        ) : null
+                    } : null
                 });
             }
             
@@ -690,7 +736,257 @@ try {
             console.error('❌ Failed to update visual from code:', error);
         }
     }
-    
+
+    /**
+     * Update materials from code state (MISSING IMPLEMENTATION FIXED!)
+     * @param {Array} materials - Material data from code execution
+     */
+    async updateMaterialsFromCode(materials) {
+        console.log('🎨 Updating materials from code:', materials?.length || 0, 'materials');
+
+        if (!materials || materials.length === 0) {
+            console.log('⚠️ No materials to process');
+            return;
+        }
+
+        for (const materialData of materials) {
+            try {
+                console.log('🎨 Processing material:', materialData);
+
+                // Find objects in scene that use this material
+                const sceneObjects = this.findObjectsWithMaterial(materialData);
+
+                for (const obj of sceneObjects) {
+                    // Update ObjectManager data
+                    await this.updateObjectMaterialFromCode(obj, materialData);
+
+                    // Update UI if this object is selected
+                    const selectedObj = this.objectManager.getSelectedObject();
+                    if (selectedObj && selectedObj.sceneObject === obj.sceneObject) {
+                        await this.updateMaterialUIFromCode(materialData);
+                    }
+                }
+
+                console.log('✅ Material processing complete for:', materialData.type);
+
+            } catch (error) {
+                console.error('❌ Failed to process material:', materialData, error);
+            }
+        }
+    }
+
+    /**
+     * Find objects that use a specific material
+     * @param {Object} materialData - Material data from code execution
+     * @returns {Array} Objects using this material
+     */
+    findObjectsWithMaterial(materialData) {
+        const results = [];
+        const allObjects = this.objectManager.getAllObjects();
+
+        // Search by material UUID if available
+        if (materialData.uuid) {
+            for (const obj of allObjects) {
+                if (obj.sceneObject?.material?.uuid === materialData.uuid) {
+                    results.push(obj);
+                }
+            }
+        }
+
+        // If no UUID matches, try to find by material type and properties
+        if (results.length === 0 && materialData.type) {
+            for (const obj of allObjects) {
+                const material = obj.sceneObject?.material;
+                if (material && material.constructor.name === materialData.type) {
+                    // Additional checks for better matching
+                    if (this.materialsMatch(material, materialData)) {
+                        results.push(obj);
+                    }
+                }
+            }
+        }
+
+        console.log(`🔍 Found ${results.length} objects using material type: ${materialData.type}`);
+        return results;
+    }
+
+    /**
+     * Check if a Three.js material matches the material data
+     * @param {THREE.Material} material - Three.js material object
+     * @param {Object} materialData - Material data from code
+     * @returns {Boolean} Whether materials match
+     */
+    materialsMatch(material, materialData) {
+        // For MatCap materials, check if both have MatCap textures
+        if (materialData.type === 'MeshMatcapMaterial') {
+            return !!(material.matcap && materialData.matcap);
+        }
+
+        // For other materials, basic type matching
+        return true;
+    }
+
+    /**
+     * Update ObjectManager data for an object's material
+     * @param {Object} objectData - Object from ObjectManager
+     * @param {Object} materialData - Material data from code
+     */
+    async updateObjectMaterialFromCode(objectData, materialData) {
+        console.log('🎨 Updating ObjectManager material for:', objectData.name);
+
+        if (!objectData.material) {
+            objectData.material = {};
+        }
+
+        // Update basic material properties
+        const materialType = this.mapThreeJSTypeToUI(materialData.type);
+        objectData.material.type = materialType;
+
+        if (materialData.color !== undefined) {
+            objectData.material.color = materialData.color;
+        }
+        if (materialData.opacity !== undefined) {
+            objectData.material.opacity = materialData.opacity;
+        }
+        if (materialData.transparent !== undefined) {
+            objectData.material.transparent = materialData.transparent;
+        }
+        if (materialData.wireframe !== undefined) {
+            objectData.material.wireframe = materialData.wireframe;
+        }
+
+        // Handle MatCap materials specifically
+        if (materialData.type === 'MeshMatcapMaterial' && materialData.matcap) {
+            console.log('🎨 Processing MatCap material data from code execution');
+
+            const matcapTexture = materialData.matcap;
+            let textureSrc = null;
+            let filename = 'unknown.webp';
+
+            // Extract texture source using multiple strategies
+            if (matcapTexture.image?.src) {
+                textureSrc = matcapTexture.image.src;
+            } else if (matcapTexture.source?.data?.src) {
+                textureSrc = matcapTexture.source.data.src;
+            }
+
+            if (textureSrc) {
+                // Handle blob URLs and extract filename
+                if (textureSrc.startsWith('blob:')) {
+                    filename = matcapTexture.userData?.originalFilename ||
+                              objectData.material.texture?.filename ||
+                              'matcap_texture.webp';
+                } else {
+                    filename = textureSrc.split('/').pop();
+                }
+
+                // Update material data
+                objectData.material.matcapTexture = textureSrc;
+                objectData.material.texture = {
+                    filename: filename,
+                    path: textureSrc
+                };
+
+                console.log('✅ MatCap texture data captured from code:', {
+                    source: textureSrc,
+                    filename: filename
+                });
+            }
+        }
+
+        // Handle PBR properties
+        if (materialData.roughness !== undefined) {
+            objectData.material.roughness = materialData.roughness;
+        }
+        if (materialData.metalness !== undefined) {
+            objectData.material.metalness = materialData.metalness;
+        }
+
+        console.log('✅ ObjectManager material updated');
+    }
+
+    /**
+     * Update material UI controls from code execution
+     * @param {Object} materialData - Material data from code
+     */
+    async updateMaterialUIFromCode(materialData) {
+        console.log('🎨 Updating material UI from code execution');
+
+        try {
+            // Update material type selector
+            const materialType = this.mapThreeJSTypeToUI(materialData.type);
+            const materialTypeSelect = document.getElementById('material-type');
+            if (materialTypeSelect && materialTypeSelect.value !== materialType) {
+                materialTypeSelect.value = materialType;
+                materialTypeSelect.dispatchEvent(new Event('change'));
+            }
+
+            // Update basic properties
+            if (materialData.color !== undefined) {
+                this.updateUIInput('material-color', materialData.color);
+            }
+            if (materialData.opacity !== undefined) {
+                this.updateUIInput('material-opacity', materialData.opacity);
+            }
+            if (materialData.wireframe !== undefined) {
+                this.updateUIInput('material-wireframe', materialData.wireframe);
+            }
+
+            // Handle MatCap UI updates
+            if (materialData.type === 'MeshMatcapMaterial' && materialData.matcap) {
+                console.log('🎨 Updating MatCap UI from code execution');
+
+                const texturePreview = document.getElementById('texture-preview');
+                const textureFilename = document.getElementById('texture-filename');
+
+                if (texturePreview && materialData.matcap.image) {
+                    texturePreview.src = materialData.matcap.image.src;
+                    texturePreview.style.display = 'block';
+
+                    if (textureFilename) {
+                        const filename = materialData.matcap.userData?.originalFilename ||
+                                       materialData.matcap.image.src.split('/').pop();
+                        textureFilename.textContent = filename;
+                        textureFilename.style.display = 'block';
+                    }
+
+                    console.log('✅ MatCap UI updated from code execution');
+                }
+            }
+
+            // Handle PBR properties
+            if (materialData.roughness !== undefined) {
+                this.updateUIInput('material-roughness', materialData.roughness);
+            }
+            if (materialData.metalness !== undefined) {
+                this.updateUIInput('material-metalness', materialData.metalness);
+            }
+
+            console.log('✅ Material UI updated from code execution');
+
+        } catch (error) {
+            console.error('❌ Failed to update material UI from code:', error);
+        }
+    }
+
+    /**
+     * Map Three.js material type to UI material type
+     * @param {String} threeJSType - Three.js material constructor name
+     * @returns {String} UI material type
+     */
+    mapThreeJSTypeToUI(threeJSType) {
+        const typeMap = {
+            'MeshMatcapMaterial': 'matcap',
+            'MeshStandardMaterial': 'standard',
+            'MeshPhongMaterial': 'phong',
+            'MeshLambertMaterial': 'lambert',
+            'MeshPhysicalMaterial': 'physical',
+            'MeshBasicMaterial': 'basic'
+        };
+
+        return typeMap[threeJSType] || 'standard';
+    }
+
     /**
      * Update scene objects from code state
      * @param {Array} objects - Scene objects from code
@@ -817,20 +1113,40 @@ try {
         // Handle MatCap material type and texture
         if (materialData.type === 'MeshMatcapMaterial' && materialData.matcapTexture) {
             console.log('🎨 MatCap material detected in To UI sync:', materialData);
-            
+
             // Update material type in UI
-            this.updateUIInput('material-type', 'matcap');
-            
-            // If this is a MatCap material, we need to update the ObjectManager data
-            // Find the object in ObjectManager and update its material data
+            const materialTypeSelect = document.getElementById('material-type');
+            if (materialTypeSelect) {
+                materialTypeSelect.value = 'matcap';
+                materialTypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            // Update texture preview in UI
+            this.updateMatCapTexturePreview(materialData);
+
+            // Update ObjectManager data for persistence
             const objectInManager = this.findObjectInManager(object);
             if (objectInManager) {
                 console.log('🔄 Updating ObjectManager material data with MatCap info');
+                objectInManager.material = objectInManager.material || {};
                 objectInManager.material.type = 'matcap';
                 objectInManager.material.matcapTexture = materialData.matcapTexture;
-                if (materialData.texture) {
-                    objectInManager.material.texture = materialData.texture;
+
+                if (materialData.texture && materialData.texture.filename) {
+                    objectInManager.material.texture = {
+                        filename: materialData.texture.filename,
+                        path: materialData.matcapTexture
+                    };
                 }
+
+                // Store additional metadata for better persistence
+                objectInManager.material.matCapInfo = {
+                    source: materialData.matcapTexture,
+                    filename: materialData.texture?.filename || 'unknown.webp',
+                    extractedAt: new Date().toISOString()
+                };
+            } else {
+                console.warn('⚠️ Object not found in ObjectManager for MatCap update');
             }
         }
         
@@ -844,9 +1160,49 @@ try {
      */
     findObjectInManager(sceneObject) {
         if (!this.objectManager) return null;
-        
+
         const allObjects = this.objectManager.getAllObjects();
         return allObjects.find(obj => obj.sceneObject === sceneObject) || null;
+    }
+
+    /**
+     * Update MatCap texture preview in UI
+     * @param {Object} materialData - Material data with texture info
+     */
+    updateMatCapTexturePreview(materialData) {
+        const texturePreview = document.getElementById('texture-preview');
+        const textureFilename = document.getElementById('texture-filename');
+        const materialSection = document.querySelector('.texture-section');
+
+        if (texturePreview && materialData.matcapTexture) {
+            try {
+                // Update preview image
+                texturePreview.src = materialData.matcapTexture;
+                texturePreview.style.display = 'block';
+
+                // Update filename display
+                if (textureFilename && materialData.texture && materialData.texture.filename) {
+                    textureFilename.textContent = materialData.texture.filename;
+                    textureFilename.style.display = 'block';
+                }
+
+                // Show texture section if hidden
+                if (materialSection) {
+                    materialSection.style.display = 'block';
+                }
+
+                console.log('🎨 MatCap texture preview updated:', materialData.texture?.filename);
+
+            } catch (error) {
+                console.warn('⚠️ Failed to update MatCap texture preview:', error);
+
+                // Fallback: show placeholder or filename only
+                if (textureFilename && materialData.texture && materialData.texture.filename) {
+                    textureFilename.textContent = `MatCap: ${materialData.texture.filename}`;
+                    textureFilename.style.display = 'block';
+                }
+            }
+        }
     }
     
     /**
@@ -1024,24 +1380,13 @@ try {
      * @returns {string} Merged code
      */
     mergeCodeWithStructure(generatedCode, codeStructure) {
-        let mergedCode = generatedCode;
-        
-        // Preserve user comments
-        if (codeStructure.comments && codeStructure.comments.length > 0) {
-            // Insert preserved comments at appropriate locations
-            codeStructure.comments.forEach(comment => {
-                if (comment.type === 'single-line') {
-                    // Try to preserve comment positioning
-                    const lines = mergedCode.split('\n');
-                    if (comment.line < lines.length) {
-                        lines[comment.line] = comment.content + '\n' + lines[comment.line];
-                        mergedCode = lines.join('\n');
-                    }
-                }
-            });
-        }
-        
-        return mergedCode;
+        // SIMPLIFIED: Just return the generated code without complex merging
+        // The complex comment preservation was causing duplication issues
+        console.log('🔧 Returning generated code without complex merging to avoid duplication');
+        return generatedCode;
+
+        // TODO: Implement safer comment preservation later if needed
+        // The previous implementation was causing massive code duplication
     }
     
     /**
@@ -1247,20 +1592,118 @@ try {
             roughness: material.roughness,
             metalness: material.metalness
         };
-        
-        // Add MatCap texture information if present
+
+        // Enhanced MatCap texture information extraction
         if (material.type === 'MeshMatcapMaterial' && material.matcap) {
-            // Try to extract texture source from the matcap texture
-            if (material.matcap.source && material.matcap.source.data && material.matcap.source.data.src) {
-                const textureSrc = material.matcap.source.data.src;
-                // Extract filename from the full path/URL
-                const filename = textureSrc.split('/').pop();
+            console.log('🎨 Serializing MatCap material:', material);
+            console.log('🎨 MatCap texture object:', material.matcap);
+
+            // Multiple extraction strategies for texture information
+            let textureSrc = null;
+            let filename = null;
+
+            // Strategy 1: Direct source data
+            if (material.matcap.source && material.matcap.source.data) {
+                if (material.matcap.source.data.src) {
+                    textureSrc = material.matcap.source.data.src;
+                } else if (material.matcap.source.data.currentSrc) {
+                    textureSrc = material.matcap.source.data.currentSrc;
+                }
+            }
+
+            // Strategy 2: Image element properties
+            if (!textureSrc && material.matcap.image) {
+                if (material.matcap.image.src) {
+                    textureSrc = material.matcap.image.src;
+                } else if (material.matcap.image.currentSrc) {
+                    textureSrc = material.matcap.image.currentSrc;
+                }
+            }
+
+            // Strategy 3: User data (if stored during texture loading)
+            if (!textureSrc && material.matcap.userData) {
+                if (material.matcap.userData.originalPath) {
+                    textureSrc = material.matcap.userData.originalPath;
+                } else if (material.matcap.userData.filename) {
+                    filename = material.matcap.userData.filename;
+                }
+            }
+
+            // Strategy 4: Material user data
+            if (!textureSrc && material.userData && material.userData.matcapTexture) {
+                textureSrc = material.userData.matcapTexture;
+            }
+
+            // Extract filename if we have a source
+            if (textureSrc) {
+                // Handle blob URLs by checking if there's a stored original filename
+                if (textureSrc.startsWith('blob:')) {
+                    // Try to get original filename from user data
+                    filename = material.userData?.originalFilename ||
+                              material.matcap.userData?.originalFilename ||
+                              'matcap_texture.webp';
+                    console.log('🎨 Blob URL detected, using stored filename:', filename);
+                } else {
+                    // Extract filename from path/URL
+                    filename = textureSrc.split('/').pop();
+                }
+
                 serialized.matcapTexture = textureSrc;
                 serialized.texture = { filename };
+
+                console.log('🎨 MatCap texture data captured:', {
+                    source: textureSrc,
+                    filename: filename,
+                    isBlob: textureSrc.startsWith('blob:')
+                });
+            } else {
+                console.warn('⚠️ Could not extract MatCap texture source:', material.matcap);
+                // Fallback: create a generic texture reference
+                serialized.matcapTexture = 'unknown';
+                serialized.texture = { filename: 'unknown_matcap.webp' };
             }
         }
-        
+
+        // Handle other texture types (diffuse, normal, etc.)
+        if (material.map && material.map.image) {
+            const textureInfo = this.extractTextureInfo(material.map);
+            if (textureInfo) {
+                serialized.diffuseTexture = textureInfo.source;
+                serialized.diffuseTextureFile = textureInfo.filename;
+            }
+        }
+
         return serialized;
+    }
+
+    /**
+     * Extract texture information from a Three.js texture
+     * @param {THREE.Texture} texture - Three.js texture object
+     * @returns {Object|null} Texture info with source and filename
+     */
+    extractTextureInfo(texture) {
+        if (!texture || !texture.image) return null;
+
+        let source = null;
+        let filename = null;
+
+        // Try multiple extraction strategies
+        if (texture.image.src) {
+            source = texture.image.src;
+        } else if (texture.image.currentSrc) {
+            source = texture.image.currentSrc;
+        } else if (texture.source && texture.source.data && texture.source.data.src) {
+            source = texture.source.data.src;
+        }
+
+        // Check user data for original filename
+        if (texture.userData && texture.userData.originalFilename) {
+            filename = texture.userData.originalFilename;
+        } else if (source) {
+            filename = source.startsWith('blob:') ? 'texture.webp' : source.split('/').pop();
+        }
+
+        return source ? { source, filename } : null;
     }
     
     /**
@@ -1404,7 +1847,7 @@ animate();
                 executionResult = await this.executeCodeDirectly(currentCode);
             }
             
-            if (executionResult.success) {
+            if (executionResult && executionResult.success) {
                 // Update visual editor and viewport
                 await this.updateVisualFromCode(executionResult.result);
                 this.updateViewport(executionResult.result);

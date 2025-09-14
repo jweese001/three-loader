@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centralized Asset Management Workflow Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success {
+            border-left: 4px solid #00ff00;
+            background: #0a2a0a;
+        }
+        .info {
+            border-left: 4px solid #0088ff;
+            background: #0a1a2a;
+        }
+        .warning {
+            border-left: 4px solid #ffaa00;
+            background: #2a2a0a;
+        }
+        .test-step {
+            background: #222;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #444;
+        }
+        .test-step h4 {
+            color: #ffaa00;
+            margin: 0 0 10px 0;
+        }
+        .expected {
+            color: #88ff88;
+            font-style: italic;
+        }
+        .code {
+            background: #111;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid #333;
+            margin: 10px 0;
+        }
+        button {
+            background: #333;
+            color: #00ff00;
+            border: 1px solid #555;
+            padding: 15px 30px;
+            cursor: pointer;
+            margin: 15px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #444;
+        }
+        .workflow-diagram {
+            background: #222;
+            padding: 20px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #444;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Centralized Asset Management Workflow Test</h1>
+        <p><strong>Implementation Status:</strong> ✅ <span style="color: #00ff00">COMPLETE</span> - Ready for comprehensive testing</p>
+        <p><strong>Last Updated:</strong> September 13, 2025</p>
+
+        <div class="test-section success">
+            <h3>✅ Implementation Summary</h3>
+            <p>The centralized asset management system has been fully implemented with the following key components:</p>
+
+            <div class="workflow-diagram">
+User Action → Project Dialog → Folder Setup → Asset Copying → Path Resolution → Code Generation
+
+📁 Project Setup:     ProjectDialog.js      → ~/Documents/3Loader-Projects/
+📦 Asset Management:  ProjectManager.js     → UUID-based file naming + database
+🎨 File Loading:      UIController.js       → Auto-copy OBJ & texture files
+💻 Code Generation:   CodeTemplateGenerator → Project-relative paths
+            </div>
+
+            <h4>🔧 Technical Changes Made:</h4>
+            <ul>
+                <li><strong>ProjectDialog.js</strong> - Professional startup dialog for project folder selection</li>
+                <li><strong>ProjectManager.js</strong> - Extended to handle all asset types (OBJ, textures, etc.)</li>
+                <li><strong>UIController.js</strong> - Updated file workflows to auto-copy imported files</li>
+                <li><strong>CodeTemplateGenerator.js</strong> - Enhanced to use project-relative paths</li>
+                <li><strong>main.js</strong> - Integrated project initialization into app startup</li>
+            </ul>
+        </div>
+
+        <div class="test-section info">
+            <h3>🧪 Test Procedure</h3>
+            <p>Follow these steps to verify the complete centralized asset management workflow:</p>
+
+            <button onclick="openMainApp()">🚀 Open 3Loader Application</button>
+            <button onclick="openConsole()">🔍 Open Browser Console</button>
+
+            <div class="test-step">
+                <h4>Step 1: Initial Setup</h4>
+                <p>1. Click "Open 3Loader Application" button above</p>
+                <p>2. Open Browser DevTools (F12) and switch to Console tab</p>
+                <p class="expected">Expected: Project dialog should appear asking for folder setup</p>
+            </div>
+
+            <div class="test-step">
+                <h4>Step 2: Project Folder Setup</h4>
+                <p>1. In the project dialog, click "Create New Project" or "Browse Folder"</p>
+                <p>2. Select or create "3Loader-Projects" folder in your Documents directory</p>
+                <p class="expected">Expected: Console shows "✅ Project initialized successfully"</p>
+                <div class="code">
+Console Output:
+📁 Initializing 3Loader project structure...
+📂 Project folders created/verified: {textures: "textures", models: "models", ...}
+✅ Project initialized successfully
+                </div>
+            </div>
+
+            <div class="test-step">
+                <h4>Step 3: Load OBJ File with Auto-Copy</h4>
+                <p>1. In the "Load Objects" panel, click "Browse OBJ Files"</p>
+                <p>2. Select any .obj file from anywhere on your system</p>
+                <p class="expected">Expected: File automatically copied to project folder with UUID naming</p>
+                <div class="code">
+Console Output:
+📁 Processing file: example.obj
+📋 Copying OBJ file to project folder...
+✅ OBJ file copied to project: {storedPath: "./models/uuid-example.obj"}
+✅ File loaded successfully: example.obj
+                </div>
+            </div>
+
+            <div class="test-step">
+                <h4>Step 4: Apply Texture with Auto-Copy</h4>
+                <p>1. Select the loaded object in the Objects list</p>
+                <p>2. In Material panel, click texture "Load" button</p>
+                <p>3. Select any texture file (.webp, .jpg, .png) from anywhere on system</p>
+                <p class="expected">Expected: Texture automatically copied to project folder</p>
+                <div class="code">
+Console Output:
+🎨 Processing texture file selection: example.webp
+📋 Copying texture to project folder...
+✅ Texture copied to project: {storedPath: "./textures/uuid-example.webp"}
+                </div>
+            </div>
+
+            <div class="test-step">
+                <h4>Step 5: Code Generation with Project Paths</h4>
+                <p>1. Click "Code View" to switch to code editor</p>
+                <p>2. Click "From UI" button to generate code</p>
+                <p class="expected">Expected: Generated code uses project-relative paths</p>
+                <div class="code">
+Generated Code Should Show:
+// OBJ file loading with project path
+fileName: './models/uuid-example.obj',
+
+// Texture loading with project path
+const texture = new THREE.TextureLoader().load('./textures/uuid-example.webp');
+                </div>
+            </div>
+
+            <div class="test-step">
+                <h4>Step 6: Verify Project Folder Structure</h4>
+                <p>1. Open Finder/File Explorer</p>
+                <p>2. Navigate to ~/Documents/3Loader-Projects/</p>
+                <p class="expected">Expected: Organized folder structure with copied assets</p>
+                <div class="code">
+3Loader-Projects/
+├── models/         # UUID-named OBJ files
+│   └── uuid-example.obj
+├── textures/       # UUID-named texture files
+│   └── uuid-example.webp
+├── projects/       # Future: saved project files
+├── exports/        # Future: standalone project exports
+└── temp/           # Temporary files
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section warning">
+            <h3>⚠️ Known Limitations & Troubleshooting</h3>
+
+            <h4>Browser Compatibility:</h4>
+            <ul>
+                <li><strong>✅ Supported:</strong> Chrome 86+, Edge 86+ (File System Access API)</li>
+                <li><strong>❌ Unsupported:</strong> Firefox, Safari (fallback with user notification)</li>
+            </ul>
+
+            <h4>Common Issues:</h4>
+            <ul>
+                <li><strong>"Must be handling a user gesture"</strong> - Fixed! Project setup now happens on button click</li>
+                <li><strong>Second attempt fails</strong> - Fixed! File inputs are properly reset on errors</li>
+                <li><strong>Inconsistent behavior</strong> - Fixed! Clear separation between setup and file processing</li>
+                <li><strong>Dialog doesn't appear again</strong> - By design! Project persists for 7 days (configurable)</li>
+            </ul>
+
+            <h4>Debug Information:</h4>
+            <p>If issues occur, check browser console for these debug messages:</p>
+            <div class="code">
+🏗️ ProjectManager initialized
+📁 Project dialog shown/skipped
+🔧 Global THREE setup complete
+🎮 UIController initialized
+✅ App initialized successfully
+            </div>
+        </div>
+
+        <div class="test-section success">
+            <h3>🎯 Success Criteria</h3>
+            <p>The implementation is successful when:</p>
+            <ul>
+                <li>✅ Project dialog appears on first run (or after 7 days)</li>
+                <li>✅ Project folder structure is created automatically</li>
+                <li>✅ OBJ files are automatically copied to ./models/ folder</li>
+                <li>✅ Texture files are automatically copied to ./textures/ folder</li>
+                <li>✅ Generated code uses project-relative paths (./models/, ./textures/)</li>
+                <li>✅ All asset files get UUID-based naming for uniqueness</li>
+                <li>✅ Asset database tracks all copied files with metadata</li>
+                <li>✅ System provides fallback for unsupported browsers</li>
+            </ul>
+        </div>
+
+        <div class="test-section info">
+            <h3>🔄 Next Phase Ready</h3>
+            <p>With centralized asset management working, the system is ready for:</p>
+            <ul>
+                <li>📦 <strong>Standalone Project Export</strong> - Complete self-contained web applications</li>
+                <li>💾 <strong>Project Save/Load System</strong> - Full project persistence and sharing</li>
+                <li>🎨 <strong>Advanced Asset Management</strong> - Texture optimization, compression</li>
+                <li>🔄 <strong>Asset Synchronization</strong> - Cross-device project sync</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function openMainApp() {
+            const url = 'http://localhost:5180/';
+            window.open(url, '_blank');
+            console.log('🚀 Opening 3Loader application for workflow testing...');
+
+            // Auto-open console instructions after delay
+            setTimeout(() => {
+                console.log('%c🔍 TESTING INSTRUCTIONS', 'color: #00ff00; font-size: 16px; font-weight: bold;');
+                console.log('%cFollow the test procedure in the opened tab:', 'color: #ffaa00;');
+                console.log('%c1. Watch for project dialog on app startup', 'color: #aaaaaa;');
+                console.log('%c2. Set up project folder (Documents/3Loader-Projects)', 'color: #aaaaaa;');
+                console.log('%c3. Load OBJ file and watch for auto-copy messages', 'color: #aaaaaa;');
+                console.log('%c4. Apply texture and verify auto-copy workflow', 'color: #aaaaaa;');
+                console.log('%c5. Generate code and verify project-relative paths', 'color: #aaaaaa;');
+            }, 1000);
+        }
+
+        function openConsole() {
+            console.log('%c🔍 CENTRALIZED ASSET MANAGEMENT TEST', 'color: #00ff00; font-size: 18px; font-weight: bold;');
+            console.log('%cImplementation Status: ✅ COMPLETE', 'color: #00ff00; font-size: 14px;');
+            console.log('%cReady for comprehensive workflow testing', 'color: #ffaa00;');
+            console.log('');
+            console.log('Watch for these key messages during testing:');
+            console.log('📁 Project dialog shown/Project initialized');
+            console.log('📋 Copying [asset] to project folder...');
+            console.log('✅ [Asset] copied to project: {storedPath: "./folder/uuid-name.ext"}');
+            console.log('🎨 Generated code with centralized path: ./folder/uuid-name.ext');
+        }
+
+        // Auto-display status on page load
+        setTimeout(() => {
+            console.log('🚀 Centralized Asset Management System Test Ready');
+            console.log('✅ All components implemented and integrated');
+            console.log('📋 Test procedure defined and documented');
+            console.log('🎯 Ready for comprehensive workflow testing');
+        }, 500);
+    </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import { ShaderManager } from '../materials/ShaderManager.js';
 import { AdvancedAnimationManager } from '../animation/AdvancedAnimationManager.js';
 import { TimelinePanel } from './TimelinePanel.js';
+import { ProjectManager } from '../core/ProjectManager.js';
 
 export class UIController {
     constructor(config) {
@@ -10,6 +11,7 @@ export class UIController {
         this.animationController = config.animationController;
         this.textureManager = config.textureManager;
         this.shaderManager = new ShaderManager();
+        this.projectManager = config.projectManager;
         
         // Initialize advanced animation system
         this.advancedAnimationManager = new AdvancedAnimationManager(this.scene.scene);
@@ -82,41 +84,58 @@ export class UIController {
     
     async handleFiles(files) {
         const objFiles = files.filter(file => file.name.toLowerCase().endsWith('.obj'));
-        
+
         if (objFiles.length === 0) {
             alert('Please select .obj files only');
             return;
         }
-        
+
         const loadingIndicator = document.getElementById('loading-indicator');
         const viewportInfo = document.getElementById('viewport-info');
-        
+
         for (const file of objFiles) {
             try {
                 // Show loading
                 loadingIndicator.style.display = 'flex';
                 if (viewportInfo) viewportInfo.style.display = 'none';
-                
+
                 console.log(`📁 Processing file: ${file.name}`);
-                
+
+                // Initialize project if not already done
+                if (!this.projectManager.isInitialized()) {
+                    console.log('🏗️ Project not initialized, setting up folder structure...');
+                    const initSuccess = await this.projectManager.initializeProjectStructure();
+                    if (!initSuccess) {
+                        throw new Error('Project folder setup was cancelled. Please set up the project folder first.');
+                    }
+                }
+
+                // Copy OBJ file to project folder
+                console.log('📋 Copying OBJ file to project folder...');
+                const assetInfo = await this.projectManager.copyAssetToProject(file, 'model');
+                console.log('✅ OBJ file copied to project:', assetInfo);
+
                 // Load the OBJ file
                 const objectData = await this.objectManager.loadOBJFile(file);
-                
+
+                // Store the project path information for code generation
+                objectData.projectAssetInfo = assetInfo;
+
                 // Update objects list
                 this.updateObjectsList();
-                
+
                 // Update export button state first (most important)
                 this.updateExportButtonState();
-                
+
                 // Try to select the new object (may fail due to animation system)
                 try {
                     this.selectObject(objectData.id);
                 } catch (selectionError) {
                     console.warn('⚠️ Failed to select object (non-critical):', selectionError);
                 }
-                
+
                 console.log(`✅ File loaded successfully: ${file.name}`);
-                
+
             } catch (error) {
                 console.error(`❌ Failed to load ${file.name}:`, error);
                 alert(`Failed to load ${file.name}: ${error.message}`);
@@ -511,28 +530,83 @@ export class UIController {
         });
         
         // Texture browse button
-        textureBrowseBtn.addEventListener('click', () => {
+        textureBrowseBtn.addEventListener('click', async () => {
+            // Initialize project structure FIRST if not already done (requires direct user gesture)
+            if (!this.projectManager.isInitialized()) {
+                console.log('🏗️ Project not initialized, setting up folder structure...');
+
+                try {
+                    const initSuccess = await this.projectManager.initializeProjectStructure();
+                    if (!initSuccess) {
+                        alert('Project folder setup was cancelled. Please try again and select/create the 3Loader-Projects folder in your Documents directory.');
+                        return;
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to initialize project structure:', error);
+
+                    if (error.message.includes('not supported')) {
+                        alert('Your browser does not support the File System Access API. Please use Chrome 86+ or Edge 86+ for the centralized asset management feature.');
+                    } else {
+                        alert('Failed to set up project folder: ' + error.message);
+                    }
+                    return;
+                }
+            }
+
+            // Only open file picker if project is properly initialized
             textureFileInput.click();
         });
         
-        // Texture file selection
+        // Texture file selection with centralized asset management
         textureFileInput.addEventListener('change', async (event) => {
             const file = event.target.files[0];
             if (file && this.selectedObjectId) {
                 try {
-                    
-                    // Show preview
+                    console.log('🎨 Processing texture file selection:', file.name);
+
+                    // Project should already be initialized from button click
+                    if (!this.projectManager.isInitialized()) {
+                        throw new Error('Project not initialized. Please try clicking the Load button again.');
+                    }
+
+                    // Show preview immediately
                     const previewUrl = URL.createObjectURL(file);
                     texturePreview.src = previewUrl;
                     selectedTextureInfo.style.display = 'flex';
                     selectedTextureInfo.classList.add('has-texture');
-                    
-                    // Update material with file texture
-                    this.updateObjectMaterial({ texture: { file, filename: file.name } });
-                    
+
+                    // Copy texture to project folder with UUID naming
+                    console.log('📋 Copying texture to project folder...');
+                    const assetInfo = await this.projectManager.copyAssetToProject(file, 'texture');
+
+                    // Update material with asset information
+                    const textureData = {
+                        // Original file reference (for preview)
+                        file,
+                        filename: file.name,
+                        // Asset management information
+                        assetId: assetInfo.id,
+                        storedName: assetInfo.storedName,
+                        storedPath: assetInfo.storedPath,
+                        // For code generation - this is the reliable path
+                        codePath: assetInfo.storedPath
+                    };
+
+                    console.log('✅ Texture processed with centralized asset management:', {
+                        originalName: file.name,
+                        assetId: assetInfo.id,
+                        storedPath: assetInfo.storedPath,
+                        codePath: textureData.codePath
+                    });
+
+                    this.updateObjectMaterial({ texture: textureData });
+
                 } catch (error) {
-                    console.error('❌ Failed to load texture file:', error);
-                    alert('Failed to load texture file: ' + error.message);
+                    console.error('❌ Failed to process texture file:', error);
+                    alert('Failed to process texture file: ' + error.message);
+
+                    // Reset file input on error
+                    textureFileInput.value = '';
                 }
             }
         });
@@ -552,7 +626,14 @@ export class UIController {
                 texturePreview.src = '';
                 
                 // Clear texture
-                this.updateObjectMaterial({ texture: { file: null, filename: null } });
+                this.updateObjectMaterial({ texture: {
+                    file: null,
+                    filename: null,
+                    assetId: null,
+                    storedName: null,
+                    storedPath: null,
+                    codePath: null
+                } });
             }
         });
         
@@ -1236,13 +1317,48 @@ export class UIController {
         exportBtn.addEventListener('click', () => {
             this.exportScene();
         });
-        
+
         // Modal controls
         const modal = document.getElementById('export-modal');
         const closeModalBtn = document.getElementById('close-modal-btn');
         const copyCodeBtn = document.getElementById('copy-code-btn');
         const downloadCodeBtn = document.getElementById('download-code-btn');
         const codeTextarea = document.getElementById('export-code');
+
+        // Enhanced export option buttons
+        const selectCodeExportBtn = document.getElementById('select-code-export');
+        const selectProjectExportBtn = document.getElementById('select-project-export');
+        const backToOptionsBtn = document.getElementById('back-to-options-btn');
+        const backToOptionsBtn2 = document.getElementById('back-to-options-btn-2');
+        const startProjectExportBtn = document.getElementById('start-project-export-btn');
+        const cancelProjectExportBtn = document.getElementById('cancel-project-export-btn');
+
+        // Export type selection handlers
+        selectCodeExportBtn?.addEventListener('click', () => {
+            this.showCodeExportView();
+        });
+
+        selectProjectExportBtn?.addEventListener('click', () => {
+            this.showProjectExportView();
+        });
+
+        // Back to options handlers
+        backToOptionsBtn?.addEventListener('click', () => {
+            this.showExportModal(); // Reset to options view
+        });
+
+        backToOptionsBtn2?.addEventListener('click', () => {
+            this.showExportModal(); // Reset to options view
+        });
+
+        // Project export handlers
+        startProjectExportBtn?.addEventListener('click', () => {
+            this.handleProjectExport();
+        });
+
+        cancelProjectExportBtn?.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
         
         // Close modal
         closeModalBtn.addEventListener('click', () => {
@@ -1441,22 +1557,104 @@ export class UIController {
     }
     
     exportScene() {
+        // Show the enhanced export modal with options
+        this.showExportModal();
+    }
+
+    showExportModal() {
+        const modal = document.getElementById('export-modal');
+        const typeSelection = document.getElementById('export-type-selection');
+        const codeView = document.getElementById('code-export-view');
+        const projectView = document.getElementById('project-export-view');
+
+        // Reset to type selection view
+        typeSelection.style.display = 'block';
+        codeView.style.display = 'none';
+        projectView.style.display = 'none';
+
+        modal.style.display = 'flex';
+    }
+
+    async showCodeExportView() {
+        const typeSelection = document.getElementById('export-type-selection');
+        const codeView = document.getElementById('code-export-view');
+        const codeTextarea = document.getElementById('export-code');
+
+        // Generate and show code
         if (this.exportManager) {
             const code = this.exportManager.exportScene();
-            this.showExportModal(code);
+            codeTextarea.value = code;
         }
-    }
-    
-    showExportModal(code) {
-        const modal = document.getElementById('export-modal');
-        const codeTextarea = document.getElementById('export-code');
-        
-        codeTextarea.value = code;
-        modal.style.display = 'flex';
-        
+
+        // Switch views
+        typeSelection.style.display = 'none';
+        codeView.style.display = 'block';
+
         // Focus and select text
         codeTextarea.focus();
         codeTextarea.select();
+    }
+
+    async showProjectExportView() {
+        const typeSelection = document.getElementById('export-type-selection');
+        const projectView = document.getElementById('project-export-view');
+
+        // Update status
+        this.updateProjectExportStatus('info', '⏳', 'Ready to export project...');
+
+        // Switch views
+        typeSelection.style.display = 'none';
+        projectView.style.display = 'block';
+    }
+
+    async handleProjectExport() {
+        const projectNameInput = document.getElementById('project-name-input');
+        const includeAssetsCheckbox = document.getElementById('include-assets');
+        const includeCDNCheckbox = document.getElementById('include-cdn');
+
+        const exportOptions = {
+            projectName: projectNameInput.value || 'MyThreeJSScene',
+            includeAssets: includeAssetsCheckbox.checked,
+            includeCDN: includeCDNCheckbox.checked
+        };
+
+        // Update status to loading
+        this.updateProjectExportStatus('loading', '⏳', 'Generating project files...');
+
+        try {
+            console.log('🚀 Starting standalone project export...');
+
+            // Use the enhanced ExportManager with ProjectManager integration
+            const exportResult = await this.exportManager.exportCompleteProject(exportOptions);
+
+            if (exportResult.success) {
+                this.updateProjectExportStatus('success', '✅',
+                    `Project exported successfully! ${exportResult.stats.fileCount} files generated.`);
+
+                console.log('✅ Standalone project export completed:', exportResult);
+            } else {
+                throw new Error(exportResult.error || 'Export failed');
+            }
+
+        } catch (error) {
+            console.error('❌ Project export failed:', error);
+            this.updateProjectExportStatus('error', '❌',
+                `Export failed: ${error.message}`);
+        }
+    }
+
+    updateProjectExportStatus(type, icon, message) {
+        const statusIcon = document.querySelector('#project-export-status .status-icon');
+        const statusText = document.querySelector('#project-export-status .status-text');
+
+        if (statusIcon) statusIcon.textContent = icon;
+        if (statusText) statusText.textContent = message;
+
+        // Update CSS class for styling
+        const statusElement = document.getElementById('project-export-status');
+        if (statusElement) {
+            statusElement.className = `export-status ${type}`;
+        }
     }
     
     /**

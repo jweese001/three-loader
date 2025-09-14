@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step-by-Step MatCap Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .step {
+            background: #2d2d2d;
+            border-left: 4px solid #666;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .step.current {
+            border-left-color: #ffaa00;
+            background: #3d3d2d;
+        }
+        .step.success {
+            border-left-color: #00ff00;
+            background: #2d3d2d;
+        }
+        .step.fail {
+            border-left-color: #ff0000;
+            background: #3d2d2d;
+        }
+        .test-info {
+            background: #0d47a1;
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #3367d6;
+        }
+        .console-output {
+            background: #000;
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Step-by-Step MatCap Test Protocol</h1>
+
+    <div class="test-info">
+        <h3>Test Objective</h3>
+        <p>Systematically test the MatCap From-To UI workflow to see if the fix actually works. I will document each step and any failures.</p>
+    </div>
+
+    <div class="step" id="step1">
+        <h4>Step 1: Open Main Application</h4>
+        <p>Load the three-loader app and verify it loads without errors</p>
+        <button onclick="openMainApp()">Open Main App</button>
+        <div id="step1-result"></div>
+    </div>
+
+    <div class="step" id="step2">
+        <h4>Step 2: Load Primitive Object</h4>
+        <p>Create a sphere primitive to test with</p>
+        <ul>
+            <li>Go to Load Objects panel</li>
+            <li>Select "Sphere" from primitive dropdown</li>
+            <li>Click "Load Primitive" button</li>
+        </ul>
+        <button onclick="markStep(2, 'success')">✅ Sphere Loaded</button>
+        <button onclick="markStep(2, 'fail')">❌ Failed</button>
+        <div id="step2-result"></div>
+    </div>
+
+    <div class="step" id="step3">
+        <h4>Step 3: Apply MatCap Material</h4>
+        <p>Change material type to MatCap and load a texture</p>
+        <ul>
+            <li>In Material section, change type to "MatCap"</li>
+            <li>Click "Load" button next to texture preview</li>
+            <li>Select any MatCap texture file</li>
+            <li>Verify texture appears in preview and viewport</li>
+        </ul>
+        <button onclick="markStep(3, 'success')">✅ MatCap Applied</button>
+        <button onclick="markStep(3, 'fail')">❌ Failed</button>
+        <div id="step3-result"></div>
+    </div>
+
+    <div class="step" id="step4">
+        <h4>Step 4: Generate Code (From UI)</h4>
+        <p>Generate Three.js code from the current UI state</p>
+        <ul>
+            <li>Click "From UI" button in code editor</li>
+            <li>Verify code appears in Monaco editor</li>
+            <li>Check if MatCap material code is generated correctly</li>
+            <li>Look for "MeshMatcapMaterial" and texture loading</li>
+        </ul>
+        <button onclick="markStep(4, 'success')">✅ Code Generated</button>
+        <button onclick="markStep(4, 'fail')">❌ Failed</button>
+        <div id="step4-result"></div>
+    </div>
+
+    <div class="step" id="step5">
+        <h4>Step 5: Execute Code (To UI) - THE CRITICAL TEST</h4>
+        <p>Execute the generated code and see if MatCap persists</p>
+        <ul>
+            <li>Click "To UI" button in code editor</li>
+            <li>Watch browser console for any errors</li>
+            <li>Check if MatCap texture is still visible in viewport</li>
+            <li>Check if texture preview is still shown in UI</li>
+            <li>Check if material type is still "MatCap"</li>
+        </ul>
+        <button onclick="markStep(5, 'success')">✅ MatCap Persisted</button>
+        <button onclick="markStep(5, 'fail')">❌ MatCap Lost</button>
+        <div id="step5-result"></div>
+    </div>
+
+    <div class="step" id="step6">
+        <h4>Step 6: Verify UI State</h4>
+        <p>Double-check that all UI elements are properly updated</p>
+        <ul>
+            <li>Material type dropdown shows "MatCap"</li>
+            <li>Texture preview shows the correct image</li>
+            <li>Texture filename is displayed</li>
+            <li>Object can be selected and material edited</li>
+        </ul>
+        <button onclick="markStep(6, 'success')">✅ UI Correct</button>
+        <button onclick="markStep(6, 'fail')">❌ UI Issues</button>
+        <div id="step6-result"></div>
+    </div>
+
+    <div class="test-info">
+        <h3>Test Results Summary</h3>
+        <div id="test-summary">
+            <p>Complete all steps above to get the final result.</p>
+        </div>
+    </div>
+
+    <div class="test-info">
+        <h3>Console Monitoring</h3>
+        <p>Watch for these key console messages during testing:</p>
+        <div class="console-output">
+🎨 Updating materials from code: X materials
+🎨 Processing material: [object]
+✅ Material processing complete for: MeshMatcapMaterial
+🎨 Updating material UI from code execution
+✅ MatCap UI updated from code execution
+
+Error messages to watch for:
+❌ updateMaterialsFromCode is not a function
+❌ Cannot read property 'matcap' of undefined
+❌ Failed to update material UI from code
+        </div>
+    </div>
+
+    <script>
+        function openMainApp() {
+            window.open('http://localhost:5174/', '_blank');
+            markStep(1, 'success');
+            document.getElementById('step1-result').innerHTML = '<p>✅ App opened in new tab</p>';
+        }
+
+        function markStep(stepNum, status) {
+            const step = document.getElementById(`step${stepNum}`);
+            step.className = `step ${status}`;
+
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const steps = document.querySelectorAll('.step');
+            let completed = 0;
+            let passed = 0;
+            let failed = 0;
+
+            steps.forEach(step => {
+                if (step.classList.contains('success')) {
+                    completed++;
+                    passed++;
+                } else if (step.classList.contains('fail')) {
+                    completed++;
+                    failed++;
+                }
+            });
+
+            const summary = document.getElementById('test-summary');
+
+            if (completed === 0) {
+                summary.innerHTML = '<p>🔄 Test not started yet</p>';
+            } else if (completed < 6) {
+                summary.innerHTML = `<p>🔄 Test in progress: ${completed}/6 steps completed (${passed} passed, ${failed} failed)</p>`;
+            } else {
+                const finalResult = failed === 0 ? 'PASS' : 'FAIL';
+                const emoji = failed === 0 ? '✅' : '❌';
+                summary.innerHTML = `
+                    <h4>${emoji} Final Result: ${finalResult}</h4>
+                    <p>Steps completed: ${completed}/6</p>
+                    <p>Passed: ${passed}, Failed: ${failed}</p>
+                    ${failed === 0 ?
+                        '<p><strong>🎉 MatCap persistence fix is working!</strong></p>' :
+                        '<p><strong>💔 MatCap persistence still has issues</strong></p>'}
+                `;
+            }
+        }
+
+        // Initialize
+        updateSummary();
+    </script>
+</body>
+</html>

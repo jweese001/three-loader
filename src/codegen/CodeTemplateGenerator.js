@@ -436,13 +436,33 @@ export class CodeTemplateGenerator {
         const lines = [];
         const loaderVar = `objLoader${objectVar.slice(-1)}`;
         const materialVar = `material${objectVar.slice(-1)}`;
-        const fileName = objectData.fileName || objectData.originalFileName || 'unknown.obj';
-        
-        // Create OBJ loader
-        lines.push(`const ${loaderVar} = new THREE.OBJLoader();`);
-        
-        // Generate material for OBJ
+
+        // Use project-relative path if available, fallback to original filename
+        const fileName = objectData.projectAssetInfo?.storedPath ||
+                         objectData.fileName ||
+                         objectData.originalFileName ||
+                         'unknown.obj';
+
+        // Calculate transform values
+        const transform = objectData.transform || {};
+        const pos = transform.position ? [transform.position.x || 0, transform.position.y || 0, transform.position.z || 0] :
+                   objectData.position || [0, 0, 0];
+        const rot = transform.rotation ? [transform.rotation.x || 0, transform.rotation.y || 0, transform.rotation.z || 0] :
+                   objectData.rotation || [0, 0, 0];
+        const scale = transform.scale ? [transform.scale.x || 1, transform.scale.y || 1, transform.scale.z || 1] :
+                     objectData.scale || [1, 1, 1];
+
+        // Generate material for OBJ (outside conditional so it's always available)
         lines.push(this.generateSimpleMaterialCode(objectData.material, materialVar));
+
+        // Create OBJ loader with error handling - try multiple approaches
+        lines.push(`// Try to access OBJLoader from multiple locations`);
+        lines.push(`const OBJLoaderClass = THREE.OBJLoader || window.OBJLoader || window.THREEClasses?.OBJLoader;`);
+        lines.push(`if (typeof OBJLoaderClass !== 'function') {`);
+        lines.push(`    console.error('❌ OBJLoader is not available. Cannot load OBJ file.');`);
+        lines.push(`    console.warn('⚠️ Skipping OBJ loading for ${fileName}');`);
+        lines.push(`} else {`);
+        lines.push(`const ${loaderVar} = new OBJLoaderClass();`);
         
         // Load OBJ file asynchronously
         lines.push(`${loaderVar}.load('${fileName}',`);
@@ -455,21 +475,13 @@ export class CodeTemplateGenerator {
         lines.push(`                child.receiveShadow = true;`);
         lines.push(`            }`);
         lines.push(`        });`);
-        
-        // Apply transform
-        const transform = objectData.transform || {};
-        const pos = transform.position ? [transform.position.x || 0, transform.position.y || 0, transform.position.z || 0] : 
-                   objectData.position || [0, 0, 0];
-        const rot = transform.rotation ? [transform.rotation.x || 0, transform.rotation.y || 0, transform.rotation.z || 0] : 
-                   objectData.rotation || [0, 0, 0];
-        const scale = transform.scale ? [transform.scale.x || 1, transform.scale.y || 1, transform.scale.z || 1] : 
-                     objectData.scale || [1, 1, 1];
-        
+
+        // Apply transform (using previously calculated values)
         lines.push(`        loadedObject.position.set(${pos[0]}, ${pos[1]}, ${pos[2]});`);
         lines.push(`        loadedObject.rotation.set(${rot[0]}, ${rot[1]}, ${rot[2]});`);
         lines.push(`        loadedObject.scale.set(${scale[0]}, ${scale[1]}, ${scale[2]});`);
         lines.push(`        loadedObject.name = '${objectData.name || `Object${objectVar.slice(-1)}`}';`);
-        
+
         // Store animation data if present
         if (objectData.animation && objectData.animation.type !== 'none') {
             lines.push(`        loadedObject.userData.animation = {`);
@@ -488,7 +500,8 @@ export class CodeTemplateGenerator {
         lines.push(`        console.error('❌ Failed to load OBJ:', '${fileName}', error);`);
         lines.push(`    }`);
         lines.push(`);`);
-        
+        lines.push(`}  // End OBJLoader availability check`);
+
         return lines.join('\n');
     }
     
@@ -499,10 +512,13 @@ export class CodeTemplateGenerator {
      * @returns {string} Material creation code
      */
     generateSimpleMaterialCode(materialData, varName) {
+        console.log('🔍 DEBUG: generateSimpleMaterialCode called with materialData:', materialData);
+        console.log('🔍 DEBUG: Material type:', materialData?.type);
+
         if (!materialData) {
             return `const ${varName} = new THREE.MeshStandardMaterial({ color: 0x00ff00 });`;
         }
-        
+
         const type = materialData.type || 'standard';
         const color = materialData.color || '#00ff00';
         const wireframe = materialData.wireframe || false;
@@ -524,18 +540,106 @@ export class CodeTemplateGenerator {
                 const metalness = materialData.metalness || 0.0;
                 return textureCode + `const ${varName} = new THREE.MeshPhysicalMaterial({ color: '${color}', wireframe: ${wireframe}, opacity: ${opacity}, transparent: ${transparent}, roughness: ${roughness}, metalness: ${metalness}${this.getTextureMapCode(materialData)} });`;
             case 'matcap':
-                // Check for matcap texture from different possible sources
-                let matcapTexture = materialData.matcap || materialData.matcapTexture || materialData.texture?.filename;
-                
-                // Fix incomplete texture paths for MatCap textures
-                if (matcapTexture && !matcapTexture.startsWith('MatCap-Textures/') && !matcapTexture.startsWith('http')) {
-                    // If it's just a filename, try to construct the full path
+                // Debug: Log the entire material data structure
+                console.log('🔍 DEBUG: Complete materialData structure:', materialData);
+                console.log('🔍 DEBUG: materialData.matcap:', materialData.matcap);
+                console.log('🔍 DEBUG: materialData.matcapTexture:', materialData.matcapTexture);
+                console.log('🔍 DEBUG: materialData.texture:', materialData.texture);
+
+                // Check for texture from centralized asset management or legacy sources
+                let matcapTexture = materialData.matcap || materialData.matcapTexture || materialData.texture?.codePath || materialData.texture?.fullPath || materialData.texture?.filename;
+
+                console.log('🔍 DEBUG: Initial matcapTexture value:', matcapTexture);
+                console.log('🔍 DEBUG: materialData.texture details:', materialData.texture);
+
+                // If texture has a file object, check its properties
+                if (materialData.texture?.file) {
+                    console.log('🔍 DEBUG: texture.file properties:', {
+                        name: materialData.texture.file.name,
+                        webkitRelativePath: materialData.texture.file.webkitRelativePath,
+                        path: materialData.texture.file.path,
+                        lastModified: materialData.texture.file.lastModified
+                    });
+                }
+
+                // Use centralized asset management path if available
+                if (materialData.texture?.codePath) {
+                    matcapTexture = materialData.texture.codePath;
+                    console.log(`🎨 Using centralized asset management path: ${matcapTexture}`);
+                }
+                // Legacy path reconstruction for old texture system
+                else if (matcapTexture && !matcapTexture.startsWith('MatCap-Textures/') && !matcapTexture.startsWith('http') && !matcapTexture.startsWith('./textures/')) {
+                    // If it's just a filename, we need to reconstruct the full path
                     if (matcapTexture.includes('.webp') || matcapTexture.includes('.jpg') || matcapTexture.includes('.png')) {
-                        // For common MatCap naming patterns, assume it's in the gray folder
-                        matcapTexture = `MatCap-Textures/gray/${matcapTexture}`;
+
+                        // Strategy 1: Check stored fullPath from enhanced texture data
+                        if (materialData.texture?.fullPath && materialData.texture.fullPath !== materialData.texture?.filename) {
+                            matcapTexture = materialData.texture.fullPath;
+                            console.log(`🎨 Using stored fullPath: ${matcapTexture}`);
+                        }
+                        // Strategy 1.5: Use detected folder from file selection
+                        else if (materialData.texture?.detectedFolder) {
+                            matcapTexture = `MatCap-Textures/${materialData.texture.detectedFolder}/${matcapTexture}`;
+                            console.log(`🎨 Using detected folder: ${materialData.texture.detectedFolder}, path: ${matcapTexture}`);
+                        }
+                        // Strategy 2: Check webkitRelativePath from File object
+                        else if (materialData.texture?.file?.webkitRelativePath && materialData.texture.file.webkitRelativePath.includes('MatCap-Textures/')) {
+                            matcapTexture = materialData.texture.file.webkitRelativePath;
+                            console.log(`🎨 Using webkitRelativePath: ${matcapTexture}`);
+                        }
+                        // Strategy 3: Check for full path in other properties
+                        else if (materialData.matcapTexture && materialData.matcapTexture.includes('MatCap-Textures/')) {
+                            matcapTexture = materialData.matcapTexture;
+                            console.log(`🎨 Using stored matcapTexture path: ${matcapTexture}`);
+                        }
+                        // Strategy 4: Check texture.path property
+                        else if (materialData.texture?.path && materialData.texture.path.includes('MatCap-Textures/')) {
+                            matcapTexture = materialData.texture.path;
+                            console.log(`🎨 Using texture.path: ${matcapTexture}`);
+                        }
+                        // Strategy 5: Try to infer folder from filename patterns (common MatCap naming)
+                        else {
+                            // Common MatCap folders and their typical filename patterns
+                            const matcapFolders = [
+                                'gold', 'silver', 'blue', 'red', 'green', 'purple', 'orange', 'pink', 'yellow',
+                                'black', 'white', 'gray', 'grey', 'brown', 'metals', 'diamonds', 'iridescent',
+                                'skin', 'toon', 'ultra-realistic'
+                            ];
+
+                            // Try to infer folder from current selection or filename
+                            let inferredFolder = 'gray'; // fallback
+
+                            // Check if filename contains folder hints
+                            const lowerFilename = matcapTexture.toLowerCase();
+                            for (const folder of matcapFolders) {
+                                if (lowerFilename.includes(folder)) {
+                                    inferredFolder = folder;
+                                    break;
+                                }
+                            }
+
+                            matcapTexture = `MatCap-Textures/${inferredFolder}/${matcapTexture}`;
+                            console.warn(`⚠️ MatCap folder inferred as '${inferredFolder}' from filename. Path: ${matcapTexture}`);
+                            console.warn(`⚠️ If this is incorrect, please select MatCap textures from the proper folder structure`);
+                        }
                     }
                 }
-                
+
+                // Validate and fix problematic texture paths
+                if (matcapTexture && matcapTexture.includes('./textures/') && matcapTexture.includes('-')) {
+                    // This looks like a UUID-based path that's invalid - try to fix it
+                    const filename = matcapTexture.split('/').pop();
+                    if (filename && filename.includes('.webp')) {
+                        // Extract the actual filename part (after the last dash)
+                        const parts = filename.split('-');
+                        if (parts.length > 1) {
+                            const actualFilename = parts[parts.length - 1]; // e.g., "04.webp"
+                            matcapTexture = `MatCap-Textures/gray/gray_${actualFilename}`;
+                            console.warn(`🔧 Fixed invalid texture path to: ${matcapTexture}`);
+                        }
+                    }
+                }
+
                 const matcapMap = matcapTexture ? `, matcap: texture_${varName}_matcap` : '';
                 const matcapTextureCode = matcapTexture ? `const texture_${varName}_matcap = new THREE.TextureLoader().load('${matcapTexture}');\n` : '';
                 return matcapTextureCode + `const ${varName} = new THREE.MeshMatcapMaterial({ color: '${color}', opacity: ${opacity}, transparent: ${transparent}${matcapMap} });`;
@@ -556,17 +660,40 @@ export class CodeTemplateGenerator {
     generateTextureLoadingCode(materialData, varName) {
         const lines = [];
         const textureLoader = `textureLoader_${varName}`;
-        
-        // Check if any textures are used
-        const hasTextures = materialData.map || materialData.normalMap || materialData.roughnessMap || 
-                          materialData.metalnessMap || materialData.aoMap || materialData.matcap;
-        
+
+        // Get texture path from centralized asset management or fallback to direct paths
+        const getTexturePath = (textureProperty) => {
+            // Priority 1: Use project-relative path from centralized asset management
+            if (materialData.texture?.storedPath) {
+                return materialData.texture.storedPath;
+            }
+            // Priority 2: Use legacy codePath
+            if (materialData.texture?.codePath) {
+                return materialData.texture.codePath;
+            }
+            // Priority 3: Use specific texture property path
+            if (textureProperty) {
+                return textureProperty;
+            }
+            return null;
+        };
+
+        // Check if any textures are used (including new centralized system)
+        const hasTextures = materialData.map || materialData.normalMap || materialData.roughnessMap ||
+                          materialData.metalnessMap || materialData.aoMap || materialData.matcap ||
+                          materialData.texture?.codePath;
+
         if (hasTextures) {
             lines.push(`const ${textureLoader} = new THREE.TextureLoader();`);
-            
-            if (materialData.map) {
-                lines.push(`const texture_${varName}_map = ${textureLoader}.load('${materialData.map}');`);
+
+            // Handle main texture (map property) - most common case
+            const mainTexturePath = getTexturePath(materialData.map);
+            if (mainTexturePath) {
+                lines.push(`const texture_${varName}_map = ${textureLoader}.load('${mainTexturePath}');`);
+                console.log(`🎨 Generated texture loading code with centralized path: ${mainTexturePath}`);
             }
+
+            // Handle other texture types
             if (materialData.normalMap) {
                 lines.push(`const texture_${varName}_normal = ${textureLoader}.load('${materialData.normalMap}');`);
             }
@@ -579,13 +706,15 @@ export class CodeTemplateGenerator {
             if (materialData.aoMap) {
                 lines.push(`const texture_${varName}_ao = ${textureLoader}.load('${materialData.aoMap}');`);
             }
+
+            // Handle MatCap texture (using existing matcap logic)
             if (materialData.matcap) {
                 lines.push(`const texture_${varName}_matcap = ${textureLoader}.load('${materialData.matcap}');`);
             }
-            
+
             return lines.join('\n') + '\n';
         }
-        
+
         return '';
     }
     
@@ -596,13 +725,18 @@ export class CodeTemplateGenerator {
      */
     getTextureMapCode(materialData) {
         const maps = [];
-        
-        if (materialData.map) maps.push(`map: texture_${materialData.varName || 'material'}_map`);
-        if (materialData.normalMap) maps.push(`normalMap: texture_${materialData.varName || 'material'}_normal`);
-        if (materialData.roughnessMap) maps.push(`roughnessMap: texture_${materialData.varName || 'material'}_roughness`);
-        if (materialData.metalnessMap) maps.push(`metalnessMap: texture_${materialData.varName || 'material'}_metalness`);
-        if (materialData.aoMap) maps.push(`aoMap: texture_${materialData.varName || 'material'}_ao`);
-        
+        const varName = materialData.varName || 'material';
+
+        // Check for main texture from centralized asset management or direct property
+        if (materialData.map || materialData.texture?.codePath) {
+            maps.push(`map: texture_${varName}_map`);
+        }
+
+        if (materialData.normalMap) maps.push(`normalMap: texture_${varName}_normal`);
+        if (materialData.roughnessMap) maps.push(`roughnessMap: texture_${varName}_roughness`);
+        if (materialData.metalnessMap) maps.push(`metalnessMap: texture_${varName}_metalness`);
+        if (materialData.aoMap) maps.push(`aoMap: texture_${varName}_ao`);
+
         return maps.length > 0 ? `, ${maps.join(', ')}` : '';
     }
     
@@ -813,16 +947,22 @@ ${objectDefinitions}`;
      * Generate individual object definition
      */
     generateObjectDefinition(objectData, index, includeComments) {
-        const { name, fileName, transform, stats, isPrimitive, primitiveType } = objectData;
+        const { name, transform, stats, isPrimitive, primitiveType } = objectData;
         const varName = this.sanitizeVariableName(name);
         const materialRef = `MATERIAL_${index + 1}`;
-        
+
+        // Use project-relative path if available, fallback to original filename
+        const fileName = objectData.projectAssetInfo?.storedPath ||
+                         objectData.fileName ||
+                         objectData.originalFileName ||
+                         'unknown.obj';
+
         // Provide defaults if transform is null or missing properties
         const safeTransform = transform || {};
         const position = safeTransform.position || { x: 0, y: 0, z: 0 };
         const rotation = safeTransform.rotation || { x: 0, y: 0, z: 0 };
         const scale = safeTransform.scale || { x: 1, y: 1, z: 1 };
-        
+
         const guide = includeComments ? `    // 💡 Edit these transform values for instant positioning changes!` : '';
         const statsComment = includeComments && stats ? `    // 📊 Stats: ${stats.meshes} meshes, ${stats.vertices} vertices, ${stats.faces} faces` : '';
         

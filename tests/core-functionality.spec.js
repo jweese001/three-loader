@@ -33,6 +33,7 @@ test.describe('Phase 2: Core Functionality', () => {
 
     // Select 'Box Geometry' from the primitive dropdown.
     await page.getByLabel('Select Geometry').selectOption('Box Geometry');
+    await page.waitForFunction(() => document.getElementById('add-primitive-btn') && !document.getElementById('add-primitive-btn').disabled);
 
     // Click the button to add the primitive to the scene
     await page.getByRole('button', { name: 'Add to Scene' }).click();

@@ -1,0 +1,262 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - heading "3/LOADER v0.0.6" [level=1] [ref=e5]:
+        - text: 3/LOADER
+        - generic [ref=e6]: v0.0.6
+      - navigation [ref=e7]:
+        - button "View" [ref=e8] [cursor=pointer]
+        - button "Export" [ref=e9] [cursor=pointer]
+        - button "Clear" [ref=e10] [cursor=pointer]
+        - button "Hide UI" [ref=e11]
+    - text: ✓
+    - main [ref=e12]:
+      - generic [ref=e17]:
+        - button "🏠" [ref=e18]
+        - button "🔲" [ref=e19]
+        - button "⛶" [ref=e20]
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - button "Save" [ref=e24] [cursor=pointer]
+            - button "Load" [ref=e25] [cursor=pointer]
+            - button "From UI" [active] [ref=e26] [cursor=pointer]
+            - button "To UI" [ref=e27] [cursor=pointer]
+          - generic [ref=e29]: Ready
+        - code [ref=e31]:
+          - generic [ref=e32]:
+            - generic [ref=e34]:
+              - generic [ref=e37]: "1"
+              - generic [ref=e41]: "2"
+              - generic [ref=e43]: "3"
+              - generic [ref=e45]: "4"
+              - generic [ref=e47]: "5"
+              - generic [ref=e49]: "6"
+              - generic [ref=e52]: "7"
+              - generic [ref=e56]: "8"
+              - generic [ref=e58]: "9"
+              - generic [ref=e60]: "10"
+              - generic [ref=e62]: "11"
+              - generic [ref=e64]: "12"
+              - generic [ref=e65]:
+                - generic [ref=e66] [cursor=pointer]: 
+                - generic [ref=e67]: "13"
+              - generic [ref=e69]: "14"
+              - generic [ref=e71]: "15"
+              - generic [ref=e73]: "16"
+              - generic [ref=e75]: "17"
+              - generic [ref=e77]: "18"
+              - generic [ref=e79]: "19"
+              - generic [ref=e81]: "20"
+              - generic [ref=e82]:
+                - generic [ref=e83] [cursor=pointer]: 
+                - generic [ref=e84]: "21"
+              - generic [ref=e86]: "22"
+              - generic [ref=e88]: "23"
+              - generic [ref=e90]: "24"
+              - generic [ref=e92]: "25"
+              - generic [ref=e94]:
+                - generic [ref=e95] [cursor=pointer]: 
+                - generic [ref=e96]: "26"
+              - generic [ref=e98]: "27"
+            - generic [ref=e154]:
+              - generic [ref=e157]: // 🔄 Three.js Sync Code - Generated
+              - generic [ref=e160]: 2025-09-13T23:54:34.311Z
+              - generic [ref=e163]: "// Objects: 1"
+              - generic [ref=e166]: // This code is designed for UI synchronization
+              - generic [ref=e170]: // Create Torus Knot_1 (primitive torusKnot)
+              - generic [ref=e172]:
+                - generic [ref=e173]: const
+                - generic [ref=e174]: geometry1
+                - generic [ref=e175]: =
+                - generic [ref=e177]: new
+                - generic [ref=e179]: THREE
+                - generic [ref=e180]: .
+                - generic [ref=e181]: TorusKnotGeometry
+                - generic [ref=e182]: (
+                - generic [ref=e183]: "1"
+                - generic [ref=e184]: ","
+                - generic [ref=e186]: "0."
+              - generic [ref=e188]:
+                - generic [ref=e189]: "3"
+                - generic [ref=e190]: ","
+                - generic [ref=e192]: "100"
+                - generic [ref=e193]: ","
+                - generic [ref=e195]: "16"
+                - generic [ref=e196]: )
+                - generic [ref=e197]: ;
+              - generic [ref=e199]:
+                - generic [ref=e200]: const
+                - generic [ref=e201]: material1
+                - generic [ref=e202]: =
+                - generic [ref=e204]: new
+                - generic [ref=e206]: THREE
+                - generic [ref=e207]: .
+                - generic [ref=e208]: MeshPhongMaterial
+                - generic [ref=e209]: (
+                - generic [ref=e210]: "{"
+              - generic [ref=e213]:
+                - generic [ref=e214]: color
+                - generic [ref=e215]: ":"
+                - generic [ref=e217]: "'#e44e4e'"
+                - generic [ref=e218]: ","
+                - generic [ref=e219]: wireframe
+                - generic [ref=e220]: ":"
+                - generic [ref=e222]: "false"
+                - generic [ref=e223]: ","
+                - generic [ref=e224]: opacity
+                - generic [ref=e225]: ":"
+                - generic [ref=e227]: "1"
+                - generic [ref=e228]: ","
+              - generic [ref=e231]:
+                - generic [ref=e232]: transparent
+                - generic [ref=e233]: ":"
+                - generic [ref=e235]: "false"
+                - generic [ref=e237]: "}"
+                - generic [ref=e238]: )
+                - generic [ref=e239]: ;
+              - generic [ref=e241]:
+                - generic [ref=e242]: const
+                - generic [ref=e243]: object1
+                - generic [ref=e244]: =
+                - generic [ref=e246]: new
+                - generic [ref=e248]: THREE
+                - generic [ref=e249]: .
+                - generic [ref=e250]: Mesh
+                - generic [ref=e251]: (
+                - generic [ref=e252]: geometry1
+                - generic [ref=e253]: ","
+                - generic [ref=e254]: material1
+                - generic [ref=e255]: )
+                - generic [ref=e256]: ;
+              - generic [ref=e258]:
+                - generic [ref=e259]: object1
+                - generic [ref=e260]: .
+                - generic [ref=e261]: position
+                - generic [ref=e262]: .
+                - generic [ref=e263]: set
+                - generic [ref=e264]: (
+                - generic [ref=e265]: "0"
+                - generic [ref=e266]: ","
+                - generic [ref=e268]: "0"
+                - generic [ref=e269]: ","
+                - generic [ref=e271]: "0"
+                - generic [ref=e272]: )
+                - generic [ref=e273]: ;
+              - generic [ref=e275]:
+                - generic [ref=e276]: object1
+                - generic [ref=e277]: .
+                - generic [ref=e278]: rotation
+                - generic [ref=e279]: .
+                - generic [ref=e280]: set
+                - generic [ref=e281]: (
+                - generic [ref=e282]: "0"
+                - generic [ref=e283]: ","
+                - generic [ref=e285]: "0"
+                - generic [ref=e286]: ","
+                - generic [ref=e288]: "0"
+                - generic [ref=e289]: )
+                - generic [ref=e290]: ;
+              - generic [ref=e292]:
+                - generic [ref=e293]: object1
+                - generic [ref=e294]: .
+                - generic [ref=e295]: scale
+                - generic [ref=e296]: .
+                - generic [ref=e297]: set
+                - generic [ref=e298]: (
+                - generic [ref=e299]: "1"
+                - generic [ref=e300]: ","
+                - generic [ref=e302]: "1"
+                - generic [ref=e303]: ","
+                - generic [ref=e305]: "1"
+                - generic [ref=e306]: )
+                - generic [ref=e307]: ;
+              - generic [ref=e309]:
+                - generic [ref=e310]: object1
+                - generic [ref=e311]: .
+                - generic [ref=e312]: name
+                - generic [ref=e313]: =
+                - generic [ref=e315]: "'Torus Knot_1'"
+                - generic [ref=e316]: ;
+              - generic [ref=e318]:
+                - generic [ref=e319]: object1
+                - generic [ref=e320]: .
+                - generic [ref=e321]: userData
+                - generic [ref=e322]: .
+                - generic [ref=e323]: animation
+                - generic [ref=e324]: =
+                - generic [ref=e326]: "{"
+              - generic [ref=e328]:
+                - generic [ref=e329]: type
+                - generic [ref=e330]: ":"
+                - generic [ref=e332]: "'rotate-y'"
+                - generic [ref=e333]: ","
+              - generic [ref=e335]:
+                - generic [ref=e336]: speed
+                - generic [ref=e337]: ":"
+                - generic [ref=e339]: "0.01"
+              - generic [ref=e341]:
+                - generic [ref=e342]: "}"
+                - generic [ref=e343]: ;
+              - generic [ref=e345]:
+                - generic [ref=e346]: scene
+                - generic [ref=e347]: .
+                - generic [ref=e348]: add
+                - generic [ref=e349]: (
+                - generic [ref=e350]: object1
+                - generic [ref=e351]: )
+                - generic [ref=e352]: ;
+              - generic [ref=e356]: // 🎬 Animation Loop
+              - generic [ref=e358]:
+                - generic [ref=e359]: // Animate 1 objects with different animation type
+                - generic [ref=e360]: s
+              - generic [ref=e362]:
+                - generic [ref=e363]: function
+                - generic [ref=e364]: animate
+                - generic [ref=e365]: (
+                - generic [ref=e366]: )
+                - generic [ref=e368]: "{"
+              - generic [ref=e370]:
+                - generic [ref=e371]: requestAnimationFrame
+                - generic [ref=e372]: (
+                - generic [ref=e373]: animate
+                - generic [ref=e374]: )
+                - generic [ref=e375]: ;
+              - generic [ref=e380]: // Animate Torus Knot_1 (rotate-y)
+              - generic [ref=e382]:
+                - generic [ref=e384]: const
+                - generic [ref=e385]: object1Ref
+                - generic [ref=e386]: =
+                - generic [ref=e387]: scene
+                - generic [ref=e388]: .
+                - generic [ref=e389]: getObjectByName
+                - generic [ref=e390]: (
+                - generic [ref=e391]: "'Torus"
+              - generic [ref=e393]:
+                - generic [ref=e395]: Knot_1'
+                - generic [ref=e396]: )
+                - generic [ref=e397]: ;
+              - generic [ref=e399]:
+                - generic [ref=e401]: if
+                - generic [ref=e403]: (
+                - generic [ref=e404]: object1Ref
+                - generic [ref=e405]: )
+                - generic [ref=e407]: "{"
+              - generic [ref=e409]:
+                - generic [ref=e410]: object1Ref
+                - generic [ref=e411]: .
+                - generic [ref=e412]: rotation
+                - generic [ref=e413]: .
+                - generic [ref=e414]: "y"
+                - generic [ref=e415]: +=
+                - generic [ref=e417]: "0.01"
+                - generic [ref=e418]: ;
+            - textbox "Editor content" [ref=e420]: "// 🔄 Three.js Sync Code - Generated 2025-09-13T23:54:34.311Z // Objects: 1 // This code is designed for UI synchronization // Create Torus Knot_1 (primitive torusKnot) const geometry1 = new THREE.TorusKnotGeometry(1, 0.3, 100, 16); const material1 = new THREE.MeshPhongMaterial({ color: '#e44e4e', wireframe: false, opacity: 1,"
+  - generic [ref=e426]:
+    - alert
+    - alert
+  - generic [ref=e427]: ✅ UI successfully synced to code!
+```
