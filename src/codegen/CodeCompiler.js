@@ -280,22 +280,13 @@ export class CodeCompiler {
         const context = {
             // Provide current scene objects as context
             currentScene: this.serializeCurrentScene(),
-            
+
             // Execution options
             preserveExisting: options.preserveExisting !== false,
-            clearScene: options.clearScene === true,
-            
-            // Helper functions available in sandbox
-            helpers: {
-                deg2rad: (degrees) => degrees * (Math.PI / 180),
-                rad2deg: (radians) => radians * (180 / Math.PI),
-                randomColor: () => Math.random() * 0xffffff,
-                randomPosition: (range = 10) => [
-                    (Math.random() - 0.5) * range,
-                    (Math.random() - 0.5) * range,
-                    (Math.random() - 0.5) * range
-                ]
-            }
+            clearScene: options.clearScene === true
+
+            // Note: Helper functions (deg2rad, rad2deg, etc.) are now defined
+            // directly in the CodeSandbox worker to avoid DataCloneError
         };
         
         return context;

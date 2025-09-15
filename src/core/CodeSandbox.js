@@ -223,7 +223,17 @@ function createExecutionContext(context = {}) {
             const canvas = new OffscreenCanvas(width, height);
             return new THREE.WebGLRenderer({ canvas });
         },
-        
+
+        // Helper functions (moved from CodeCompiler to avoid DataCloneError)
+        deg2rad: (degrees) => degrees * (Math.PI / 180),
+        rad2deg: (radians) => radians * (180 / Math.PI),
+        randomColor: () => Math.random() * 0xffffff,
+        randomPosition: (range = 10) => [
+            (Math.random() - 0.5) * range,
+            (Math.random() - 0.5) * range,
+            (Math.random() - 0.5) * range
+        ],
+
         // Results container
         __results: {}
     };
